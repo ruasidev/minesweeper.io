@@ -22,7 +22,8 @@ export default function ThemeSelector({
             }`}
             style={{ backgroundColor: t.menuBg }}
           >
-            <span className="text-xs mb-1 text-white">{t.name}</span>
+            <span className="text-xs mb-1 text-black">{t.name}</span>
+            <span className="text-xs mb-1 text-black">By: {t.credits}</span>
             <div className="flex gap-1">
               <span className="w-4 h-4 rounded" style={{ backgroundColor: t.background }} />
               <span className="w-4 h-4 rounded" style={{ backgroundColor: t.cellCovered }} />

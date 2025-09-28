@@ -7,6 +7,7 @@ import type { Theme } from "./game/types"
 const themes: Theme[] = [
   {
     name: "Classic",
+    credits: "ChatGPT",
     background: "#242424",
     menuBg: "#1f2937",
     menuBorder: "#374151",
@@ -16,6 +17,7 @@ const themes: Theme[] = [
   },
   {
     name: "Ocean",
+    credits: "ChatGPT",
     background: "#0f172a",
     menuBg: "#1e293b",
     menuBorder: "#334155",
@@ -25,6 +27,7 @@ const themes: Theme[] = [
   },
   {
     name: "Forest",
+    credits: "ChatGPT",
     background: "#1a1f1a",
     menuBg: "#064e3b",
     menuBorder: "#065f46",
@@ -34,6 +37,7 @@ const themes: Theme[] = [
   },
   {
     name: "Retro",
+    credits: "ChatGPT",
     background: "#2d1b4e",
     menuBg: "#3b0764",
     menuBorder: "#581c87",
@@ -43,6 +47,7 @@ const themes: Theme[] = [
   },
   {
     name: "Solarized",
+    credits: "ChatGPT",
     background: "#002b36",
     menuBg: "#073642",
     menuBorder: "#586e75",
@@ -52,6 +57,7 @@ const themes: Theme[] = [
   },
   {
     name: "Pastel",
+    credits: "ChatGPT",
     background: "#fdf6f0",
     menuBg: "#f5e6e8",
     menuBorder: "#e3bac6",
@@ -61,6 +67,7 @@ const themes: Theme[] = [
   },
   {
     name: "Neon",
+    credits: "ChatGPT",
     background: "#0d0d0d",
     menuBg: "#111827",
     menuBorder: "#1f2937",
@@ -70,6 +77,7 @@ const themes: Theme[] = [
   },
   {
     name: "Desert",
+    credits: "ChatGPT",
     background: "#ede0d4",
     menuBg: "#ddb892",
     menuBorder: "#b08968",
@@ -77,6 +85,16 @@ const themes: Theme[] = [
     cellRevealed: "#e6ccb2",
     cellFlagged: "#9c6644",
   },
+  {
+    name: "Pig",
+    credits: "FawnPonyo",
+    background: "#dbb8d5",
+    menuBg: "#aefafaff",
+    menuBorder: "#f7ffcaff",
+    cellCovered: "#ff3737ff",
+    cellRevealed: "#fce1e1ff",
+    cellFlagged: "#b87cf8ff"
+  }
 ]
 
 function App() {

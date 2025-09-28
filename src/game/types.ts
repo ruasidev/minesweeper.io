@@ -69,6 +69,7 @@ export type NumberInputProps = {
 
 export type Theme = {
   name: string
+  credits: string
   background: string
   menuBg: string
   menuBorder: string
