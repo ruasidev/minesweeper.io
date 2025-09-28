@@ -56,7 +56,11 @@ export default function Game() {
             </div>
             
             {/* BOARD */}
-            <Board board={board} onClickCell={handleClickCell} onRightClickCell={handleRightClickCell} />
+            <Board 
+                board={board} 
+                onClickCell={handleClickCell} 
+                onRightClickCell={handleRightClickCell} 
+            />
         </div>
     )
 }

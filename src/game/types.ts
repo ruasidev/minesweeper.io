@@ -14,6 +14,7 @@ export type CellProps = {
   cell: Cell
   onClick?: () => void
   onRightClick?: () => void
+  onMiddleClick?: () => void
 }
 
 // Domain model; data structure representing the board itself

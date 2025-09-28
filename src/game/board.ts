@@ -14,6 +14,8 @@ export function populateBoard(board: Board, mines: number, safeR: number, safeC:
   const { rows, cols } = board
   const grid = copyGrid(board.grid)
 
+  // Build a set of coordinates that are off-limits for mines
+  // Using set of strings for fast lookups
   const forbidden = new Set<string>()
   forbidden.add(`${safeR},${safeC}`)
   if(excludeAdj) {
@@ -22,6 +24,7 @@ export function populateBoard(board: Board, mines: number, safeR: number, safeC:
     }
   }
 
+  // Build pool of all valid coordinates that can contain mines
   const pool: Array<[number, number]> = []
   for(let r = 0; r < rows; r++) {
     for(let c = 0; c < cols; c++) {
@@ -30,6 +33,7 @@ export function populateBoard(board: Board, mines: number, safeR: number, safeC:
   }
   if(mines > pool.length) throw new Error("Too many mines for available safe cells")
 
+  // Partial Fisher-Yates shuffle
   for(let i = 0; i < mines; i++) {
     const j = i + Math.floor(Math.random() * (pool.length - i))
     ;[pool[i], pool[j]] = [pool[j], pool[i]]
@@ -37,6 +41,7 @@ export function populateBoard(board: Board, mines: number, safeR: number, safeC:
     grid[mr][mc].hasMine = true
   }
 
+  // Finally, just count up neighboring mines for all non-mine cells
   for(let r = 0; r < rows; r++) {
     for(let c = 0; c < cols; c++) {
       if(!grid[r][c].hasMine) grid[r][c].neighborCount = countNeighbors(grid, r, c)
@@ -71,42 +76,61 @@ function cellNeighbors(rows: number, cols: number, r: number, c: number) {
 }
 
 function countNeighbors(grid: Cell[][], row: number, col: number): number {
-  const dirs = [-1, 0, 1]
   let count = 0
-  for (let dr of dirs) {
-    for (let dc of dirs) {
-      if (dr === 0 && dc === 0) continue
-      const nr = row + dr
-      const nc = col + dc
-      if (grid[nr]?.[nc]?.hasMine) count++
-    }
+  for(const [nr, nc] of cellNeighbors(grid.length, grid[0].length, row, col)) {
+    if(grid[nr][nc].hasMine) count++
   }
   return count
 }
 
-export function revealCell(board: Board, row: number, col: number): Board {
-  const newGrid = copyGrid(board.grid)
+export function revealCell(board: Board, r: number, c: number, minesForInit?: number): Board {
+  // if first click, populate (guarantees safety at r,c and optionally neighbors)
+  let working = board
+  if (working.status === "uninitialized") {
+    const minesToUse = minesForInit ?? board.mines
+    working = populateBoard(working, minesToUse, r, c, { excludeAdj: true })
+  }
 
-  function cascadeReveal(r: number, c: number) {
-    const cell = newGrid[r]?.[c]
-    if(!cell || cell.revealed || cell.flagged) return
+  const grid = working.grid.map(row => row.map(cell => ({ ...cell })))
+  const start = grid[r][c]
+  if (start.flagged || start.revealed) return working
 
+  if (start.hasMine) {
+    // hit a mine → lose
+    const lost = { ...working, grid, status: "lost" as const }
+    grid[r][c].revealed = true
+    return lost
+  }
+
+  // BFS flood fill for zeroes
+  let revealedCount = working.revealedCount
+  const q: Array<[number, number]> = [[r, c]]
+  while (q.length) {
+    const [cr, cc] = q.pop()!
+    const cell = grid[cr][cc]
+    if (cell.revealed || cell.flagged) continue
     cell.revealed = true
+    revealedCount++
 
-    if(!cell.hasMine && cell.neighborCount === 0) {
-      for(let dr = -1; dr <= 1; dr++) {
-        for(let dc = -1; dc <= 1; dc++) {
-          if(dr === 0 && dc === 0) continue
-          cascadeReveal(r + dr, c + dc)
+    if (cell.neighborCount === 0) {
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue
+          const nr = cr + dr, nc = cc + dc
+          if (grid[nr]?.[nc] && !grid[nr][nc].revealed && !grid[nr][nc].flagged && !grid[nr][nc].hasMine) {
+            q.push([nr, nc])
+          }
         }
       }
     }
   }
 
-  cascadeReveal(row, col)
+  const totalSafe = working.rows * working.cols - working.mines
+  const status = revealedCount === totalSafe ? "won" : "playing"
 
-  return { ...board, grid: newGrid }
+  return { ...working, grid, revealedCount, status }
 }
+
 
 export function flagCell(board: Board, row: number, col: number): Board {
   const grid = copyGrid(board.grid)
