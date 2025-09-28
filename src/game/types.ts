@@ -1,4 +1,4 @@
-// src/game/types.ts
+// Note to self: Analogous to Rails migration/schema, describes shape of data
 
 // a single cell in the board
 export type Cell = {
@@ -30,4 +30,10 @@ export type GameState = {
   status: GameStatus
   revealedCount: number
   flaggedCount: number
+}
+
+export type NumberInputProps = {
+    label: string,
+    value: number,
+    onChange: (n: number) => void
 }
