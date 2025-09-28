@@ -1,18 +1,25 @@
 import type { CellProps } from "../game/types"
 
-export default function Cell({ cell, onClick, onRightClick }: CellProps) {
+export default function Cell({ cell, onClick, onRightClick, colors }: CellProps) {
   let value = ""
   let textColor = ""
+  let bgColor = colors.cellCovered
+
   if (cell.revealed) {
     if (cell.hasMine) {
       value = "B"
       textColor = "text-black"
+      bgColor = colors.cellRevealed
     } else if (cell.neighborCount > 0) {
       value = cell.neighborCount.toString()
       textColor = getNumberColor(cell.neighborCount)
+      bgColor = colors.cellRevealed
+    } else {
+      bgColor = colors.cellRevealed
     }
   } else if (cell.flagged) {
     value = "F"
+    bgColor = colors.cellFlagged
   }
 
   return (
@@ -22,10 +29,8 @@ export default function Cell({ cell, onClick, onRightClick }: CellProps) {
         e.preventDefault()
         onRightClick?.()
       }}
-      className={`w-10 h-10 border border-black flex items-center justify-center rounded hover:border-red-700 font-extrabold
-        ${textColor}
-        ${cell.revealed ? "bg-gray-600" : "bg-gray-500 hover:bg-gray-600"}
-        ${cell.flagged ? "bg-red-500" : ""}`}
+      style={{ backgroundColor: bgColor }}
+      className={`w-10 h-10 border border-black flex items-center justify-center rounded hover:border-red-700 font-extrabold ${textColor}`}
     >
       {value}
     </button>
