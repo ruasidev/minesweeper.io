@@ -15,6 +15,9 @@ export type CellProps = {
   onClick?: () => void
   onRightClick?: () => void
   onMiddleClick?: () => void
+  lossAnimation: LossAnimation
+  gameLost: boolean
+  lossOrigin: { row: number; col: number } | null
 }
 
 // Domain model; data structure representing the board itself
@@ -34,7 +37,20 @@ export type BoardProps = {
   board: Board,
   onClickCell: (r: number, c: number) => void
   onRightClickCell: (r: number, c: number) => void
+  lossAnimation: LossAnimation
+  lossOrigin: { row: number, col: number } | null
 }
+
+export type LossAnimation = 
+  | "explode"
+  | "shake"
+  | "fade"
+  | "pulse"
+  | "spin"
+  | "drop"
+  | "flash"
+  | "none"
+
 
 // a move a player can make
 export type Move =
@@ -59,4 +75,9 @@ export type NumberInputProps = {
     label: string,
     value: number,
     onChange: (n: number) => void
+}
+
+export type GameResultProps = {
+    status: "won" | "lost"
+    onReset: () => void
 }
