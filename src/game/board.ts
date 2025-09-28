@@ -3,33 +3,47 @@
 
 import type { Board, Cell } from "./types"
 
-export function createBoard(rows: number, cols: number, mines?: number): Board {
+export function createEmptyBoard(rows: number, cols: number): Board {
   const grid: Cell[][] = Array.from({ length: rows }, (_, r) =>
-    Array.from({ length: cols }, (_, c) => newCell(r, c))
+    Array.from({ length:cols }, (_, c) => newCell(r, c))
   )
+  return { rows, cols, grid, mines: 0, status: "uninitialized", revealedCount: 0, flaggedCount: 0 }
+}
 
-  if(!mines) return { rows, cols, mines: 0, grid }
+export function populateBoard(board: Board, mines: number, safeR: number, safeC: number, { excludeAdj = true }: { excludeAdj?: boolean }): Board {
+  const { rows, cols } = board
+  const grid = copyGrid(board.grid)
 
-  // place mines
-  let placed = 0
-  while (placed < mines) {
-    const r = Math.floor(Math.random() * rows)
-    const c = Math.floor(Math.random() * cols)
-    if (!grid[r][c].hasMine) {
-      grid[r][c].hasMine = true
-      placed++
+  const forbidden = new Set<string>()
+  forbidden.add(`${safeR},${safeC}`)
+  if(excludeAdj) {
+    for(const [nr, nc] of cellNeighbors(rows, cols, safeR, safeC)) {
+      forbidden.add(`${nr},${nc}`)
     }
   }
 
-  // calculate neighbor counts
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (grid[r][c].hasMine) continue
-      grid[r][c].neighborCount = countNeighbors(grid, r, c)
+  const pool: Array<[number, number]> = []
+  for(let r = 0; r < rows; r++) {
+    for(let c = 0; c < cols; c++) {
+      if(!forbidden.has(`${r},${c}`)) pool.push([r, c])
+    }
+  }
+  if(mines > pool.length) throw new Error("Too many mines for available safe cells")
+
+  for(let i = 0; i < mines; i++) {
+    const j = i + Math.floor(Math.random() * (pool.length - i))
+    ;[pool[i], pool[j]] = [pool[j], pool[i]]
+    const [mr, mc] = pool[i]
+    grid[mr][mc].hasMine = true
+  }
+
+  for(let r = 0; r < rows; r++) {
+    for(let c = 0; c < cols; c++) {
+      if(!grid[r][c].hasMine) grid[r][c].neighborCount = countNeighbors(grid, r, c)
     }
   }
 
-  return { rows, cols, mines, grid }
+  return { ...board, mines, status: "playing", grid }
 }
 
 function newCell(r: number, c: number): Cell {
@@ -37,10 +51,23 @@ function newCell(r: number, c: number): Cell {
         row: r,
         col: c,
         hasMine: false,
-        revealed: true,
+        revealed: false,
         flagged: false,
         neighborCount: 0
     }
+}
+
+function cellNeighbors(rows: number, cols: number, r: number, c: number) {
+  const out: Array<[number, number]> = []
+  for(let dr = -1; dr <= 1; dr++) {
+    for(let dc = -1; dc <= 1; dc++) {
+      if(dr === 0 && dc === 0) continue
+      const nr = r + dr
+      const nc = c + dc
+      if(nr >= 0 && nr < rows && nc >= 0 && nc < cols) out.push([nr, nc])
+    }
+  }
+  return out
 }
 
 function countNeighbors(grid: Cell[][], row: number, col: number): number {
@@ -82,10 +109,14 @@ export function revealCell(board: Board, row: number, col: number): Board {
 }
 
 export function flagCell(board: Board, row: number, col: number): Board {
-  const newGrid = copyGrid(board.grid)
-  const cell = newGrid[row][col]
-  if(!cell.revealed) cell.flagged = !cell.flagged
-  return { ...board, grid: newGrid }
+  const grid = copyGrid(board.grid)
+  const cell = grid[row][col]
+  if(!cell.revealed) {
+    cell.flagged = !cell.flagged
+    const flaggedCount = board.flaggedCount + (cell.flagged ? 1 : -1)
+    return { ...board, grid, flaggedCount }
+  }
+  return board
 }
 
 function copyGrid(grid: Cell[][]): Cell[][] {

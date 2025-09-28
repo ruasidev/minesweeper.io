@@ -22,6 +22,9 @@ export type Board = {
   rows: number
   cols: number
   mines: number
+  status: GameStatus
+  revealedCount: number
+  flaggedCount: number
   grid: Cell[][]
 }
 
@@ -38,7 +41,7 @@ export type Move =
   | { type: "flag"; row: number; col: number }
 
 // possible outcomes of a game
-export type GameStatus = "playing" | "won" | "lost"
+export type GameStatus = "uninitialized" | "playing" | "won" | "lost"
 
 // overall game state container
 export type GameState = {
