@@ -1,30 +1,19 @@
-import { useState } from "react"
-import { createBoard } from "../game/board"
-import type { Board as BoardType, Cell as CellType } from "../game/types"
-import Cell from "./Cell";
+import type { BoardProps, Cell as CellType } from "../game/types"
+import Cell from "../components/Cell";
 
-export default function Board() {
-    const [rows, setRows] = useState(10);
-    const [cols, setCols] = useState(10);
-    const [mines, setMines] = useState(20);
-    const [board, setBoard] = useState<BoardType>(() => createBoard(rows, cols, mines))
-
-    function newGame() {
-        setBoard(createBoard(rows, cols, mines));
-    }
-
+export default function Board({ board, onClickCell, onRightClickCell }: BoardProps) {
     return (
         <div
-            className="grid gap-1"
-            style={{ gridTemplateColumns: `repeat(${cols}, 2rem)` }}
+            className="border border-red-400 rounded-sm grid gap-0.5"
+            style={{ gridTemplateColumns: `repeat(${board.cols}, auto)` }}
         >
-            {board.map((row, r) =>
+            {board.grid.map((row, r) =>
                 row.map((cell: CellType, c: number) => (
                     <Cell 
                         key={`${r}-${c}`}
                         cell={cell}
-                        onClick={() => console.log("clicked", r, c)}
-                        onRightClick={() => console.log("right clicked", r, c)}
+                        onClick={() => onClickCell(r, c)}
+                        onRightClick={() => onRightClickCell(r, c)}
                     />
                 ))
             )}

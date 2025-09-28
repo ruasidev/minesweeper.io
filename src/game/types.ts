@@ -10,8 +10,27 @@ export type Cell = {
   neighborCount: number
 }
 
-// the whole board is just a 2D array of cells
-export type Board = Cell[][]
+export type CellProps = {
+  cell: Cell
+  onClick?: () => void
+  onRightClick?: () => void
+}
+
+// Domain model; data structure representing the board itself
+// the whole board is just a 2D array of Cells
+export type Board = {
+  rows: number
+  cols: number
+  mines: number
+  grid: Cell[][]
+}
+
+// React component contract; what props must be passed into <Board /> component
+export type BoardProps = {
+  board: Board,
+  onClickCell: (r: number, c: number) => void
+  onRightClickCell: (r: number, c: number) => void
+}
 
 // a move a player can make
 export type Move =
