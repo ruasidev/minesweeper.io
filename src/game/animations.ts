@@ -62,3 +62,15 @@ export const hoverAnimationClassMap: Record<AnimationChoices, string> = {
   none: "",
   bloom: "group-hover:animate-bloom",
 }
+
+// animations.ts
+export const boardAnimClass: Record<LossAnimationChoices, string> = {
+  explode: "animate-explode",   // tailwind utility, not .explode
+  shake: "animate-shake",
+  fade: "animate-fade",
+  pulse: "animate-pulseOut",
+  spin: "animate-spinOut",
+  drop: "animate-dropDown",
+  flash: "animate-flash",
+  none: "",
+}

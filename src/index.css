@@ -22,7 +22,7 @@
   50%  { transform: scale(3) rotate(150deg); opacity: 0.7; background-color: #ff6a00; border-radius: 30px; }
   100% { transform: scale(3) rotate(170deg); opacity: 0.3; background-color: #360000; border-radius: 40px; }
 }
-.explode {
+.animate-explode {
   animation: explode 600ms ease-out forwards;
 }
 

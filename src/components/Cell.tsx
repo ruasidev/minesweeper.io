@@ -1,3 +1,4 @@
+import { boardAnimClass, type LossAnimationChoices } from "../game/animations"
 import type { CellProps } from "../game/types"
 
 export default function Cell({ cell, animationClass, animationDelay, theme, onClick, onRightClick, onMiddleClick }: CellProps) {
@@ -28,7 +29,7 @@ export default function Cell({ cell, animationClass, animationDelay, theme, onCl
         ${theme.cellBorder}
         ${theme.cellHoverBg}
         ${theme.cellHoverBorder}
-        animate-${animationClass}
+        ${boardAnimClass[animationClass as LossAnimationChoices]}
         ${textColor}
         ${cell.revealed ? theme.cellVisible : theme.cellHidden}
         ${cell.flagged ? theme.cellFlagged : ""}

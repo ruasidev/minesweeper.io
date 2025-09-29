@@ -31,13 +31,6 @@ export default function Board({ board, origin, lossAnimation, winAnimation, them
               ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * 30}ms`
               : "0ms"
 
-            console.debug(
-            "cell",
-            { row: r, col: c, hasMine: cell.hasMine },
-            "animationClass:",
-            animationClass
-            )
-
           return (
             <Cell
               key={`${r}-${c}`}
