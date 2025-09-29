@@ -1,13 +1,19 @@
 import type { BoardProps } from "../game/types"
-import Cell from "../components/Cell";
-import type { AnimationChoices } from "../game/animations";
+import Cell from "../components/Cell"
+import type { AnimationChoices } from "../game/animations"
 
 export default function Board({ board, origin, lossAnimation, winAnimation, theme, onClickCell, onRightClickCell }: BoardProps) {
+  // match Cell size: Tailwind w-10 h-10 = 2.5rem ≈ 40px
+  const CELL_PX = 40
+
   return (
     <div
       className="grid gap-0.5"
       onContextMenu={(e) => e.preventDefault()}
-      style={{ gridTemplateColumns: `repeat(${board.cols}, minmax(0, 1fr))` }}
+      style={{
+        gridTemplateColumns: `repeat(${board.cols}, ${CELL_PX}px)`,
+        gridAutoRows: `${CELL_PX}px`,
+      }}
     >
       {board.grid.map((row, r) =>
         row.map((cell, c) => {
@@ -35,7 +41,11 @@ export default function Board({ board, origin, lossAnimation, winAnimation, them
             origin &&
             !isOrigin
               ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * lossAnimation.animDuration}ms`
-              : board.status === "won" && origin && cell.revealed && !cell.hasMine && !isOrigin
+              : board.status === "won" &&
+                origin &&
+                cell.revealed &&
+                !cell.hasMine &&
+                !isOrigin
               ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * lossAnimation.animDuration}ms`
               : "0ms"
 

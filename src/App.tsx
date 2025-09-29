@@ -4,11 +4,13 @@ import { winAnimations, lossAnimations, type LossAnimationChoices, type WinAnima
 import { type ThemeChoices, themes } from "./game/themes"
 import SidebarMenu from "./components/SidebarMenu"
 import NavigationBar from "./components/NavigationBar"
+import { Menu, X } from "lucide-react"
 
 function App() {
-  const [lossAnimationId, setLossAnimationId] = useState<LossAnimationChoices>(lossAnimations[0].id)  // Explode
-  const [winAnimationId, setWinAnimationId] = useState<WinAnimationChoices>(winAnimations[0].id)      // Bloom
+  const [lossAnimationId, setLossAnimationId] = useState<LossAnimationChoices>(lossAnimations[0].id)
+  const [winAnimationId, setWinAnimationId] = useState<WinAnimationChoices>(winAnimations[0].id)
   const [themeId, setThemeId] = useState<ThemeChoices>(themes[0].id)
+  const [isMenuOpen, setIsMenuOpen] = useState(true)
 
   const winAnimation = winAnimations.find(a => a.id === winAnimationId) || winAnimations[0]
   const lossAnimation = lossAnimations.find(a => a.id === lossAnimationId) || lossAnimations[0]
@@ -16,26 +18,33 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col">
-      <NavigationBar theme={theme} />
+      <NavigationBar theme={theme}>
+        <button
+          onClick={() => setIsMenuOpen(v => !v)}
+          className={`p-2 rounded hover:bg-gray-700 transition-colors ${theme.textHead}`}
+        >
+          {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </NavigationBar>
 
-      <main className="flex flex-1 overflow-hidden">
-        {/* CENTRAL GAME BOARD */}
-        <Game
-          lossAnimation={lossAnimation}
-          winAnimation={winAnimation}
-          theme={theme}
-        />
+      {/* key bits: relative parent, and let children be shrinkable/scrollable */}
+      <main className={`relative flex flex-1 min-h-0 ${theme.background}`}>
+        <div
+          className={`${isMenuOpen ? "mr-80" : ""} flex-1 min-w-0 min-h-0`}
+        >
+          <Game lossAnimation={lossAnimation} winAnimation={winAnimation} theme={theme} />
+        </div>
 
-        {/* RIGHT MENU PANEL */}
-        <SidebarMenu 
+        <SidebarMenu
           currentWinAnimation={winAnimationId}
           currentLossAnimation={lossAnimationId}
           currentTheme={theme}
           setWinAnimation={setWinAnimationId}
           setLossAnimation={setLossAnimationId}
           setTheme={setThemeId}
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
         />
-        
       </main>
     </div>
   )

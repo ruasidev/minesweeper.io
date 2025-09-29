@@ -15,6 +15,13 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
 /* 
 @keyframes originBlast {
   0%   { transform: scale(1); opacity: 1; background-color: #ff0000; }

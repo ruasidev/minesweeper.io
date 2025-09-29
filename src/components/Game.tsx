@@ -57,7 +57,7 @@ export default function Game({ lossAnimation, winAnimation, theme }: GameProps) 
   }
 
   return (
-    <div className={`flex-1 overflow-auto p-4 ${theme.background}`}>
+    <div className={`h-full min-h-0 overflow-y-auto p-4 hide-scrollbar ${theme.background}`}>
       <div className="flex flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-6 w-full">
           {/* GAME STATS */}

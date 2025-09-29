@@ -32,10 +32,11 @@ export default function GameResult({
       `}
     >
       <div
-        className={`p-8 border rounded-lg text-center space-y-6 shadow-2xl
+        className={`p-8 rounded-lg text-center space-y-6 shadow-2xl border-2
           transform transition-transform duration-500 ease-out
           ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}
           ${theme.menuBg}
+          ${theme.menuBorder}
         `}
       >
         {/* Title */}
@@ -43,11 +44,11 @@ export default function GameResult({
         <p className={theme.textBody}>{message}</p>
 
         {/* Stats */}
-        <div className={`grid grid-cols-2 gap-4 text-sm`}>
-          <div className={`p-2 ${theme.itemBg} rounded`}>Board: {rows} × {cols}</div>
-          <div className={`p-2 ${theme.itemBg} rounded`}>Mines: {totalMines}</div>
-          <div className={`p-2 ${theme.itemBg} rounded`}>Revealed: {revealedCount}</div>
-          <div className={`p-2 ${theme.itemBg} rounded`}>Flags: {flaggedCount}</div>
+        <div className={`grid grid-cols-2 gap-4 text-sm ${theme.textBody}`}>
+          <div className={`p-2 ${theme.itemBg} rounded ${theme.itemBorder} border-1`}>Board: {rows} × {cols}</div>
+          <div className={`p-2 ${theme.itemBg} rounded ${theme.itemBorder} border-1`}>Mines: {totalMines}</div>
+          <div className={`p-2 ${theme.itemBg} rounded ${theme.itemBorder} border-1`}>Revealed: {revealedCount}</div>
+          <div className={`p-2 ${theme.itemBg} rounded ${theme.itemBorder} border-1`}>Flags: {flaggedCount}</div>
         </div>
 
         {/* CTA */}

@@ -1,55 +1,59 @@
+import { useState } from "react"
 import type { CellProps } from "../game/types"
 
-export default function Cell({ cell, animationClass, animationDelay, theme, onClick, onRightClick, onMiddleClick }: CellProps) {
+export default function Cell({ cell, animationClass, animationDelay, theme, onClick, onRightClick }: CellProps) {
+  const [hideValue, setHideValue] = useState(false)
+
   let value = ""
   let textColor = ""
-  if(cell.revealed && cell.neighborCount > 0) {
+  if (cell.revealed && cell.neighborCount > 0) {
     value = cell.neighborCount.toString()
     textColor = getNumberColor(cell.neighborCount)
   }
-  if(cell.flagged) value = 'F'
+  if (cell.flagged) value = "F"
 
-    // Cell styling based on theme
-    let themeClasses = (`
-      ${theme.cellBorder} 
-      ${theme.cellHoverBorder}
-    `)
-    if(cell.flagged) {              // Cell is hidden and flagged
-      themeClasses += (`
-        ${theme.cellFlagged} 
-        ${theme.cellHoverBgFlagged}
-      `)
-    } else if(!cell.revealed) {     // Cell is hidden and not flagged
-      themeClasses += (`
-        ${theme.cellHidden} 
-        ${theme.cellHoverBgHidden}
-      `)
-    } else {                        // Cell is visible 
-      themeClasses += (`
-        ${theme.cellVisible} 
-        ${theme.cellHoverBgVisible}
-      `)
-    }
+  if (hideValue) value = ""
+
+  let themeClasses = `
+    ${theme.cellBorder} 
+    ${theme.cellHoverBorder}
+  `
+  if (cell.flagged) {
+    themeClasses += `
+      ${theme.cellFlagged} 
+      ${theme.cellHoverBgFlagged}
+    `
+  } else if (!cell.revealed) {
+    themeClasses += `
+      ${theme.cellHidden} 
+      ${theme.cellHoverBgHidden}
+    `
+  } else {
+    themeClasses += `
+      ${theme.cellVisible} 
+      ${theme.cellHoverBgVisible}
+    `
+  }
 
   return (
     <button
-      onClick={onClick}   // Reveal
-      onContextMenu={() => {
-        onRightClick?.()  // Flag (if hidden)
-      }}
+      onClick={onClick}
+      onContextMenu={() => onRightClick?.()}
       style={{ animationDelay: animationDelay }}
       className={`w-10 h-10 border flex items-center justify-center rounded font-extrabold text-3xl
         ${themeClasses}
         ${textColor}
-        animate-${animationClass}
+        ${animationClass ? `animate-${animationClass}` : ""}
       `}
+      onAnimationStart={() => {
+        if (animationClass) setHideValue(true)
+      }}
     >
       {value}
     </button>
   )
 }
 
-// Return the color of the cell text value based on the number of neighboring mines
 function getNumberColor(count: number): string {
   switch (count) {
     case 1: return "text-blue-600"
