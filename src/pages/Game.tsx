@@ -21,16 +21,17 @@ export default function Game({ lossAnimation, winAnimation, theme }: GameProps) 
   }, [rows, cols, mines]) // reset whenever values or resetKey changes
 
   useEffect(() => {
-    if(board.status === 'lost' || board.status === 'won') {
+    if (board.status === "lost" || board.status === "won") {
       const duration = 600
       const maxDelay = (rows + cols) * 20
       const total = duration + maxDelay
+
+      // show modal only after animations complete
       const t = setTimeout(() => setShowResult(true), total)
       return () => clearTimeout(t)
     } else {
       setShowResult(false)
     }
-
   }, [board.status, rows, cols])
 
   function handleClickCell(row: number, col: number) {
@@ -90,9 +91,14 @@ export default function Game({ lossAnimation, winAnimation, theme }: GameProps) 
 
       {/* GAME END MODAL */}
       {showResult && (
-        <GameResult 
-          status={board.status as "won" | "lost"} 
-          onReset={resetGame} 
+        <GameResult
+          status={board.status as "won" | "lost"}
+          revealedCount={board.revealedCount}
+          flaggedCount={board.flaggedCount}
+          totalMines={mines}
+          rows={rows}
+          cols={cols}
+          onReset={resetGame}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import type { AnimationPreviewProps } from "../game/animations"
-import { hoverAnimationClassMap } from "../game/animations"
+// import { hoverAnimationClassMap } from "../game/animations"
 
 export function AnimationPreview({ animation }: AnimationPreviewProps) {
   const cells = Array.from({ length: 9 })

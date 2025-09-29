@@ -99,8 +99,13 @@ export type GameState = {
 }
 
 export type GameResultProps = {
-    status: "won" | "lost"
-    onReset: () => void
+  status: "won" | "lost"
+  revealedCount: number
+  flaggedCount: number
+  totalMines: number
+  rows: number
+  cols: number
+  onReset: () => void
 }
 
 export type NumberInputProps = {
