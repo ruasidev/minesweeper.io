@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import type { AnimationPreviewProps } from "../game/animations"
-import { lossAnimations, winAnimations } from "../game/animations"
+import { lossAnimations } from "../game/animations"
 import { computePreview } from "../game/animationPreview"
 
 export function AnimationPreview({ animation, theme }: AnimationPreviewProps) {
@@ -9,9 +9,7 @@ export function AnimationPreview({ animation, theme }: AnimationPreviewProps) {
 
   const { chosenCells, originCell, delays, cycleTime } = computePreview(animation, 16)
 
-  // figure out which config we’re using
   const lossConfig = lossAnimations.find(a => a.id === animation)
-  const winConfig = winAnimations.find(a => a.id === animation)
 
   useEffect(() => {
     if (!hovered) return
@@ -41,8 +39,9 @@ export function AnimationPreview({ animation, theme }: AnimationPreviewProps) {
         return (
           <span
             key={i}
-            className={`w-4.5 h-4.5 border border-black rounded-sm flex items-center justify-center 
+            className={`w-4.75 h-4.75 border rounded-xs flex items-center justify-center 
               ${animationClass}
+              ${theme.cellBorder}
               ${theme.cellHidden}
             `}
             style={{

@@ -76,6 +76,7 @@ export type GameStatusBarProps = {
     status: GameStatus
     revealedCount: number
     flaggedCount: number
+    theme: ThemeProps
 }
 
 export type SidebarProps = {
@@ -85,6 +86,10 @@ export type SidebarProps = {
     setWinAnimation: (val: WinAnimationChoices) => void
     setLossAnimation: (val: LossAnimationChoices) => void
     setTheme: (val: ThemeChoices) => void
+}
+
+export type NavigationBarProps = {
+    theme: ThemeProps
 }
 
 // overall game state container
@@ -105,11 +110,28 @@ export type GameResultProps = {
   totalMines: number
   rows: number
   cols: number
+  theme: ThemeProps
   onReset: () => void
+}
+
+export type ResetGameButtonProps = {
+    theme: ThemeProps
+    onReset: () => void
+}
+
+export type PlayAgainButtonProps = {
+    theme: ThemeProps
+    onReset: () => void
 }
 
 export type NumberInputProps = {
     label: string
     value: number
+    theme: ThemeProps
     onChange: (n: number) => void
+}
+
+export type SidebarSectionHeaderProps = {
+    text: string
+    theme: ThemeProps
 }

@@ -16,7 +16,7 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col">
-      <NavigationBar />
+      <NavigationBar theme={theme} />
 
       <main className="flex flex-1 overflow-hidden">
         {/* CENTRAL GAME BOARD */}

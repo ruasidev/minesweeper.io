@@ -5,3 +5,13 @@
 .animate-modalFadeIn {
   animation: modalFadeIn 300ms ease-out forwards;
 }
+
+@layer components {
+  .pressable {
+    @apply transform transition-transform duration-150 hover:scale-102 active:scale-95;
+  }
+
+  .pressable:active {
+    @apply transition-none;
+  }
+}

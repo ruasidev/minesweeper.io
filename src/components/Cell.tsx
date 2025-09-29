@@ -1,4 +1,3 @@
-import { type AnimationChoices, type LossAnimationChoices, type WinAnimationChoices } from "../game/animations"
 import type { CellProps } from "../game/types"
 
 export default function Cell({ cell, animationClass, animationDelay, theme, onClick, onRightClick, onMiddleClick }: CellProps) {
@@ -9,17 +8,6 @@ export default function Cell({ cell, animationClass, animationDelay, theme, onCl
     textColor = getNumberColor(cell.neighborCount)
   }
   if(cell.flagged) value = 'F'
-
-  // function resolveAnimClass(id?: AnimationChoices): string {
-  //   if (!id) return ""
-  //   if ((id as LossAnimationChoices) in boardAnimClass) {
-  //       return boardAnimClass[id as LossAnimationChoices]
-  //   }
-  //   if ((id as WinAnimationChoices) in boardWinAnimClass) {
-  //       return boardWinAnimClass[id as WinAnimationChoices]
-  //   }
-  //   return ""
-  //   }
 
     // Cell styling based on theme
     let themeClasses = (`

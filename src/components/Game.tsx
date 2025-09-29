@@ -68,6 +68,7 @@ export default function Game({ lossAnimation, winAnimation, theme }: GameProps) 
             status={board.status} 
             revealedCount={board.revealedCount}
             flaggedCount={board.flaggedCount}
+            theme={theme}
           />
 
           {/* GAME CONTROLS */}
@@ -100,6 +101,7 @@ export default function Game({ lossAnimation, winAnimation, theme }: GameProps) 
               totalMines={mines}
               rows={rows}
               cols={cols}
+              theme={theme}
               onReset={resetGame}
             />
           )}
