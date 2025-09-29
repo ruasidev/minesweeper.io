@@ -81,6 +81,37 @@
   animation: flash 400ms ease-in-out forwards;
 }
 
+@keyframes bloom {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+    background-color: #2ecc71; /* green start */
+    border-radius: 50%;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+    background-color: #27ae60;
+    border-radius: 25%;
+  }
+  70% {
+    transform: scale(0.9);
+    opacity: 0.8;
+    background-color: #2ecc71;
+    border-radius: 15%;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    background-color: #2ecc71;
+    border-radius: 10%;
+  }
+}
+.animate-bloom {
+  animation: bloom 900ms ease-out forwards;
+}
+
+
 /* 
 @keyframes originBlast {
   0%   { transform: scale(1); opacity: 1; background-color: #ff0000; }

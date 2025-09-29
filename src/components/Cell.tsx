@@ -1,4 +1,4 @@
-import { boardAnimClass, type LossAnimationChoices } from "../game/animations"
+import { boardAnimClass, boardWinAnimClass, type AnimationChoices, type LossAnimationChoices, type WinAnimationChoices } from "../game/animations"
 import type { CellProps } from "../game/types"
 
 export default function Cell({ cell, animationClass, animationDelay, theme, onClick, onRightClick, onMiddleClick }: CellProps) {
@@ -15,6 +15,17 @@ export default function Cell({ cell, animationClass, animationDelay, theme, onCl
     value = "F"
   }
 
+  function resolveAnimClass(id?: AnimationChoices): string {
+    if (!id) return ""
+    if ((id as LossAnimationChoices) in boardAnimClass) {
+        return boardAnimClass[id as LossAnimationChoices]
+    }
+    if ((id as WinAnimationChoices) in boardWinAnimClass) {
+        return boardWinAnimClass[id as WinAnimationChoices]
+    }
+    return ""
+    }
+
   return (
     <button
       onClick={onClick}
@@ -29,7 +40,7 @@ export default function Cell({ cell, animationClass, animationDelay, theme, onCl
         ${theme.cellBorder}
         ${theme.cellHoverBg}
         ${theme.cellHoverBorder}
-        ${boardAnimClass[animationClass as LossAnimationChoices]}
+        ${resolveAnimClass(animationClass as AnimationChoices | undefined)}
         ${textColor}
         ${cell.revealed ? theme.cellVisible : theme.cellHidden}
         ${cell.flagged ? theme.cellFlagged : ""}

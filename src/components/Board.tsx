@@ -11,13 +11,17 @@ export default function Board({ board, origin, lossAnimation, winAnimation, them
         row.map((cell, c) => {
           const isOrigin = origin && r === origin.row && c === origin.col
 
-          let animationClass = ""
+          let animationClass: string | undefined
+
+          // lost game → animate only bombs
           if (board.status === "lost" && cell.hasMine) {
             animationClass = isOrigin
               ? lossAnimation.originAnim || lossAnimation.id
               : lossAnimation.id
           }
-          if (board.status === "won") {
+
+          // won game → animate only safe revealed cells
+          if (board.status === "won" && cell.revealed && !cell.hasMine) {
             animationClass = isOrigin
               ? winAnimation.originAnim || winAnimation.id
               : winAnimation.id
@@ -28,6 +32,8 @@ export default function Board({ board, origin, lossAnimation, winAnimation, them
             cell.hasMine &&
             origin &&
             !isOrigin
+              ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * 30}ms`
+              : board.status === "won" && origin && cell.revealed && !cell.hasMine && !isOrigin
               ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * 30}ms`
               : "0ms"
 
@@ -47,4 +53,3 @@ export default function Board({ board, origin, lossAnimation, winAnimation, them
     </div>
   )
 }
-

@@ -74,3 +74,7 @@ export const boardAnimClass: Record<LossAnimationChoices, string> = {
   flash: "animate-flash",
   none: "",
 }
+
+export const boardWinAnimClass: Record<WinAnimationChoices, string> = {
+  bloom: "animate-bloom",
+}
