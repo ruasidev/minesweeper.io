@@ -1,26 +1,24 @@
 import { useEffect, useState } from "react"
 import { createEmptyBoard, populateBoard, revealCell, flagCell } from "../game/board"
-import type { Board as BoardType, LossAnimation } from "../game/types"
+import type { GameProps } from "../game/types"
+import type { Board as BoardType } from "../game/types"
 import Board from "../components/Board"
 import GameResult from "../components/GameResult"
+import { GameStatusBar } from "../components/GameStatusBar"
+import GameControls from "../components/GameControls"
 
-type GameProps = {
-  rows: number
-  cols: number
-  mines: number
-  resetKey: number
-  lossAnimation: LossAnimation
-}
-
-export default function Game({ rows, cols, mines, resetKey, lossAnimation }: GameProps) {
+export default function Game({ lossAnimation, winAnimation, theme }: GameProps) {
+  const [rows, setRows] = useState(17);
+  const [cols, setCols] = useState(20);
+  const [mines, setMines] = useState(30);
   const [board, setBoard] = useState<BoardType>(() => createEmptyBoard(rows, cols))
   const [initialized, setInitialized] = useState(false)
   const [showResult, setShowResult] = useState(false)
-  const [lossOrigin, setLossOrigin] = useState<{ row: number; col: number } | null>(null)
+  const [lastClicked, setLastClicked] = useState<{ row: number; col: number } | null>(null)
 
   useEffect(() => {
     resetGame()
-  }, [rows, cols, mines, resetKey]) // reset whenever values or resetKey changes
+  }, [rows, cols, mines]) // reset whenever values or resetKey changes
 
   useEffect(() => {
     if(board.status === 'lost' || board.status === 'won') {
@@ -36,17 +34,15 @@ export default function Game({ rows, cols, mines, resetKey, lossAnimation }: Gam
   }, [board.status, rows, cols])
 
   function handleClickCell(row: number, col: number) {
+    setLastClicked({ row, col })
     setBoard(prev => {
       if (!initialized) {
         const withMines = populateBoard(prev, mines, row, col, { excludeAdj: true })
         setInitialized(true)
         return revealCell(withMines, row, col)
       }
-      const next = revealCell(prev, row, col)
-      if(next.status === "lost") {
-        setLossOrigin({ row, col })
-      }
-      return next
+
+      return revealCell(prev, row, col)
     })
   }
 
@@ -62,27 +58,42 @@ export default function Game({ rows, cols, mines, resetKey, lossAnimation }: Gam
   return (
     <div className="flex flex-col items-center gap-6 w-full">
       {/* GAME STATS */}
-      <div className="border rounded-sm flex gap-8 px-4 py-2 bg-gray-700 text-sm text-gray-200">
-        <div>Mines: {board.mines}</div>
-        <div>Status: {board.status}</div>
-        <div>
-          Revealed: {board.revealedCount}/{rows * cols - board.mines}
-        </div>
-        <div>Remaining: {board.mines - board.flaggedCount}</div>
-      </div>
+      <GameStatusBar 
+        rows={rows} 
+        cols={cols} 
+        mines={mines} 
+        status={board.status} 
+        revealedCount={board.revealedCount}
+        flaggedCount={board.flaggedCount}
+      />
+
+      {/* GAME CONTROLS */}
+      <GameControls 
+        rows={rows} cols={cols} mines={mines} 
+        theme={theme} 
+        onRowsChange={setRows} 
+        onColsChange={setCols} 
+        onMinesChange={setMines} 
+        onReset={resetGame}
+      />
 
       {/* BOARD */}
       <Board
         board={board}
+        origin={lastClicked}
+        lossAnimation={lossAnimation}
+        winAnimation={winAnimation}
+        theme={theme}
         onClickCell={handleClickCell}
         onRightClickCell={handleRightClickCell}
-        lossAnimation={lossAnimation}
-        lossOrigin={lossOrigin}
       />
 
       {/* GAME END MODAL */}
       {showResult && (
-        <GameResult status={board.status as "won" | "lost"} onReset={resetGame} />
+        <GameResult 
+          status={board.status as "won" | "lost"} 
+          onReset={resetGame} 
+        />
       )}
     </div>
   )

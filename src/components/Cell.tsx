@@ -1,6 +1,6 @@
-import type { CellProps, LossAnimation } from "../game/types"
+import type { CellProps } from "../game/types"
 
-export default function Cell({ cell, gameLost, lossAnimation, lossOrigin, onClick, onRightClick }: CellProps) {
+export default function Cell({ cell, animationClass, animationDelay, theme, onClick, onRightClick, onMiddleClick }: CellProps) {
   let value = ""
   let textColor = ""
   if (cell.revealed) {
@@ -14,8 +14,6 @@ export default function Cell({ cell, gameLost, lossAnimation, lossOrigin, onClic
     value = "F"
   }
 
-  const isOrigin = lossOrigin && cell.row === lossOrigin.row && cell.col === lossOrigin.col
-
   return (
     <button
       onClick={onClick}
@@ -23,39 +21,23 @@ export default function Cell({ cell, gameLost, lossAnimation, lossOrigin, onClic
         e.preventDefault()
         onRightClick?.()
       }}
-      style={{
-        animationDelay: gameLost && cell.hasMine && lossOrigin && !isOrigin
-            ? `${(Math.abs(cell.row - lossOrigin.row) + Math.abs(cell.col - lossOrigin.col)) * 30}ms`
-            : "0ms"
+      style={{ 
+        animationDelay: animationDelay
       }}
-      className={`w-10 h-10 border border-black flex items-center justify-center rounded hover:border-red-700 font-extrabold 
-        ${gameLost && cell.hasMine 
-            ? isOrigin
-                ? "explode"
-                : lossAnimationClass(lossAnimation)
-            : ""}
+      className={`w-10 h-10 border flex items-center justify-center rounded font-extrabold
+        ${theme.cellBorder}
+        ${theme.cellHoverBg}
+        ${theme.cellHoverBorder}
+        animate-${animationClass}
         ${textColor}
-        ${cell.revealed ? "bg-gray-600" : "bg-gray-500 hover:bg-gray-600"}
-        ${cell.flagged ? "bg-red-500" : ""}`}
+        ${cell.revealed ? theme.cellVisible : theme.cellHidden}
+        ${cell.flagged ? theme.cellFlagged : ""}
+        `}
     >
       {value}
     </button>
   )
 }
-
-function lossAnimationClass(type: LossAnimation): string {
-  switch (type) {
-    case "explode": return "explode"
-    case "shake": return "animate-shake"
-    case "fade": return "animate-fade"
-    case "pulse": return "animate-pulseOut"
-    case "spin": return "animate-spinOut"
-    case "drop": return "animate-dropDown"
-    case "flash": return "animate-flash"
-    default: return ""
-  }
-}
-
 
 function getNumberColor(count: number): string {
   switch (count) {

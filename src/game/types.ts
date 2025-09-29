@@ -1,3 +1,5 @@
+import type { LossAnimationChoices, WinAnimationChoices, AnimationProps } from "./animations"
+import type { ThemeChoices, ThemeProps } from "./themes"
 // Note to self: Analogous to Rails migration/schema, describes shape of data
 
 // a single cell in the board
@@ -12,12 +14,12 @@ export type Cell = {
 
 export type CellProps = {
   cell: Cell
+  animationClass?: string
+  animationDelay?: string
+  theme: ThemeProps
   onClick?: () => void
   onRightClick?: () => void
   onMiddleClick?: () => void
-  lossAnimation: LossAnimation
-  gameLost: boolean
-  lossOrigin: { row: number; col: number } | null
 }
 
 // Domain model; data structure representing the board itself
@@ -34,31 +36,56 @@ export type Board = {
 
 // React component contract; what props must be passed into <Board /> component
 export type BoardProps = {
-  board: Board,
+  board: Board
+  origin: { row: number, col: number } | null
+  lossAnimation: AnimationProps<LossAnimationChoices>
+  winAnimation: AnimationProps<WinAnimationChoices>
+  theme: ThemeProps
   onClickCell: (r: number, c: number) => void
   onRightClickCell: (r: number, c: number) => void
-  lossAnimation: LossAnimation
-  lossOrigin: { row: number, col: number } | null
 }
 
-export type LossAnimation = 
-  | "explode"
-  | "shake"
-  | "fade"
-  | "pulse"
-  | "spin"
-  | "drop"
-  | "flash"
-  | "none"
+export type GameProps = {
+  lossAnimation: AnimationProps<LossAnimationChoices>
+  winAnimation: AnimationProps<WinAnimationChoices>
+  theme: ThemeProps
+}
 
-
-// a move a player can make
-export type Move =
-  | { type: "reveal"; row: number; col: number }
-  | { type: "flag"; row: number; col: number }
+export type GameControlsProps = {
+    rows: number
+    cols: number
+    mines: number
+    theme: ThemeProps
+    onRowsChange: (val: number) => void
+    onColsChange: (val: number) => void
+    onMinesChange: (val: number) => void
+    onReset: () => void
+}
 
 // possible outcomes of a game
-export type GameStatus = "uninitialized" | "playing" | "won" | "lost"
+export type GameStatus = 
+    | "uninitialized" 
+    | "playing" 
+    | "won" 
+    | "lost"
+
+export type GameStatusBarProps = {
+    rows: number
+    cols: number
+    mines: number
+    status: GameStatus
+    revealedCount: number
+    flaggedCount: number
+}
+
+export type SidebarProps = {
+    currentWinAnimation: WinAnimationChoices
+    currentLossAnimation: LossAnimationChoices
+    currentTheme: ThemeProps
+    setWinAnimation: (val: WinAnimationChoices) => void
+    setLossAnimation: (val: LossAnimationChoices) => void
+    setTheme: (val: ThemeChoices) => void
+}
 
 // overall game state container
 export type GameState = {
@@ -71,13 +98,13 @@ export type GameState = {
   flaggedCount: number
 }
 
-export type NumberInputProps = {
-    label: string,
-    value: number,
-    onChange: (n: number) => void
-}
-
 export type GameResultProps = {
     status: "won" | "lost"
     onReset: () => void
+}
+
+export type NumberInputProps = {
+    label: string
+    value: number
+    onChange: (n: number) => void
 }
