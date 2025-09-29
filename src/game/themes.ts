@@ -1,5 +1,6 @@
 export type ThemeSelectProps = {
-    themeId: ThemeChoices,
+    themeId: ThemeChoices
+    theme: ThemeProps
     onChange: (id: ThemeChoices) => void
 }
 
@@ -27,8 +28,11 @@ export type ThemeProps = {
     cellBorder: string
     textHead: string
     textBody: string
+    itemBorder: string
     cellHoverBorder: string
-    cellHoverBg: string
+    cellHoverBgHidden: string
+    cellHoverBgVisible: string
+    cellHoverBgFlagged: string
 }
 
 export const themes: ThemeProps[] = [
@@ -39,14 +43,17 @@ export const themes: ThemeProps[] = [
     background: "bg-neutral-900",
     menuBg: "bg-gray-800",
     menuBorder: "border-gray-700",
-    cellHidden: "bg-gray-500",
-    cellVisible: "bg-gray-600",
+    cellHidden: "bg-neutral-600",
+    cellVisible: "bg-neutral-400",
     cellFlagged: "bg-red-500",
     cellBorder: "border-gray-900",
-    textHead: "text-black",
-    textBody: "text-black",
-    cellHoverBorder: "hover:border-red-400",
-    cellHoverBg: "hover:bg-gray-600",
+    textHead: "text-white",
+    textBody: "text-white",
+    itemBorder: "border-black",
+    cellHoverBorder: "hover:border-gray-400",
+    cellHoverBgHidden: "hover:bg-gray-600",
+    cellHoverBgVisible: "hover:bg-gray-400",
+    cellHoverBgFlagged: "hover:bg-red-700"
   },
   {
     id: "ocean",
@@ -59,11 +66,13 @@ export const themes: ThemeProps[] = [
     cellVisible: "bg-blue-500",
     cellFlagged: "bg-rose-500",
     cellBorder: "border-gray-900",
-    textHead: "text-black",
-    textBody: "text-black",
+    textHead: "text-white",
+    textBody: "text-white",
+    itemBorder: "border-black",
     cellHoverBorder: "hover:border-rose-400",
-    cellHoverBg: "hover:bg-blue-700",
-  },
+    cellHoverBgHidden: "hover:bg-gray-600",
+    cellHoverBgVisible: "hover:bg-gray-300",
+    cellHoverBgFlagged: "hover:bg-red-700"  },
   {
     id: "forest",
     name: "Forest",
@@ -75,11 +84,13 @@ export const themes: ThemeProps[] = [
     cellVisible: "bg-green-500",
     cellFlagged: "bg-amber-600",
     cellBorder: "border-gray-900",
-    textHead: "text-black",
-    textBody: "text-black",
+    textHead: "text-white",
+    textBody: "text-white",
+    itemBorder: "border-black",
     cellHoverBorder: "hover:border-amber-500",
-    cellHoverBg: "hover:bg-green-800",
-  },
+    cellHoverBgHidden: "hover:bg-gray-600",
+    cellHoverBgVisible: "hover:bg-gray-300",
+    cellHoverBgFlagged: "hover:bg-red-700"  },
   {
     id: "retro",
     name: "Retro",
@@ -91,11 +102,13 @@ export const themes: ThemeProps[] = [
     cellVisible: "bg-yellow-400",
     cellFlagged: "bg-rose-600",
     cellBorder: "border-gray-900",
-    textHead: "text-black",
-    textBody: "text-black",
+    textHead: "text-white",
+    textBody: "text-white",
+    itemBorder: "border-black",
     cellHoverBorder: "hover:border-rose-400",
-    cellHoverBg: "hover:bg-amber-500",
-  },
+    cellHoverBgHidden: "hover:bg-gray-600",
+    cellHoverBgVisible: "hover:bg-gray-300",
+    cellHoverBgFlagged: "hover:bg-red-700"  },
   {
     id: "solarized",
     name: "Solarized",
@@ -107,11 +120,13 @@ export const themes: ThemeProps[] = [
     cellVisible: "bg-teal-500",
     cellFlagged: "bg-red-600",
     cellBorder: "border-gray-900",
-    textHead: "text-black",
-    textBody: "text-black",
+    textHead: "text-white",
+    textBody: "text-white",
+    itemBorder: "border-black",
     cellHoverBorder: "hover:border-red-400",
-    cellHoverBg: "hover:bg-sky-700",
-  },
+    cellHoverBgHidden: "hover:bg-gray-600",
+    cellHoverBgVisible: "hover:bg-gray-300",
+    cellHoverBgFlagged: "hover:bg-red-700"  },
   {
     id: "pastel",
     name: "Pastel",
@@ -123,11 +138,13 @@ export const themes: ThemeProps[] = [
     cellVisible: "bg-sky-200",
     cellFlagged: "bg-rose-300",
     cellBorder: "border-gray-200",
-    textHead: "text-black",
-    textBody: "text-black",
+    textHead: "text-white",
+    textBody: "text-white",
+    itemBorder: "border-black",
     cellHoverBorder: "hover:border-rose-400",
-    cellHoverBg: "hover:bg-blue-300",
-  },
+    cellHoverBgHidden: "hover:bg-gray-600",
+    cellHoverBgVisible: "hover:bg-gray-300",
+    cellHoverBgFlagged: "hover:bg-red-700"  },
   {
     id: "neon",
     name: "Neon",
@@ -141,9 +158,11 @@ export const themes: ThemeProps[] = [
     cellBorder: "border-gray-900",
     textHead: "text-white",
     textBody: "text-white",
+    itemBorder: "border-black",
     cellHoverBorder: "hover:border-violet-400",
-    cellHoverBg: "hover:bg-cyan-500",
-  },
+    cellHoverBgHidden: "hover:bg-gray-600",
+    cellHoverBgVisible: "hover:bg-gray-300",
+    cellHoverBgFlagged: "hover:bg-red-700"  },
   {
     id: "desert",
     name: "Desert",
@@ -157,9 +176,11 @@ export const themes: ThemeProps[] = [
     cellBorder: "border-gray-900",
     textHead: "text-black",
     textBody: "text-black",
+    itemBorder: "border-black",
     cellHoverBorder: "hover:border-orange-500",
-    cellHoverBg: "hover:bg-amber-300",
-  },
+    cellHoverBgHidden: "hover:bg-gray-600",
+    cellHoverBgVisible: "hover:bg-gray-300",
+    cellHoverBgFlagged: "hover:bg-red-700"  },
   {
     id: "pig",
     name: "Pig",
@@ -173,7 +194,9 @@ export const themes: ThemeProps[] = [
     cellBorder: "border-gray-900",
     textHead: "text-black",
     textBody: "text-black",
+    itemBorder: "border-black",
     cellHoverBorder: "hover:border-violet-400",
-    cellHoverBg: "hover:bg-pink-300",
-  },
+    cellHoverBgHidden: "hover:bg-gray-600",
+    cellHoverBgVisible: "hover:bg-gray-300",
+    cellHoverBgFlagged: "hover:bg-red-700"  },
 ]

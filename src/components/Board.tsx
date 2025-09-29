@@ -1,17 +1,19 @@
 import type { BoardProps } from "../game/types"
 import Cell from "../components/Cell";
+import type { AnimationChoices } from "../game/animations";
 
 export default function Board({ board, origin, lossAnimation, winAnimation, theme, onClickCell, onRightClickCell }: BoardProps) {
   return (
     <div
       className="grid gap-0.5"
+      onContextMenu={(e) => e.preventDefault()}
       style={{ gridTemplateColumns: `repeat(${board.cols}, minmax(0, 1fr))` }}
     >
       {board.grid.map((row, r) =>
         row.map((cell, c) => {
           const isOrigin = origin && r === origin.row && c === origin.col
 
-          let animationClass: string | undefined
+          let animationClass: AnimationChoices | undefined
 
           // lost game → animate only bombs
           if (board.status === "lost" && cell.hasMine) {
@@ -32,9 +34,9 @@ export default function Board({ board, origin, lossAnimation, winAnimation, them
             cell.hasMine &&
             origin &&
             !isOrigin
-              ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * 30}ms`
+              ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * lossAnimation.animDuration}ms`
               : board.status === "won" && origin && cell.revealed && !cell.hasMine && !isOrigin
-              ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * 30}ms`
+              ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * lossAnimation.animDuration}ms`
               : "0ms"
 
           return (

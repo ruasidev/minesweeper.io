@@ -1,56 +1,67 @@
-import { boardAnimClass, boardWinAnimClass, type AnimationChoices, type LossAnimationChoices, type WinAnimationChoices } from "../game/animations"
+import { type AnimationChoices, type LossAnimationChoices, type WinAnimationChoices } from "../game/animations"
 import type { CellProps } from "../game/types"
 
 export default function Cell({ cell, animationClass, animationDelay, theme, onClick, onRightClick, onMiddleClick }: CellProps) {
   let value = ""
   let textColor = ""
-  if (cell.revealed) {
-    if (cell.hasMine) {
-      textColor = "text-black"
-    } else if (cell.neighborCount > 0) {
-      value = cell.neighborCount.toString()
-      textColor = getNumberColor(cell.neighborCount)
-    }
-  } else if (cell.flagged) {
-    value = "F"
+  if(cell.revealed && cell.neighborCount > 0) {
+    value = cell.neighborCount.toString()
+    textColor = getNumberColor(cell.neighborCount)
   }
+  if(cell.flagged) value = 'F'
 
-  function resolveAnimClass(id?: AnimationChoices): string {
-    if (!id) return ""
-    if ((id as LossAnimationChoices) in boardAnimClass) {
-        return boardAnimClass[id as LossAnimationChoices]
-    }
-    if ((id as WinAnimationChoices) in boardWinAnimClass) {
-        return boardWinAnimClass[id as WinAnimationChoices]
-    }
-    return ""
+  // function resolveAnimClass(id?: AnimationChoices): string {
+  //   if (!id) return ""
+  //   if ((id as LossAnimationChoices) in boardAnimClass) {
+  //       return boardAnimClass[id as LossAnimationChoices]
+  //   }
+  //   if ((id as WinAnimationChoices) in boardWinAnimClass) {
+  //       return boardWinAnimClass[id as WinAnimationChoices]
+  //   }
+  //   return ""
+  //   }
+
+    // Cell styling based on theme
+    let themeClasses = (`
+      ${theme.cellBorder} 
+      ${theme.cellHoverBorder}
+    `)
+    if(cell.flagged) {              // Cell is hidden and flagged
+      themeClasses += (`
+        ${theme.cellFlagged} 
+        ${theme.cellHoverBgFlagged}
+      `)
+    } else if(!cell.revealed) {     // Cell is hidden and not flagged
+      themeClasses += (`
+        ${theme.cellHidden} 
+        ${theme.cellHoverBgHidden}
+      `)
+    } else {                        // Cell is visible 
+      themeClasses += (`
+        ${theme.cellVisible} 
+        ${theme.cellHoverBgVisible}
+      `)
     }
 
   return (
     <button
-      onClick={onClick}
-      onContextMenu={(e) => {
-        e.preventDefault()
-        onRightClick?.()
+      onClick={onClick}   // Reveal
+      onContextMenu={() => {
+        onRightClick?.()  // Flag (if hidden)
       }}
-      style={{ 
-        animationDelay: animationDelay
-      }}
-      className={`w-10 h-10 border flex items-center justify-center rounded font-extrabold
-        ${theme.cellBorder}
-        ${theme.cellHoverBg}
-        ${theme.cellHoverBorder}
-        ${resolveAnimClass(animationClass as AnimationChoices | undefined)}
+      style={{ animationDelay: animationDelay }}
+      className={`w-10 h-10 border flex items-center justify-center rounded font-extrabold text-3xl
+        ${themeClasses}
         ${textColor}
-        ${cell.revealed ? theme.cellVisible : theme.cellHidden}
-        ${cell.flagged ? theme.cellFlagged : ""}
-        `}
+        animate-${animationClass}
+      `}
     >
       {value}
     </button>
   )
 }
 
+// Return the color of the cell text value based on the number of neighboring mines
 function getNumberColor(count: number): string {
   switch (count) {
     case 1: return "text-blue-600"

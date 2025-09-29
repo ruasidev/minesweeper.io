@@ -1,109 +1,62 @@
+import type { ThemeProps } from "./themes"
+
 export type AnimationPreviewProps = {
   animation: AnimationChoices
+  theme: ThemeProps
 }
 
 export type LossAnimationSelectProps = {
   animation: LossAnimationChoices
+  theme: ThemeProps
   onChange: (val: LossAnimationChoices) => void
 }
 
 export type WinAnimationSelectProps = {
   animation: WinAnimationChoices
+  theme: ThemeProps
   onChange: (val: WinAnimationChoices) => void
 }
 
 export type LossAnimationChoices =
-  | "explode"
-  | "shake"
-  | "fade"
-  | "pulse"
-  | "spin"
-  | "drop"
-  | "flash"
-  | "crumble"
-  | "burn"
-  | "shatter"
-  | "implode"
-  | "fizzle"
-  | "none"
+  | "explode" | "shake"   | "fade"    
+  | "pulse"   | "spin"    | "drop"    
+  | "flash"   | "crumble" | "burn"
+  | "shatter" | "implode" | "fizzle"  
+  | "popoff"  | "none"
 
-
-export type WinAnimationChoices = "bloom" | "sparkle" | "celebrate" | "shine" | "rainbow"
+export type WinAnimationChoices = 
+  | "bloom" | "sparkle" | "celebrate" 
+  | "shine" | "rainbow"
 
 export type AnimationChoices = LossAnimationChoices | WinAnimationChoices
 
 export type AnimationProps<T extends AnimationChoices = AnimationChoices> = {
-  id: T
-  originAnim?: T
-  label: string
+  id: T                     // Animation ID
+  originAnim?: T            // Animation for last clicked cell if different
+  label: string             // Animation label for selection
+  animDuration: number      // Duration of animation for game result modal delay
 }
 
 export const winAnimations: AnimationProps<WinAnimationChoices>[] = [
-  { id: "bloom", originAnim: "bloom", label: "Bloom" },
-  { id: "sparkle", originAnim: "sparkle", label: "Sparkle" },
-  { id: "celebrate", originAnim: "celebrate", label: "Celebrate" },
-  { id: "shine", originAnim: "shine", label: "Shine" },
-  { id: "rainbow", originAnim: "rainbow", label: "Rainbow" },
+  { id: "bloom",      originAnim: "bloom",      label: "Bloom",       animDuration: 40 },
+  { id: "sparkle",    originAnim: "sparkle",    label: "Sparkle",     animDuration: 40 },
+  { id: "celebrate",  originAnim: "celebrate",  label: "Celebrate",   animDuration: 40 },
+  { id: "shine",      originAnim: "shine",      label: "Shine",       animDuration: 40 },
+  { id: "rainbow",    originAnim: "rainbow",    label: "Rainbow",     animDuration: 40 },
 ]
 
 export const lossAnimations: AnimationProps<LossAnimationChoices>[] = [
-  { id: "explode", originAnim: "explode", label: "Explode" },
-  { id: "shake", originAnim: "shake", label: "Shake" },
-  { id: "fade", originAnim: "fade", label: "Fade" },
-  { id: "pulse", originAnim: "pulse", label: "Pulse" },
-  { id: "spin", originAnim: "spin", label: "Spin" },
-  { id: "drop", originAnim: "drop", label: "Drop" },
-  { id: "flash", originAnim: "flash", label: "Flash" },
-  { id: "crumble", originAnim: "crumble", label: "Crumble" },
-  { id: "burn", originAnim: "burn", label: "Burn" },
-  { id: "shatter", originAnim: "shatter", label: "Shatter" },
-  { id: "implode", originAnim: "implode", label: "Implode" },
-  { id: "fizzle", originAnim: "fizzle", label: "Fizzle" },
-  { id: "none", originAnim: "none", label: "None" },
+  { id: "explode",    originAnim: "explode",    label: "Explode",     animDuration: 40 },
+  { id: "shake",      originAnim: "explode",    label: "Shake",       animDuration: 40 },
+  { id: "fade",       originAnim: "explode",    label: "Fade",        animDuration: 40 },
+  { id: "pulse",      originAnim: "pulse",      label: "Pulse",       animDuration: 40 },
+  { id: "spin",       originAnim: "explode",    label: "Spin",        animDuration: 40 },
+  { id: "drop",       originAnim: "explode",    label: "Drop",        animDuration: 40 },
+  { id: "flash",      originAnim: "explode",    label: "Flash",       animDuration: 40 },
+  { id: "crumble",    originAnim: "popoff",     label: "Crumble",     animDuration: 40 },
+  { id: "burn",       originAnim: "explode",    label: "Burn",        animDuration: 40 },
+  { id: "shatter",    originAnim: "explode",    label: "Shatter",     animDuration: 40 },
+  { id: "implode",    originAnim: "explode",    label: "Implode",     animDuration: 40 },
+  { id: "fizzle",     originAnim: "explode",    label: "Fizzle",      animDuration: 40 },
+  { id: "none",       originAnim: "none",       label: "None",        animDuration: 40 },
 ]
-
-
-
-/**
- * Maps animation IDs to Tailwind classes that trigger on hover
- * (used in previews).
- */
-// export const hoverAnimationClassMap: Record<AnimationChoices, string> = {
-//   explode: "group-hover:animate-explode",
-//   shake: "group-hover:animate-shake",
-//   fade: "group-hover:animate-fade",
-//   pulse: "group-hover:animate-pulseOut",
-//   spin: "group-hover:animate-spinOut",
-//   drop: "group-hover:animate-dropDown",
-//   flash: "group-hover:animate-flash",
-//   none: "",
-//   bloom: "group-hover:animate-bloom",
-//   sparkle: "group-hover:animate-sparkle",
-//   celebrate: "group-hover:animate-celebrate",
-//   shine: "group-hover:animate-shine",
-//   rainbow: "group-hover:animate-rainbow",
-// }
-
-export const boardAnimClass: Record<LossAnimationChoices, string> = {
-  explode: "animate-explode",
-  shake: "animate-shake",
-  fade: "animate-fade",
-  pulse: "animate-pulseOut",
-  spin: "animate-spinOut",
-  drop: "animate-dropDown",
-  flash: "animate-flash",
-  crumble: "animate-crumble",
-  burn: "animate-burn",
-  shatter: "animate-shatter",
-  implode: "animate-implode",
-  fizzle: "animate-fizzle",
-  none: "",
-}
-
-export const boardWinAnimClass: Record<WinAnimationChoices, string> = {
-  bloom: "animate-bloom",
-  sparkle: "animate-sparkle",
-  celebrate: "animate-celebrate",
-  shine: "animate-shine",
-  rainbow: "animate-rainbow",
-}

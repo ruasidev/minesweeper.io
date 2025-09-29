@@ -2,7 +2,7 @@ import { AnimationPreview } from "./AnimationPreview";
 import type { LossAnimationSelectProps } from "../game/animations";
 import { lossAnimations } from "../game/animations";
 
-export function LossAnimationSelect({ animation, onChange }: LossAnimationSelectProps) {
+export function LossAnimationSelect({ animation, theme, onChange }: LossAnimationSelectProps) {
     return (
         <div className="grid grid-cols-2 gap-4">
             {lossAnimations.map(anim => (
@@ -13,7 +13,7 @@ export function LossAnimationSelect({ animation, onChange }: LossAnimationSelect
                     `}
                     onClick={() => onChange(anim.id)}
                 >
-                    <AnimationPreview animation={anim.id} />
+                    <AnimationPreview animation={anim.id} theme={theme} />
                     <span className="text-sm">{anim.label}</span>
                 </button>
             ))}

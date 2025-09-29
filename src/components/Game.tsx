@@ -2,10 +2,10 @@ import { useEffect, useState } from "react"
 import { createEmptyBoard, populateBoard, revealCell, flagCell } from "../game/board"
 import type { GameProps } from "../game/types"
 import type { Board as BoardType } from "../game/types"
-import Board from "../components/Board"
-import GameResult from "../components/GameResult"
-import { GameStatusBar } from "../components/GameStatusBar"
-import GameControls from "../components/GameControls"
+import Board from "./Board"
+import GameResult from "./GameResult"
+import { GameStatusBar } from "./GameStatusBar"
+import GameControls from "./GameControls"
 
 export default function Game({ lossAnimation, winAnimation, theme }: GameProps) {
   const [rows, setRows] = useState(17);
@@ -57,50 +57,54 @@ export default function Game({ lossAnimation, winAnimation, theme }: GameProps) 
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full">
-      {/* GAME STATS */}
-      <GameStatusBar 
-        rows={rows} 
-        cols={cols} 
-        mines={mines} 
-        status={board.status} 
-        revealedCount={board.revealedCount}
-        flaggedCount={board.flaggedCount}
-      />
+    <div className={`flex-1 overflow-auto p-4 ${theme.background}`}>
+      <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-6 w-full">
+          {/* GAME STATS */}
+          <GameStatusBar 
+            rows={rows} 
+            cols={cols} 
+            mines={mines} 
+            status={board.status} 
+            revealedCount={board.revealedCount}
+            flaggedCount={board.flaggedCount}
+          />
 
-      {/* GAME CONTROLS */}
-      <GameControls 
-        rows={rows} cols={cols} mines={mines} 
-        theme={theme} 
-        onRowsChange={setRows} 
-        onColsChange={setCols} 
-        onMinesChange={setMines} 
-        onReset={resetGame}
-      />
+          {/* GAME CONTROLS */}
+          <GameControls 
+            rows={rows} cols={cols} mines={mines} 
+            theme={theme} 
+            onRowsChange={setRows} 
+            onColsChange={setCols} 
+            onMinesChange={setMines} 
+            onReset={resetGame}
+          />
 
-      {/* BOARD */}
-      <Board
-        board={board}
-        origin={lastClicked}
-        lossAnimation={lossAnimation}
-        winAnimation={winAnimation}
-        theme={theme}
-        onClickCell={handleClickCell}
-        onRightClickCell={handleRightClickCell}
-      />
+          {/* BOARD */}
+          <Board
+            board={board}
+            origin={lastClicked}
+            lossAnimation={lossAnimation}
+            winAnimation={winAnimation}
+            theme={theme}
+            onClickCell={handleClickCell}
+            onRightClickCell={handleRightClickCell}
+          />
 
-      {/* GAME END MODAL */}
-      {showResult && (
-        <GameResult
-          status={board.status as "won" | "lost"}
-          revealedCount={board.revealedCount}
-          flaggedCount={board.flaggedCount}
-          totalMines={mines}
-          rows={rows}
-          cols={cols}
-          onReset={resetGame}
-        />
-      )}
+          {/* GAME END MODAL */}
+          {showResult && (
+            <GameResult
+              status={board.status as "won" | "lost"}
+              revealedCount={board.revealedCount}
+              flaggedCount={board.flaggedCount}
+              totalMines={mines}
+              rows={rows}
+              cols={cols}
+              onReset={resetGame}
+            />
+          )}
+        </div>
+      </div>
     </div>
   )
 }
