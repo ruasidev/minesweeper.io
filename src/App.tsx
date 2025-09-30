@@ -17,7 +17,7 @@ function App() {
   const theme = themes.find(a => a.id === themeId) || themes[0]
 
   return (
-    <div className="h-screen w-screen flex flex-col">
+    <div className="h-screen w-screen flex flex-col overflow-x-hidden">
       <NavigationBar theme={theme}>
         <button
           onClick={() => setIsMenuOpen(v => !v)}
@@ -30,9 +30,9 @@ function App() {
       {/* key bits: relative parent, and let children be shrinkable/scrollable */}
       <main className={`relative flex flex-1 min-h-0 ${theme.background}`}>
         <div
-          className={`${isMenuOpen ? "mr-80" : ""} flex-1 min-w-0 min-h-0`}
+          className={`flex-1 min-w-0 min-h-0`}
         >
-          <Game lossAnimation={lossAnimation} winAnimation={winAnimation} theme={theme} />
+          <Game lossAnimation={lossAnimation} winAnimation={winAnimation} theme={theme} isMenuOpen={isMenuOpen} />
         </div>
 
         <SidebarMenu

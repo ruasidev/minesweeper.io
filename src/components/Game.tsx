@@ -7,11 +7,12 @@ import GameResult from "./GameResult"
 import { GameStatusBar } from "./GameStatusBar"
 import GameControls from "./GameControls"
 
-export default function Game({ lossAnimation, winAnimation, theme }: GameProps) {
-  const [rows, setRows] = useState(17);
-  const [cols, setCols] = useState(20);
-  const [mines, setMines] = useState(30);
+export default function Game({ lossAnimation, winAnimation, theme, isMenuOpen }: GameProps) {
+  const [rows, setRows] = useState(8);
+  const [cols, setCols] = useState(10);
+  const [mines, setMines] = useState(7);
   const [board, setBoard] = useState<BoardType>(() => createEmptyBoard(rows, cols))
+  const [resetKey, setResetKey] = useState(0)
   const [initialized, setInitialized] = useState(false)
   const [showResult, setShowResult] = useState(false)
   const [lastClicked, setLastClicked] = useState<{ row: number; col: number } | null>(null)
@@ -54,58 +55,76 @@ export default function Game({ lossAnimation, winAnimation, theme }: GameProps) 
   function resetGame() {
     setBoard(createEmptyBoard(rows, cols))
     setInitialized(false)
+    setResetKey(k => k + 1)
   }
 
+  const railRight = isMenuOpen ? "pr-[21rem]" : "pr-4"; // 20rem sidebar + 1rem gap
+  const railLeft  = "pl-4";
+
+
   return (
-    <div className={`h-full min-h-0 overflow-y-auto p-4 hide-scrollbar ${theme.background}`}>
-      <div className="flex flex-col items-center gap-6">
-        <div className="flex flex-col items-center gap-6 w-full">
-          {/* GAME STATS */}
-          <GameStatusBar 
-            rows={rows} 
-            cols={cols} 
-            mines={mines} 
-            status={board.status} 
-            revealedCount={board.revealedCount}
-            flaggedCount={board.flaggedCount}
-            theme={theme}
-          />
-
-          {/* GAME CONTROLS */}
-          <GameControls 
-            rows={rows} cols={cols} mines={mines} 
-            theme={theme} 
-            onRowsChange={setRows} 
-            onColsChange={setCols} 
-            onMinesChange={setMines} 
-            onReset={resetGame}
-          />
-
-          {/* BOARD */}
-          <Board
-            board={board}
-            origin={lastClicked}
-            lossAnimation={lossAnimation}
-            winAnimation={winAnimation}
-            theme={theme}
-            onClickCell={handleClickCell}
-            onRightClickCell={handleRightClickCell}
-          />
-
-          {/* GAME END MODAL */}
-          {showResult && (
-            <GameResult
-              status={board.status as "won" | "lost"}
-              revealedCount={board.revealedCount}
-              flaggedCount={board.flaggedCount}
-              totalMines={mines}
+    <div className={`h-full min-h-0 overflow-y-auto overflow-x-hidden p-4 hide-scrollbar ${theme.background}`}>
+      <div className="flex flex-col gap-6 w-full min-w-0">
+        {/* STATS */}
+        <div className={`w-full ${railLeft} ${railRight}`}>
+          <div className="flex justify-center">
+            <GameStatusBar
               rows={rows}
               cols={cols}
+              mines={mines}
+              status={board.status}
+              revealedCount={board.revealedCount}
+              flaggedCount={board.flaggedCount}
               theme={theme}
+            />
+          </div>
+        </div>
+
+        {/* CONTROLS */}
+        <div className={`w-full ${railLeft} ${railRight}`}>
+          <div className="flex justify-center">
+            <GameControls
+              rows={rows}
+              cols={cols}
+              mines={mines}
+              theme={theme}
+              onRowsChange={setRows}
+              onColsChange={setCols}
+              onMinesChange={setMines}
               onReset={resetGame}
             />
-          )}
+          </div>
         </div>
+
+        {/* BOARD: centered when it fits, scroll when it doesn't, goes under sidebar */}
+        <div className={`relative z-0 w-full min-w-0 overflow-x-auto hide-scrollbar ${railLeft} ${railRight}`}>
+          {/* key: w-max + mx-auto (no flex here) */}
+          <div className="w-max mx-auto">
+            <Board
+              board={board}
+              resetKey={resetKey}
+              origin={lastClicked}
+              lossAnimation={lossAnimation}
+              winAnimation={winAnimation}
+              theme={theme}
+              onClickCell={handleClickCell}
+              onRightClickCell={handleRightClickCell}
+            />
+          </div>
+        </div>
+
+        {showResult && (
+          <GameResult
+            status={board.status as "won" | "lost"}
+            revealedCount={board.revealedCount}
+            flaggedCount={board.flaggedCount}
+            totalMines={mines}
+            rows={rows}
+            cols={cols}
+            theme={theme}
+            onReset={resetGame}
+          />
+        )}
       </div>
     </div>
   )

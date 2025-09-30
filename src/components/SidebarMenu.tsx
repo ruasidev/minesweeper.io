@@ -14,6 +14,7 @@ export default function SidebarMenu({
         pointer-events-none absolute inset-y-4 right-4 z-50
         transition-[width,opacity,transform] duration-300
         ${isOpen ? "w-80 opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-4"}
+        overflow-hidden
     `}
     >
     <div
@@ -23,7 +24,6 @@ export default function SidebarMenu({
         ${currentTheme.menuBg}
         ${currentTheme.menuBorder}
         `}
-        style={{ width: "20rem" }}
     >
         <div className="flex flex-col gap-6 h-full overflow-y-auto p-4">
         <div className="flex justify-between items-center">

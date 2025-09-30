@@ -14,6 +14,7 @@ export type Cell = {
 
 export type CellProps = {
   cell: Cell
+  resetKey: number
   animationClass?: string
   animationDelay?: string
   theme: ThemeProps
@@ -37,6 +38,7 @@ export type Board = {
 // React component contract; what props must be passed into <Board /> component
 export type BoardProps = {
   board: Board
+  resetKey: number
   origin: { row: number, col: number } | null
   lossAnimation: AnimationProps<LossAnimationChoices>
   winAnimation: AnimationProps<WinAnimationChoices>
@@ -49,6 +51,7 @@ export type GameProps = {
   lossAnimation: AnimationProps<LossAnimationChoices>
   winAnimation: AnimationProps<WinAnimationChoices>
   theme: ThemeProps
+  isMenuOpen: boolean
 }
 
 export type GameControlsProps = {

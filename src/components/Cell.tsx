@@ -1,8 +1,12 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { CellProps } from "../game/types"
 
-export default function Cell({ cell, animationClass, animationDelay, theme, onClick, onRightClick }: CellProps) {
+export default function Cell({ cell, resetKey, animationClass, animationDelay, theme, onClick, onRightClick }: CellProps) {
   const [hideValue, setHideValue] = useState(false)
+
+  useEffect(() => {
+    setHideValue(false)
+  }, [resetKey])
 
   let value = ""
   let textColor = ""
