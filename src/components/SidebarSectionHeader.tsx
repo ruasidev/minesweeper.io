@@ -4,11 +4,9 @@ export default function SidebarSectionHeader({ text, theme }: SidebarSectionHead
   return (
     <h2
       className={`
+        text-sm font-semibold uppercase tracking-wide border-b pb-1 mb-2 cursor-default
         ${theme.textHead}
         ${theme.menuBorder}
-        text-sm font-semibold uppercase tracking-wide
-        border-b 
-        pb-1 mb-2
       `}
     >
       {text}

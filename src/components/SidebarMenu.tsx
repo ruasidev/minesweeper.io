@@ -33,7 +33,7 @@ export default function SidebarMenu({
       >
         <div className="flex flex-col gap-6 h-full overflow-y-auto p-4 hide-scrollbar">
           <div className="flex justify-between items-center">
-            <h2 className={`text-2xl font-semibold ${currentTheme.textHead}`}>Menu</h2>
+            <h2 className={`text-2xl font-semibold cursor-default ${currentTheme.textHead}`}>Menu</h2>
             <button
               onClick={onClose}
               className={`

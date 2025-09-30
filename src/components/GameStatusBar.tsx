@@ -27,19 +27,19 @@ export function GameStatusBar({
   return (
     <div
       className={`border rounded-sm flex gap-8 px-4 py-2 text-sm
-        shadow-lg shadow-black/40 ring-1 ring-white/10
+        shadow-lg shadow-black/40 ring-1 ring-white/10 cursor-default
         ${theme.menuBg}
         ${theme.textHead}
       `}
     >
-      <div>Mines: {mines}</div>
-      <div>Status: {status}</div>
-      <div>Flags Remaining: {mines - flaggedCount}</div>
-      <div>Revealed: {revealedCount}/{rows * cols - mines}</div>
-      <div>Progress: {progress}%</div>
+      <div className="font-semibold">Mines: {mines}</div>
+      <div className="font-semibold">Status: {status}</div>
+      <div className="font-semibold">Flags Remaining: {mines - flaggedCount}</div>
+      <div className="font-semibold">Revealed: {revealedCount}/{rows * cols - mines}</div>
+      <div className="font-semibold">Progress: {progress}%</div>
       <div className="flex items-center gap-2">
         <MiniClock time={time} />
-        <span className="tabular-nums w-[3.5rem]">{formattedTime}</span>
+        <span className="font-semibold tabular-nums w-[3.5rem]">{formattedTime}</span>
       </div>
     </div>
   )

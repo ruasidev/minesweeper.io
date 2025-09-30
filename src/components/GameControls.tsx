@@ -10,7 +10,7 @@ export default function GameControls({
   return (
     <div
       className={`border rounded-md flex gap-4 p-2
-        shadow-lg shadow-black/40 ring-1 ring-white/10
+        shadow-lg shadow-black/40 ring-1 ring-white/10 cursor-default
         ${theme.menuBg}
         ${theme.menuBorder}
       `}
