@@ -11,7 +11,7 @@ export function WinAnimationSelect({ animation, theme, onChange }: WinAnimationS
                 {winAnimations.map(anim => (
                     <button
                         key={anim.id}
-                        className={`group border rounded p-2 flex flex-col items-center gap-2 pressable
+                        className={`group border rounded p-2 flex flex-col items-center gap-2 pressable font-semibold
                             ${ animation === anim.id ? `ring-2 ${theme.itemSelectedBorder}` : "" }
                             ${ theme.itemBorder }
                             ${ theme.itemHoverBorder }

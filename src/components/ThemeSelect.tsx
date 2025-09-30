@@ -7,7 +7,7 @@ export function ThemeSelect({ themeId, theme, onChange }: ThemeSelectProps) {
       {themes.map((t: ThemeProps) => (
         <button
           key={t.id}
-          className={`p-3 rounded-md border flex flex-col items-center pressable
+          className={`p-3 rounded-md border flex flex-col items-center pressable font-semibold
             ${theme.itemBg}
             ${theme.itemHoverBg}
             ${theme.itemHoverBorder}
