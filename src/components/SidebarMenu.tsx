@@ -2,6 +2,7 @@ import type { SidebarProps } from "../game/types"
 import { LossAnimationSelect } from "./LossAnimationSelect"
 import { WinAnimationSelect } from "./WinAnimationSelect"
 import { ThemeSelect } from "./ThemeSelect"
+import { X } from "lucide-react"
 
 export default function SidebarMenu({ 
   currentWinAnimation, currentLossAnimation, currentTheme,
@@ -10,32 +11,46 @@ export default function SidebarMenu({
 }: SidebarProps) {
   return (
     <aside
-    className={`
-        pointer-events-none absolute inset-y-4 right-4 z-50
-        transition-[width,opacity,transform] duration-300
-        ${isOpen ? "w-80 opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-4"}
-        overflow-hidden
-    `}
+      className={`
+        pointer-events-none absolute z-50
+        transition-all duration-300
+        hide-scrollbar
+        ${isOpen 
+          ? "w-80 opacity-100 translate-x-0 scale-105" 
+          : "w-0 opacity-0 translate-x-8 scale-95"}
+        top-8 bottom-8 right-8
+      `}
     >
-    <div
+      <div
         className={`
-        pointer-events-auto h-full border rounded-lg shadow-xl overflow-hidden
-        backdrop-blur-sm
-        ${currentTheme.menuBg}
-        ${currentTheme.menuBorder}
+          pointer-events-auto h-full rounded-xl overflow-hidden
+          shadow-2xl shadow-black/70 ring-1 ring-white/20
+          backdrop-blur-md
+          ${currentTheme.menuBg}
+          ${currentTheme.menuBorder}
         `}
-    >
-        <div className="flex flex-col gap-6 h-full overflow-y-auto p-4">
+      >
+        <div className="flex flex-col gap-6 h-full overflow-y-auto p-4 hide-scrollbar">
         <div className="flex justify-between items-center">
-            <h2 className={`text-2xl font-semibold ${currentTheme.textHead}`}>Menu</h2>
-            <button onClick={onClose} className={`${currentTheme.textHead}`}>✕</button>
+        <h2 className={`text-2xl font-semibold ${currentTheme.textHead}`}>Menu</h2>
+        <button
+            onClick={onClose}
+            className={`
+            p-2 rounded transition-colors
+            ${currentTheme.textHead} ${currentTheme.itemHoverBg}
+            hover:opacity-80 active:opacity-60
+            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400
+            `}
+        >
+            <X className="w-5 h-5" />
+        </button>
         </div>
 
-        <ThemeSelect themeId={currentTheme.id} theme={currentTheme} onChange={setTheme} />
-        <WinAnimationSelect animation={currentWinAnimation} theme={currentTheme} onChange={setWinAnimation} />
-        <LossAnimationSelect animation={currentLossAnimation} theme={currentTheme} onChange={setLossAnimation} />
+          <ThemeSelect themeId={currentTheme.id} theme={currentTheme} onChange={setTheme} />
+          <WinAnimationSelect animation={currentWinAnimation} theme={currentTheme} onChange={setWinAnimation} />
+          <LossAnimationSelect animation={currentLossAnimation} theme={currentTheme} onChange={setLossAnimation} />
         </div>
-    </div>
+      </div>
     </aside>
   )
 }

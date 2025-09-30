@@ -15,3 +15,27 @@
     @apply transition-none;
   }
 }
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow linear infinite;
+}
+
+.scale-hover-105 {
+  transition: transform 200ms ease;
+}
+.scale-hover-105:hover {
+  transform: scale(1.05);
+}
+
+.scale-hover-108 {
+  transition: transform 200ms ease;
+}
+
+.scale-hover-108:hover {
+  transform: scale(1.08);
+}
+

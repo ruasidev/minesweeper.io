@@ -72,14 +72,15 @@ export type GameStatus =
     | "won" 
     | "lost"
 
-export type GameStatusBarProps = {
-    rows: number
-    cols: number
-    mines: number
-    status: GameStatus
-    revealedCount: number
-    flaggedCount: number
-    theme: ThemeProps
+export interface GameStatusBarProps {
+  rows: number;
+  cols: number;
+  mines: number;
+  status: string;
+  revealedCount: number;
+  flaggedCount: number;
+  theme: ThemeProps;
+  time: number;
 }
 
 export type SidebarProps = {

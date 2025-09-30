@@ -17,10 +17,12 @@ export function ThemeSelect({ themeId, theme, onChange }: ThemeSelectProps) {
           onClick={() => onChange(t.id)}
           style={{ backgroundColor: t.menuBg }}
         >
-          <div className={`flex gap-1 p-2`}>
-            <div className={`w-4 h-4 rounded-sm ${t.cellHidden}`} />
-            <div className={`w-4 h-4 rounded-sm ${t.cellVisible}`} />
-            <div className={`w-4 h-4 rounded-sm ${t.cellFlagged}`} />
+          {/* Color swatches */}
+          <div className="flex flex-wrap gap-1 p-2 justify-center">
+            <div className={`w-4 h-4 rounded-sm ${t.cellHidden}`} title="Hidden cell" />
+            <div className={`w-4 h-4 rounded-sm ${t.cellVisible}`} title="Visible cell" />
+            <div className={`w-4 h-4 rounded-sm ${t.cellFlagged}`} title="Flagged cell" />
+            <div className={`w-4 h-4 rounded-sm ${t.background}`} title="Background" />
           </div>
           <span className={`text-sm ${theme.textBody}`}>{t.name}</span>
         </button>

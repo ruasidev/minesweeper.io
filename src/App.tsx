@@ -21,18 +21,28 @@ function App() {
       <NavigationBar theme={theme}>
         <button
           onClick={() => setIsMenuOpen(v => !v)}
-          className={`p-2 rounded hover:bg-gray-700 transition-colors ${theme.textHead}`}
+          className={`p-2 rounded transition-colors ${theme.textHead} ${theme.itemHoverBg}`}
         >
           {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </NavigationBar>
 
-      {/* key bits: relative parent, and let children be shrinkable/scrollable */}
-      <main className={`relative flex flex-1 min-h-0 ${theme.background}`}>
-        <div
-          className={`flex-1 min-w-0 min-h-0`}
-        >
-          <Game lossAnimation={lossAnimation} winAnimation={winAnimation} theme={theme} isMenuOpen={isMenuOpen} />
+      <main className={`relative flex flex-1 min-h-0 ${theme.background} ${theme.font ?? ""}`}
+        // Used for adjusting spacing when sidebar menu is open
+        style={
+          {
+            ["--sidebar-w" as any]: "20rem",
+            ["--sidebar-gap" as any]: "2rem",
+          } as React.CSSProperties
+        }
+      >
+        <div className={`flex-1 min-w-0 min-h-0`}>
+          <Game 
+            lossAnimation={lossAnimation} 
+            winAnimation={winAnimation} 
+            theme={theme} 
+            isMenuOpen={isMenuOpen} 
+          />
         </div>
 
         <SidebarMenu
