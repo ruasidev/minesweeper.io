@@ -4,7 +4,7 @@ import { winAnimations, lossAnimations, type LossAnimationChoices, type WinAnima
 import { type ThemeChoices, themes } from "./game/themes"
 import SidebarMenu from "./components/SidebarMenu"
 import NavigationBar from "./components/NavigationBar"
-import { Menu, X } from "lucide-react"
+import { X, Paintbrush } from "lucide-react"
 
 function App() {
   const [lossAnimationId, setLossAnimationId] = useState<LossAnimationChoices>(lossAnimations[0].id)
@@ -23,7 +23,7 @@ function App() {
           onClick={() => setIsMenuOpen(v => !v)}
           className={`p-2 rounded transition-colors ${theme.textHead} ${theme.itemHoverBg}`}
         >
-          {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {isMenuOpen ? <X className="w-6 h-6" /> : <Paintbrush className="w-6 h-6" />}
         </button>
       </NavigationBar>
 
