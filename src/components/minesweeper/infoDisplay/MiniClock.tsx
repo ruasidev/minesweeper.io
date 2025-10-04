@@ -1,6 +1,6 @@
 import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
 
-export function MiniClock() {
+export default function MiniClock() {
   const { timeSeconds } = useMinesweeperGameContext()
   const rotation = timeSeconds * 6 // 6° per second
 

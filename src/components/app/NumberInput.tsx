@@ -1,7 +1,7 @@
 import { useTheme } from "../../context/ThemeContext";
 import type { NumberInputProps } from "../../game/types";
 
-export function NumberInput({ label, value, onChange }: NumberInputProps) {
+export default function NumberInput({ label, value, onChange }: NumberInputProps) {
   const { theme } = useTheme()
   const focusClass = `focus:${theme.itemSelectedBorder}`
   return (

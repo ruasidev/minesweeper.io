@@ -1,7 +1,7 @@
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 import { useTheme } from "../../context/ThemeContext"
-import { NumberInput } from "../app/NumberInput"
-import { ResetGameButton } from "./infoDisplay/ResetGameButton"
+import NumberInput from "../app/NumberInput"
+import ResetGameButton from "./infoDisplay/ResetGameButton"
 
 // Holds sliders and buttons for changing the board state
 export default function GameControls() {

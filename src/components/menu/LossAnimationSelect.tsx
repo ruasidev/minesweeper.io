@@ -1,4 +1,4 @@
-import { AnimationPreview } from "./AnimationPreview";
+import AnimationPreview from "./AnimationPreview";
 import { lossAnimations } from "../../game/animations";
 import SidebarSectionHeader from "./SidebarSectionHeader";
 import { useTheme } from "../../context/ThemeContext";

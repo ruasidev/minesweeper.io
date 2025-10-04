@@ -12,7 +12,7 @@ function App() {
   const { theme } = useTheme();
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-x-hidden">
+    <div className="h-screen w-screen flex flex-col overflow-x-hidden select-none">
       <NavigationBar>
         <button
           onClick={() => setIsMenuOpen(v => !v)}

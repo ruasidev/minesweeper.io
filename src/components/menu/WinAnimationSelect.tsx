@@ -1,10 +1,10 @@
-import { AnimationPreview } from "./AnimationPreview";
+import AnimationPreview from "./AnimationPreview";
 import { winAnimations } from "../../game/animations";
 import SidebarSectionHeader from "./SidebarSectionHeader";
 import { useTheme } from "../../context/ThemeContext";
 import { useGameAnimations } from "../../context/GameAnimationContext";
 
-export function WinAnimationSelect() {
+export default function WinAnimationSelect() {
     const { theme } = useTheme()
     const { winAnimationId, setWinAnimationId } = useGameAnimations()
     return (

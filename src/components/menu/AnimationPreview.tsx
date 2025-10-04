@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react"
+import { useTheme } from "../../context/ThemeContext"
 import { lossAnimations, type AnimationChoices } from "../../game/animations"
 import { computePreview } from "../../game/animationPreview"
-import { useTheme } from "../../context/ThemeContext"
 
-export function AnimationPreview({ animation }: { animation: AnimationChoices }) {
+export default function AnimationPreview({ animation }: { animation: AnimationChoices }) {
   const [hovered, setHovered] = useState(false)
   const [cycleKey, setCycleKey] = useState(0)
   const { theme } = useTheme()

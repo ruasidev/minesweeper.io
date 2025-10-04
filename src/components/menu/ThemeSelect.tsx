@@ -3,7 +3,7 @@ import type { ThemeProps } from "../../game/themes"
 import { themes } from "../../game/themes"
 import SidebarSectionHeader from "./SidebarSectionHeader"
 
-export function ThemeSelect() {
+export default function ThemeSelect() {
   const { theme, themeId, setThemeId } = useTheme(); 
   return (
     <div>

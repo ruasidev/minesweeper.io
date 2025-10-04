@@ -1,6 +1,6 @@
 import { useTheme } from "../../context/ThemeContext"
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
-import { GameStatusBar } from "./infoDisplay/GameStatusBar"
+import GameStatusBar from "./infoDisplay/GameStatusBar"
 import Board from "./Board"
 import GameResult from "./infoDisplay/GameResult"
 import GameControls from "./GameControls"

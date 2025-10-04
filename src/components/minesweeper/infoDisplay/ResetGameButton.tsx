@@ -1,7 +1,7 @@
 import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
 import { useTheme } from "../../../context/ThemeContext"
 
-export function ResetGameButton() {
+export default function ResetGameButton() {
     const { theme } = useTheme()
     const { resetGame } = useMinesweeperGameContext()
     return (

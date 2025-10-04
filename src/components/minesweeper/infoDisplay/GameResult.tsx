@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
-import PlayAgainButton from "./PlayAgainButton"
-import { useTheme } from "../../../context/ThemeContext"
 import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
+import { useTheme } from "../../../context/ThemeContext"
+import PlayAgainButton from "./PlayAgainButton"
 import GameResultItem from "./GameResultItem"
 import ScreenDim from "./ScreenDim"
 

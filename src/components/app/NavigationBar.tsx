@@ -12,7 +12,7 @@ export default function NavigationBar({ children }: NavigationBarProps) {
         ${theme.menuBorder}
       `}
     >
-      <h1 className="text-3xl font-bold cursor-default pressable select-none">minesweeper.io</h1>
+      <h1 className="text-3xl font-bold cursor-default pressable">minesweeper.io</h1>
       <div className="ml-auto flex items-center gap-2">
         <a
           href="https://youtu.be/dQw4w9WgXcQ?si=din5tDjdkP4h6Ygl"

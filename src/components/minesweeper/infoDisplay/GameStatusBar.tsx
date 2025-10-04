@@ -1,8 +1,8 @@
 import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
 import { useTheme } from "../../../context/ThemeContext"
-import { MiniClock } from "./MiniClock"
+import MiniClock from "./MiniClock"
 
-export function GameStatusBar() {
+export default function GameStatusBar() {
   const { theme } = useTheme()
   const { rows, cols, mines, board, progress, timeSeconds, timeMinutes } = useMinesweeperGameContext()
   const formattedTime = `${timeMinutes.toString().padStart(2, "0")}:${timeSeconds.toString().padStart(2, "0")}`
