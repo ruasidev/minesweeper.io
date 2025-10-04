@@ -1,5 +1,5 @@
 import type { LossAnimationChoices, WinAnimationChoices, AnimationProps } from "./animations"
-import type { ThemeChoices, ThemeProps } from "./themes"
+import type { ThemeProps } from "./themes"
 // Note to self: Analogous to Rails migration/schema, describes shape of data
 
 // a single cell in the board

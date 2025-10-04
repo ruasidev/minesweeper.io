@@ -12,7 +12,6 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeId, setThemeId] = useLocalStorage<ThemeChoices>("theme", "classic");
-
   const theme = themes.find((t) => t.id === themeId) ?? themes[0];
 
   return (

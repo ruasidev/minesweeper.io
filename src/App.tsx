@@ -9,7 +9,7 @@ import { useTheme } from "./context/ThemeContext"
 function App() {
   const [lossAnimationId, setLossAnimationId] = useState<LossAnimationChoices>(lossAnimations[0].id)
   const [winAnimationId, setWinAnimationId] = useState<WinAnimationChoices>(winAnimations[0].id)
-  const [isMenuOpen, setIsMenuOpen] = useState(true)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const { theme } = useTheme();
   const winAnimation = winAnimations.find(a => a.id === winAnimationId) || winAnimations[0]

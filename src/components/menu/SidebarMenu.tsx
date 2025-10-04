@@ -14,19 +14,19 @@ export default function SidebarMenu({
   return (
     <aside
       className={`
-        pointer-events-none absolute z-50
+        absolute z-50
         top-8 bottom-8 right-8
         w-80  /* keep constant width */
         transition-all duration-300
         hide-scrollbar
         ${isOpen 
-          ? "opacity-100 translate-x-0 scale-105" 
-          : "opacity-0 translate-x-8 scale-95"}
+          ? "opacity-100 translate-x-0 scale-105 pointer-events-auto" 
+          : "opacity-0 translate-x-8 scale-95 pointer-events-none"}
       `}
     >
       <div
         className={`
-          pointer-events-auto h-full rounded-xl overflow-hidden
+          h-full rounded-xl overflow-hidden
           shadow-2xl shadow-black/70 ring-1 ring-white/20
           backdrop-blur-md
           ${theme.menuBg}
