@@ -8,11 +8,11 @@
 
 @layer components {
   .pressable {
-    @apply transform transition-transform duration-150 hover:scale-102 active:scale-95;
+    @apply transform transition-transform duration-150 hover:scale-102 active:scale-95 cursor-pointer;
   }
 
   .pressable:active {
-    @apply transition-none;
+    @apply transition-none cursor-pointer;
   }
 }
 

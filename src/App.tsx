@@ -1,11 +1,14 @@
 import { useState } from "react"
-import Game from "./components/minesweeper/Game"
-import SidebarMenu from "./components/menu/SidebarMenu"
-import NavigationBar from "./components/app/NavigationBar"
-import { X, Paintbrush, GithubIcon } from "lucide-react"
 import { useTheme } from "./context/ThemeContext"
 import { GameAnimationProvider } from "./context/GameAnimationContext"
 import { MinesweeperGameProvider } from "./context/MinesweeperGameContext"
+
+import Game from "./components/minesweeper/Game"
+import SidebarMenu from "./components/menu/SidebarMenu"
+import NavigationBar from "./components/app/NavigationBar"
+import CustomizeMenuButton from "./components/menu/CustomizeMenuButton"
+import GithubButton from "./components/menu/GithubButton"
+import MultiplayerButton from "./components/menu/MultiplayerButton"
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -14,28 +17,14 @@ function App() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-x-hidden select-none">
       <NavigationBar>
-        <a
-          href="https://youtu.be/dQw4w9WgXcQ?si=din5tDjdkP4h6Ygl"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`
-            p-2 rounded transition-colors pressable
-            ${theme.textHead} ${theme.itemHoverBg}
-            hover:opacity-80 active:opacity-60
-          `}
-        >
-          <GithubIcon className="w-6 h-6" />
-        </a>
-        <button
-          onClick={() => setIsMenuOpen(v => !v)}
-          className={`p-2 rounded transition-colors pressable ${theme.textHead} ${theme.itemHoverBg}`}
-        >
-          {isMenuOpen ? <X className="w-6 h-6" /> : <Paintbrush className="w-6 h-6" />}
-        </button>
+        <MultiplayerButton />
+        <GithubButton />
+        <CustomizeMenuButton isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
       </NavigationBar>
 
       <main className={`relative flex flex-1 min-h-0 ${theme.background} ${theme.font ?? ""}`}
         // Used for adjusting spacing when sidebar menu is open
+        // this is so jank but it took so long to make work so i'm not touching it
         style={
           {
             ["--sidebar-w" as any]: "20rem",

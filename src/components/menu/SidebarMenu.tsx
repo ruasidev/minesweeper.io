@@ -32,7 +32,7 @@ export default function SidebarMenu({ isOpen, onClose }: SidebarProps) {
             <button
               onClick={onClose}
               className={`
-                p-2 rounded transition-colors
+                p-2 rounded transition-colors cursor-pointer
                 ${theme.textHead} ${theme.itemHoverBg}
                 hover:opacity-80 active:opacity-60
               `}
