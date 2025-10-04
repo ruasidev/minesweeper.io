@@ -1,9 +1,3 @@
-export type ThemeSelectProps = {
-    themeId: ThemeChoices
-    theme: ThemeProps
-    onChange: (id: ThemeChoices) => void
-}
-
 export type ThemeChoices = 
     | "classic"
     | "classic-light"

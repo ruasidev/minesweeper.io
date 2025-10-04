@@ -1,24 +1,23 @@
 import { useState } from "react"
 import Game from "./components/minesweeper/Game"
 import { winAnimations, lossAnimations, type LossAnimationChoices, type WinAnimationChoices } from "./game/animations"
-import { type ThemeChoices, themes } from "./game/themes"
 import SidebarMenu from "./components/menu/SidebarMenu"
 import NavigationBar from "./components/app/NavigationBar"
 import { X, Paintbrush } from "lucide-react"
+import { useTheme } from "./context/ThemeContext"
 
 function App() {
   const [lossAnimationId, setLossAnimationId] = useState<LossAnimationChoices>(lossAnimations[0].id)
   const [winAnimationId, setWinAnimationId] = useState<WinAnimationChoices>(winAnimations[0].id)
-  const [themeId, setThemeId] = useState<ThemeChoices>(themes[0].id)
   const [isMenuOpen, setIsMenuOpen] = useState(true)
 
+  const { theme } = useTheme();
   const winAnimation = winAnimations.find(a => a.id === winAnimationId) || winAnimations[0]
   const lossAnimation = lossAnimations.find(a => a.id === lossAnimationId) || lossAnimations[0]
-  const theme = themes.find(a => a.id === themeId) || themes[0]
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-x-hidden">
-      <NavigationBar theme={theme}>
+      <NavigationBar>
         <button
           onClick={() => setIsMenuOpen(v => !v)}
           className={`p-2 rounded transition-colors ${theme.textHead} ${theme.itemHoverBg}`}
@@ -48,10 +47,8 @@ function App() {
         <SidebarMenu
           currentWinAnimation={winAnimationId}
           currentLossAnimation={lossAnimationId}
-          currentTheme={theme}
           setWinAnimation={setWinAnimationId}
           setLossAnimation={setLossAnimationId}
-          setTheme={setThemeId}
           isOpen={isMenuOpen}
           onClose={() => setIsMenuOpen(false)}
         />

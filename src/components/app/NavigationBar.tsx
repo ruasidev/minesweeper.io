@@ -1,7 +1,9 @@
+import { useTheme } from "../../context/ThemeContext"
 import type { NavigationBarProps } from "../../game/types"
 import { Github } from "lucide-react"
 
-export default function NavigationBar({ theme, children }: NavigationBarProps) {
+export default function NavigationBar({ children }: NavigationBarProps) {
+  const { theme } = useTheme();
   return (
     <header
       className={`p-4 border-b flex items-center 

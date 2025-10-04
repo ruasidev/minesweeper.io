@@ -86,16 +86,13 @@ export interface GameStatusBarProps {
 export type SidebarProps = {
     currentWinAnimation: WinAnimationChoices
     currentLossAnimation: LossAnimationChoices
-    currentTheme: ThemeProps
     isOpen: boolean
     onClose: () => void
     setWinAnimation: (val: WinAnimationChoices) => void
     setLossAnimation: (val: LossAnimationChoices) => void
-    setTheme: (val: ThemeChoices) => void
 }
 
 export type NavigationBarProps = {
-    theme: ThemeProps
     children?: React.ReactNode
 }
 

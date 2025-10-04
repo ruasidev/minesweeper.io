@@ -1,8 +1,10 @@
-import type { ThemeProps, ThemeSelectProps } from "../../game/themes"
+import { useTheme } from "../../context/ThemeContext"
+import type { ThemeProps } from "../../game/themes"
 import { themes } from "../../game/themes"
 import SidebarSectionHeader from "./SidebarSectionHeader"
 
-export function ThemeSelect({ themeId, theme, onChange }: ThemeSelectProps) {
+export function ThemeSelect() {
+  const { theme, themeId, setThemeId } = useTheme(); 
   return (
     <div>
       <SidebarSectionHeader text="Themes" theme={theme} />
@@ -17,7 +19,7 @@ export function ThemeSelect({ themeId, theme, onChange }: ThemeSelectProps) {
               ${themeId === t.id ? `ring-2 ${theme.itemSelectedBorder}` : ""}
               ${theme.itemBorder}
             `}
-            onClick={() => onChange(t.id)}
+            onClick={() => setThemeId(t.id)}
             style={{ backgroundColor: t.menuBg }}
           >
             <div className="flex flex-wrap gap-1 p-2 justify-center">

@@ -3,12 +3,14 @@ import { LossAnimationSelect } from "./LossAnimationSelect"
 import { WinAnimationSelect } from "./WinAnimationSelect"
 import { ThemeSelect } from "./ThemeSelect"
 import { X } from "lucide-react"
+import { useTheme } from "../../context/ThemeContext"
 
 export default function SidebarMenu({ 
-  currentWinAnimation, currentLossAnimation, currentTheme,
-  setWinAnimation, setLossAnimation, setTheme,
+  currentWinAnimation, currentLossAnimation,
+  setWinAnimation, setLossAnimation,
   isOpen, onClose
 }: SidebarProps) {
+  const { theme } = useTheme();
   return (
     <aside
       className={`
@@ -27,18 +29,18 @@ export default function SidebarMenu({
           pointer-events-auto h-full rounded-xl overflow-hidden
           shadow-2xl shadow-black/70 ring-1 ring-white/20
           backdrop-blur-md
-          ${currentTheme.menuBg}
-          ${currentTheme.menuBorder}
+          ${theme.menuBg}
+          ${theme.menuBorder}
         `}
       >
         <div className="flex flex-col gap-6 h-full overflow-y-auto p-4 hide-scrollbar">
           <div className="flex justify-between items-center">
-            <h2 className={`text-2xl font-semibold cursor-default ${currentTheme.textHead}`}>Menu</h2>
+            <h2 className={`text-2xl font-semibold cursor-default ${theme.textHead}`}>Menu</h2>
             <button
               onClick={onClose}
               className={`
                 p-2 rounded transition-colors
-                ${currentTheme.textHead} ${currentTheme.itemHoverBg}
+                ${theme.textHead} ${theme.itemHoverBg}
                 hover:opacity-80 active:opacity-60
                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400
               `}
@@ -47,9 +49,9 @@ export default function SidebarMenu({
             </button>
           </div>
 
-          <ThemeSelect themeId={currentTheme.id} theme={currentTheme} onChange={setTheme} />
-          <WinAnimationSelect animation={currentWinAnimation} theme={currentTheme} onChange={setWinAnimation} />
-          <LossAnimationSelect animation={currentLossAnimation} theme={currentTheme} onChange={setLossAnimation} />
+          <ThemeSelect />
+          <WinAnimationSelect animation={currentWinAnimation} theme={theme} onChange={setWinAnimation} />
+          <LossAnimationSelect animation={currentLossAnimation} theme={theme} onChange={setLossAnimation} />
         </div>
       </div>
     </aside>
