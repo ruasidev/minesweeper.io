@@ -22,11 +22,11 @@ export type LossAnimationChoices =
   | "pulse"   | "spin"    | "drop"    
   | "flash"   | "crumble" | "burn"
   | "shatter" | "implode" | "fizzle"  
-  | "popoff"  | "none"
+  | "popoff"  | "pig2"    | "none"
 
 export type WinAnimationChoices = 
   | "bloom" | "sparkle" | "celebrate" 
-  | "shine" | "rainbow"
+  | "shine" | "pig22"   | "rainbow"
 
 export type AnimationChoices = LossAnimationChoices | WinAnimationChoices
 
@@ -43,6 +43,7 @@ export const winAnimations: AnimationProps<WinAnimationChoices>[] = [
   { id: "celebrate",  originAnim: "celebrate",  label: "Celebrate",   animDuration: 40 },
   { id: "shine",      originAnim: "shine",      label: "Shine",       animDuration: 40 },
   { id: "rainbow",    originAnim: "rainbow",    label: "Rainbow",     animDuration: 40 },
+  { id: "pig22",      originAnim: "pig22",      label: "Pig #2 #2",   animDuration: 1000 },
 ]
 
 export const lossAnimations: AnimationProps<LossAnimationChoices>[] = [
@@ -58,5 +59,6 @@ export const lossAnimations: AnimationProps<LossAnimationChoices>[] = [
   { id: "shatter",    originAnim: "explode",    label: "Shatter",     animDuration: 40 },
   { id: "implode",    originAnim: "explode",    label: "Implode",     animDuration: 40 },
   { id: "fizzle",     originAnim: "explode",    label: "Fizzle",      animDuration: 40 },
+  { id: "pig2",       originAnim: "pig2",       label: "Pig #2",      animDuration: 40 },
   { id: "none",       originAnim: "none",       label: "None",        animDuration: 40 },
 ]

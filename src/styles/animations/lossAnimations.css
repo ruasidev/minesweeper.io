@@ -132,3 +132,15 @@
 .animate-popoff {
   animation: popoff 1s ease-out forwards;
 }
+
+@keyframes pig2 {
+  0%   { transform: scale(1); opacity: 1; }
+  10%  { transform: scale(0.5) rotate(100deg); opacity: 1;   background-color: #0b4901; border-radius: 10px;}
+  20%  { transform: scale(5) rotate(100deg);               background-color: #046203; border-radius: 20px; }
+  50%  { transform: scale(15) rotate(150deg); opacity: 0.7; background-color: #3b6a04; border-radius: 30px; }
+  100% { transform: scale(20)   rotate(170deg); opacity: 0.3; background-color: #60a204; border-radius: 40px; }
+}
+
+.animate-pig2 {
+  animation: pig2 1s ease-out forwards;
+}
