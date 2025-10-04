@@ -35,10 +35,9 @@ export default function SidebarMenu({ isOpen, onClose }: SidebarProps) {
                 p-2 rounded transition-colors
                 ${theme.textHead} ${theme.itemHoverBg}
                 hover:opacity-80 active:opacity-60
-                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400
               `}
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 pressable" />
             </button>
           </div>
 

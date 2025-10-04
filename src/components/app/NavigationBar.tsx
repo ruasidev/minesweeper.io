@@ -1,6 +1,5 @@
 import { useTheme } from "../../context/ThemeContext"
 import type { NavigationBarProps } from "../../game/types"
-import { Github } from "lucide-react"
 
 export default function NavigationBar({ children }: NavigationBarProps) {
   const { theme } = useTheme();
@@ -12,20 +11,8 @@ export default function NavigationBar({ children }: NavigationBarProps) {
         ${theme.menuBorder}
       `}
     >
-      <h1 className="text-3xl font-bold cursor-default pressable">minesweeper.io</h1>
+      <h1 className="text-3xl font-bold cursor-default scale-hover-105">minesweeper.io</h1>
       <div className="ml-auto flex items-center gap-2">
-        <a
-          href="https://youtu.be/dQw4w9WgXcQ?si=din5tDjdkP4h6Ygl"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`
-            p-2 rounded transition-colors
-            ${theme.textHead} ${theme.itemHoverBg}
-            hover:opacity-80 active:opacity-60
-          `}
-        >
-          <Github className="w-6 h-6" />
-        </a>
         {children}
       </div>
     </header>

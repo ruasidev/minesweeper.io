@@ -2,7 +2,7 @@ import { useState } from "react"
 import Game from "./components/minesweeper/Game"
 import SidebarMenu from "./components/menu/SidebarMenu"
 import NavigationBar from "./components/app/NavigationBar"
-import { X, Paintbrush } from "lucide-react"
+import { X, Paintbrush, GithubIcon } from "lucide-react"
 import { useTheme } from "./context/ThemeContext"
 import { GameAnimationProvider } from "./context/GameAnimationContext"
 import { MinesweeperGameProvider } from "./context/MinesweeperGameContext"
@@ -14,9 +14,21 @@ function App() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-x-hidden select-none">
       <NavigationBar>
+        <a
+          href="https://youtu.be/dQw4w9WgXcQ?si=din5tDjdkP4h6Ygl"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`
+            p-2 rounded transition-colors pressable
+            ${theme.textHead} ${theme.itemHoverBg}
+            hover:opacity-80 active:opacity-60
+          `}
+        >
+          <GithubIcon className="w-6 h-6" />
+        </a>
         <button
           onClick={() => setIsMenuOpen(v => !v)}
-          className={`p-2 rounded transition-colors ${theme.textHead} ${theme.itemHoverBg}`}
+          className={`p-2 rounded transition-colors pressable ${theme.textHead} ${theme.itemHoverBg}`}
         >
           {isMenuOpen ? <X className="w-6 h-6" /> : <Paintbrush className="w-6 h-6" />}
         </button>
