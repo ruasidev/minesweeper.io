@@ -17,8 +17,8 @@ function App() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-x-hidden select-none">
       <NavigationBar>
-        <MultiplayerButton />
         <GithubButton />
+        <MultiplayerButton />
         <CustomizeMenuButton isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
       </NavigationBar>
 
