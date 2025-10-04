@@ -7,7 +7,7 @@ export function ThemeSelect() {
   const { theme, themeId, setThemeId } = useTheme(); 
   return (
     <div>
-      <SidebarSectionHeader text="Themes" theme={theme} />
+      <SidebarSectionHeader text="Themes" />
       <div className="grid grid-cols-2 gap-4">
         {themes.map((t: ThemeProps) => (
           <button

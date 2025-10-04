@@ -1,22 +1,3 @@
-import type { ThemeProps } from "./themes"
-
-export type AnimationPreviewProps = {
-  animation: AnimationChoices
-  theme: ThemeProps
-}
-
-export type LossAnimationSelectProps = {
-  animation: LossAnimationChoices
-  theme: ThemeProps
-  onChange: (val: LossAnimationChoices) => void
-}
-
-export type WinAnimationSelectProps = {
-  animation: WinAnimationChoices
-  theme: ThemeProps
-  onChange: (val: WinAnimationChoices) => void
-}
-
 export type LossAnimationChoices =
   | "explode" | "shake"   | "fade"    
   | "pulse"   | "spin"    | "drop"    

@@ -1,9 +1,12 @@
-import type { ResetGameButtonProps } from "../../game/types"
+import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
+import { useTheme } from "../../../context/ThemeContext"
 
-export function ResetGameButton({ theme, onReset }: ResetGameButtonProps) {
+export function ResetGameButton() {
+    const { theme } = useTheme()
+    const { resetGame } = useMinesweeperGameContext()
     return (
         <button
-            onClick={onReset}
+            onClick={resetGame}
             className={`px-4 py-2 border rounded pressable
                 ${theme.itemSelectedBorder}
                 ${theme.textHead}

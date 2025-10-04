@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react"
 import type { CellProps } from "../../game/types"
+import { useTheme } from "../../context/ThemeContext"
+import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 
-export default function Cell({ cell, resetKey, animationClass, animationDelay, theme, onClick, onRightClick }: CellProps) {
+export default function Cell({ cell, animationClass, animationDelay }: CellProps) {
   const [hideValue, setHideValue] = useState(false)
+  const { theme } = useTheme()
+  const { resetKey, handleClickCell, handleRightClickCell } = useMinesweeperGameContext()
 
   useEffect(() => {
     setHideValue(false)
@@ -41,8 +45,8 @@ export default function Cell({ cell, resetKey, animationClass, animationDelay, t
 
   return (
     <button
-      onClick={onClick}
-      onContextMenu={() => onRightClick?.()}
+      onClick={() => handleClickCell(cell.row, cell.col)}
+      onContextMenu={() => handleRightClickCell(cell.row, cell.col)}
       style={{ animationDelay: animationDelay }}
       className={`w-10 h-10 border flex items-center justify-center rounded font-extrabold text-3xl
         ${themeClasses}

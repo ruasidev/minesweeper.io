@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react"
-import type { AnimationPreviewProps } from "../../game/animations"
-import { lossAnimations } from "../../game/animations"
+import { lossAnimations, type AnimationChoices } from "../../game/animations"
 import { computePreview } from "../../game/animationPreview"
+import { useTheme } from "../../context/ThemeContext"
 
-export function AnimationPreview({ animation, theme }: AnimationPreviewProps) {
+export function AnimationPreview({ animation }: { animation: AnimationChoices }) {
   const [hovered, setHovered] = useState(false)
   const [cycleKey, setCycleKey] = useState(0)
-
+  const { theme } = useTheme()
   const { chosenCells, originCell, delays, cycleTime } = computePreview(animation, 16)
 
   const lossConfig = lossAnimations.find(a => a.id === animation)
@@ -28,10 +28,8 @@ export function AnimationPreview({ animation, theme }: AnimationPreviewProps) {
         let animationClass = ""
         if (hovered && chosenCells.has(i)) {
           if (lossConfig && i === originCell) {
-            // use originAnim if available
             animationClass = `animate-${lossConfig.originAnim}`
           } else {
-            // otherwise just use the regular animation
             animationClass = `animate-${animation}`
           }
         }

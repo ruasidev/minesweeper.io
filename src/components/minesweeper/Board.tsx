@@ -1,10 +1,13 @@
-import type { BoardProps } from "../../game/types"
 import Cell from "./Cell"
 import type { AnimationChoices } from "../../game/animations"
+import { useGameAnimations } from "../../context/GameAnimationContext"
+import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 
-export default function Board({ board, resetKey, origin, lossAnimation, winAnimation, theme, onClickCell, onRightClickCell }: BoardProps) {
+export default function Board() {
   // match Cell size: Tailwind w-10 h-10 = 2.5rem ≈ 40px
   const CELL_PX = 40
+  const { lossAnimation, winAnimation } = useGameAnimations()
+  const { board, lastClicked } = useMinesweeperGameContext()
 
   return (
     <div
@@ -17,7 +20,7 @@ export default function Board({ board, resetKey, origin, lossAnimation, winAnima
     >
       {board.grid.map((row, r) =>
         row.map((cell, c) => {
-          const isOrigin = origin && r === origin.row && c === origin.col
+          const isOrigin = lastClicked && r === lastClicked.row && c === lastClicked.col
 
           let animationClass: AnimationChoices | undefined
 
@@ -38,27 +41,23 @@ export default function Board({ board, resetKey, origin, lossAnimation, winAnima
           const animationDelay =
             board.status === "lost" &&
             cell.hasMine &&
-            origin &&
+            lastClicked &&
             !isOrigin
-              ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * lossAnimation.animDuration}ms`
+              ? `${(Math.abs(r - lastClicked.row) + Math.abs(c - lastClicked.col)) * lossAnimation.animDuration}ms`
               : board.status === "won" &&
-                origin &&
+                lastClicked &&
                 cell.revealed &&
                 !cell.hasMine &&
                 !isOrigin
-              ? `${(Math.abs(r - origin.row) + Math.abs(c - origin.col)) * lossAnimation.animDuration}ms`
+              ? `${(Math.abs(r - lastClicked.row) + Math.abs(c - lastClicked.col)) * lossAnimation.animDuration}ms`
               : "0ms"
 
           return (
             <Cell
               key={`${r}-${c}`}
-              resetKey={resetKey}
               cell={cell}
-              onClick={() => onClickCell(r, c)}
-              onRightClick={() => onRightClickCell(r, c)}
               animationClass={animationClass}
               animationDelay={animationDelay}
-              theme={theme}
             />
           )
         })

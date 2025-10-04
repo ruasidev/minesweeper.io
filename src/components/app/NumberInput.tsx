@@ -1,6 +1,8 @@
+import { useTheme } from "../../context/ThemeContext";
 import type { NumberInputProps } from "../../game/types";
 
-export function NumberInput({ label, value, theme, onChange }: NumberInputProps) {
+export function NumberInput({ label, value, onChange }: NumberInputProps) {
+  const { theme } = useTheme()
   const focusClass = `focus:${theme.itemSelectedBorder}`
   return (
     <div className="flex flex-col gap-2">

@@ -1,12 +1,12 @@
-import type { GameControlsProps } from "../../game/types"
+import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
+import { useTheme } from "../../context/ThemeContext"
 import { NumberInput } from "../app/NumberInput"
-import { ResetGameButton } from "./ResetGameButton"
+import { ResetGameButton } from "./infoDisplay/ResetGameButton"
 
 // Holds sliders and buttons for changing the board state
-export default function GameControls({
-  rows, cols, mines, theme,
-  onRowsChange, onColsChange, onMinesChange, onReset
-}: GameControlsProps) {
+export default function GameControls() {
+  const { theme } = useTheme()
+  const { rows, cols, mines, setRows, setCols, setMines } = useMinesweeperGameContext()
   return (
     <div
       className={`border rounded-md flex gap-4 p-2
@@ -15,10 +15,10 @@ export default function GameControls({
         ${theme.menuBorder}
       `}
     >
-      <NumberInput label="rows" value={rows} onChange={onRowsChange} theme={theme} />
-      <NumberInput label="cols" value={cols} onChange={onColsChange} theme={theme} />
-      <NumberInput label="mines" value={mines} onChange={onMinesChange} theme={theme} />
-      <ResetGameButton onReset={onReset} theme={theme} />
+      <NumberInput label="rows" value={rows} onChange={setRows} />
+      <NumberInput label="cols" value={cols} onChange={setCols} />
+      <NumberInput label="mines" value={mines} onChange={setMines} />
+      <ResetGameButton />
     </div>
   )
 }

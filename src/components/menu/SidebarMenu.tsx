@@ -5,20 +5,13 @@ import { ThemeSelect } from "./ThemeSelect"
 import { X } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
 
-export default function SidebarMenu({ 
-  currentWinAnimation, currentLossAnimation,
-  setWinAnimation, setLossAnimation,
-  isOpen, onClose
-}: SidebarProps) {
+export default function SidebarMenu({ isOpen, onClose }: SidebarProps) {
   const { theme } = useTheme();
   return (
     <aside
       className={`
-        absolute z-50
-        top-8 bottom-8 right-8
-        w-80  /* keep constant width */
-        transition-all duration-300
-        hide-scrollbar
+        absolute z-50 top-8 bottom-8 right-8 w-80
+        transition-all duration-300 hide-scrollbar
         ${isOpen 
           ? "opacity-100 translate-x-0 scale-105 pointer-events-auto" 
           : "opacity-0 translate-x-8 scale-95 pointer-events-none"}
@@ -50,8 +43,8 @@ export default function SidebarMenu({
           </div>
 
           <ThemeSelect />
-          <WinAnimationSelect animation={currentWinAnimation} theme={theme} onChange={setWinAnimation} />
-          <LossAnimationSelect animation={currentLossAnimation} theme={theme} onChange={setLossAnimation} />
+          <WinAnimationSelect />
+          <LossAnimationSelect />
         </div>
       </div>
     </aside>

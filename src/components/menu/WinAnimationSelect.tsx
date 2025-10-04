@@ -1,25 +1,28 @@
 import { AnimationPreview } from "./AnimationPreview";
-import type { WinAnimationSelectProps } from "../../game/animations";
 import { winAnimations } from "../../game/animations";
 import SidebarSectionHeader from "./SidebarSectionHeader";
+import { useTheme } from "../../context/ThemeContext";
+import { useGameAnimations } from "../../context/GameAnimationContext";
 
-export function WinAnimationSelect({ animation, theme, onChange }: WinAnimationSelectProps) {
+export function WinAnimationSelect() {
+    const { theme } = useTheme()
+    const { winAnimationId, setWinAnimationId } = useGameAnimations()
     return (
         <div>
-            <SidebarSectionHeader text="Win Animations" theme={theme} />
+            <SidebarSectionHeader text="Win Animations" />
             <div className="grid grid-cols-2 gap-4">
                 {winAnimations.map(anim => (
                     <button
                         key={anim.id}
                         className={`group border rounded p-2 flex flex-col items-center gap-2 pressable font-semibold
-                            ${ animation === anim.id ? `ring-2 ${theme.itemSelectedBorder}` : "" }
+                            ${ winAnimationId === anim.id ? `ring-2 ${theme.itemSelectedBorder}` : "" }
                             ${ theme.itemBorder }
                             ${ theme.itemHoverBorder }
                             ${ theme.background }
                         `}
-                        onClick={() => onChange(anim.id)}
+                        onClick={() => setWinAnimationId(anim.id)}
                     >
-                        <AnimationPreview animation={anim.id} theme={theme} />
+                        <AnimationPreview animation={anim.id} />
                         <span className={`text-sm ${theme.textBody}`}>{anim.label}</span>
                     </button>
                 ))}

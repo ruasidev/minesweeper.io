@@ -1,6 +1,8 @@
+import { useTheme } from "../../context/ThemeContext"
 import type { SidebarSectionHeaderProps } from "../../game/types"
 
-export default function SidebarSectionHeader({ text, theme }: SidebarSectionHeaderProps) {
+export default function SidebarSectionHeader({ text }: SidebarSectionHeaderProps) {
+  const { theme } = useTheme()
   return (
     <h2
       className={`

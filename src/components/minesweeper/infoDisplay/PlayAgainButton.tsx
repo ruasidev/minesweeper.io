@@ -1,6 +1,9 @@
-import type { PlayAgainButtonProps } from "../../game/types"
+import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
+import { useTheme } from "../../../context/ThemeContext"
 
-export default function PlayAgainButton({ theme, onReset }: PlayAgainButtonProps) {
+export default function PlayAgainButton() {
+    const { theme } = useTheme()
+    const { resetGame } = useMinesweeperGameContext()
     return (
         <button
             className={`mt-4 px-6 py-2 border rounded-md pressable font-semibold
@@ -9,7 +12,7 @@ export default function PlayAgainButton({ theme, onReset }: PlayAgainButtonProps
                 ${theme.menuBg}
                 ${theme.itemHoverBg}
             `}
-            onClick={onReset}
+            onClick={resetGame}
         >
             Play Again
         </button>
