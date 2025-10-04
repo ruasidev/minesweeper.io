@@ -11,7 +11,7 @@ export default function NavigationBar({ children }: NavigationBarProps) {
         ${theme.menuBorder}
       `}
     >
-      <h1 className="text-3xl font-bold cursor-default scale-hover-105">minesweeper.io</h1>
+      <h1 className="text-3xl font-bold cursor-default scale-hover-105">minesweeper.wooasi.com</h1>
       <div className="ml-auto flex items-center gap-2">
         {children}
       </div>
