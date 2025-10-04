@@ -1,14 +1,14 @@
 import { AnimationPreview } from "./AnimationPreview";
-import type { LossAnimationSelectProps } from "../game/animations";
-import { lossAnimations } from "../game/animations";
+import type { WinAnimationSelectProps } from "../../game/animations";
+import { winAnimations } from "../../game/animations";
 import SidebarSectionHeader from "./SidebarSectionHeader";
 
-export function LossAnimationSelect({ animation, theme, onChange }: LossAnimationSelectProps) {
+export function WinAnimationSelect({ animation, theme, onChange }: WinAnimationSelectProps) {
     return (
         <div>
-            <SidebarSectionHeader text="Loss Animations" theme={theme} />
+            <SidebarSectionHeader text="Win Animations" theme={theme} />
             <div className="grid grid-cols-2 gap-4">
-                {lossAnimations.map(anim => (
+                {winAnimations.map(anim => (
                     <button
                         key={anim.id}
                         className={`group border rounded p-2 flex flex-col items-center gap-2 pressable font-semibold

@@ -1,4 +1,4 @@
-import type { PlayAgainButtonProps } from "../game/types"
+import type { PlayAgainButtonProps } from "../../game/types"
 
 export default function PlayAgainButton({ theme, onReset }: PlayAgainButtonProps) {
     return (

@@ -1,5 +1,5 @@
-import type { ThemeProps, ThemeSelectProps } from "../game/themes"
-import { themes } from "../game/themes"
+import type { ThemeProps, ThemeSelectProps } from "../../game/themes"
+import { themes } from "../../game/themes"
 import SidebarSectionHeader from "./SidebarSectionHeader"
 
 export function ThemeSelect({ themeId, theme, onChange }: ThemeSelectProps) {

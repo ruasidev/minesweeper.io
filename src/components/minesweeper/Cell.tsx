@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import type { CellProps } from "../game/types"
+import type { CellProps } from "../../game/types"
 
 export default function Cell({ cell, resetKey, animationClass, animationDelay, theme, onClick, onRightClick }: CellProps) {
   const [hideValue, setHideValue] = useState(false)

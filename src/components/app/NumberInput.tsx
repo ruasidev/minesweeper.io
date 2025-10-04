@@ -1,4 +1,4 @@
-import type { NumberInputProps } from "../game/types";
+import type { NumberInputProps } from "../../game/types";
 
 export function NumberInput({ label, value, theme, onChange }: NumberInputProps) {
   const focusClass = `focus:${theme.itemSelectedBorder}`

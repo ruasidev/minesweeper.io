@@ -1,9 +1,9 @@
 import { useState } from "react"
-import Game from "./components/Game"
+import Game from "./components/minesweeper/Game"
 import { winAnimations, lossAnimations, type LossAnimationChoices, type WinAnimationChoices } from "./game/animations"
 import { type ThemeChoices, themes } from "./game/themes"
-import SidebarMenu from "./components/SidebarMenu"
-import NavigationBar from "./components/NavigationBar"
+import SidebarMenu from "./components/menu/SidebarMenu"
+import NavigationBar from "./components/app/NavigationBar"
 import { X, Paintbrush } from "lucide-react"
 
 function App() {

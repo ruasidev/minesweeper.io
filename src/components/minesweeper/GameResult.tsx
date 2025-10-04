@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import type { GameResultProps } from "../game/types"
+import type { GameResultProps } from "../../game/types"
 import PlayAgainButton from "./PlayAgainButton"
 
 export default function GameResult({ 

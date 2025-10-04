@@ -1,4 +1,4 @@
-import type { SidebarSectionHeaderProps } from "../game/types"
+import type { SidebarSectionHeaderProps } from "../../game/types"
 
 export default function SidebarSectionHeader({ text, theme }: SidebarSectionHeaderProps) {
   return (

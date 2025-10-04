@@ -1,4 +1,4 @@
-import type { GameStatusBarProps } from "../game/types"
+import type { GameStatusBarProps } from "../../game/types"
 import { MiniClock } from "./MiniClock"
 
 export function GameStatusBar({

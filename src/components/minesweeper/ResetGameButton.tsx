@@ -1,4 +1,4 @@
-import type { ResetGameButtonProps } from "../game/types"
+import type { ResetGameButtonProps } from "../../game/types"
 
 export function ResetGameButton({ theme, onReset }: ResetGameButtonProps) {
     return (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
-import { createEmptyBoard, populateBoard, revealCell, flagCell } from "../game/board"
-import type { GameProps } from "../game/types"
-import type { Board as BoardType } from "../game/types"
+import { createEmptyBoard, populateBoard, revealCell, flagCell } from "../../game/board"
+import type { GameProps } from "../../game/types"
+import type { Board as BoardType } from "../../game/types"
 import Board from "./Board"
 import GameResult from "./GameResult"
 import { GameStatusBar } from "./GameStatusBar"
@@ -79,7 +79,7 @@ export default function Game({ lossAnimation, winAnimation, theme, isMenuOpen }:
     setIsRunning(false)
   }
 
-  const railRight = isMenuOpen ? "pr-[calc(var(--sidebar-w)+var(--sidebar-gap)+6px)]" : "pr-2"
+  // const railRight = isMenuOpen ? "pr-[calc(var(--sidebar-w)+var(--sidebar-gap)+6px)]" : "pr-2"
   const railLeft  = "pl-2"
 
   return (

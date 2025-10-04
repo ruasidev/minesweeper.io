@@ -1,4 +1,4 @@
-import type { SidebarProps } from "../game/types"
+import type { SidebarProps } from "../../game/types"
 import { LossAnimationSelect } from "./LossAnimationSelect"
 import { WinAnimationSelect } from "./WinAnimationSelect"
 import { ThemeSelect } from "./ThemeSelect"

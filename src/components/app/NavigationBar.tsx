@@ -1,4 +1,4 @@
-import type { NavigationBarProps } from "../game/types"
+import type { NavigationBarProps } from "../../game/types"
 import { Github } from "lucide-react"
 
 export default function NavigationBar({ theme, children }: NavigationBarProps) {

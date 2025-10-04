@@ -1,5 +1,5 @@
-import type { GameControlsProps } from "../game/types"
-import { NumberInput } from "./NumberInput"
+import type { GameControlsProps } from "../../game/types"
+import { NumberInput } from "../app/NumberInput"
 import { ResetGameButton } from "./ResetGameButton"
 
 // Holds sliders and buttons for changing the board state

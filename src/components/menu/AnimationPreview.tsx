@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
-import type { AnimationPreviewProps } from "../game/animations"
-import { lossAnimations } from "../game/animations"
-import { computePreview } from "../game/animationPreview"
+import type { AnimationPreviewProps } from "../../game/animations"
+import { lossAnimations } from "../../game/animations"
+import { computePreview } from "../../game/animationPreview"
 
 export function AnimationPreview({ animation, theme }: AnimationPreviewProps) {
   const [hovered, setHovered] = useState(false)

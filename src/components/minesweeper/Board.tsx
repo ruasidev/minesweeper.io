@@ -1,6 +1,6 @@
-import type { BoardProps } from "../game/types"
-import Cell from "../components/Cell"
-import type { AnimationChoices } from "../game/animations"
+import type { BoardProps } from "../../game/types"
+import Cell from "./Cell"
+import type { AnimationChoices } from "../../game/animations"
 
 export default function Board({ board, resetKey, origin, lossAnimation, winAnimation, theme, onClickCell, onRightClickCell }: BoardProps) {
   // match Cell size: Tailwind w-10 h-10 = 2.5rem ≈ 40px
