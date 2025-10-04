@@ -26,7 +26,7 @@ export type LossAnimationChoices =
 
 export type WinAnimationChoices = 
   | "bloom" | "sparkle" | "celebrate" 
-  | "shine" | "pig22"   | "rainbow"
+  | "shine" | "rainbow"
 
 export type AnimationChoices = LossAnimationChoices | WinAnimationChoices
 
@@ -43,7 +43,6 @@ export const winAnimations: AnimationProps<WinAnimationChoices>[] = [
   { id: "celebrate",  originAnim: "celebrate",  label: "Celebrate",   animDuration: 40 },
   { id: "shine",      originAnim: "shine",      label: "Shine",       animDuration: 40 },
   { id: "rainbow",    originAnim: "rainbow",    label: "Rainbow",     animDuration: 40 },
-  { id: "pig22",      originAnim: "pig22",      label: "Pig #2 #2",   animDuration: 1000 },
 ]
 
 export const lossAnimations: AnimationProps<LossAnimationChoices>[] = [
