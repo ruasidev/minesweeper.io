@@ -5,7 +5,7 @@ The game board stays visible on the left, while controls and customization optio
 
 ## Features
 
-- Classic Minesweeper gameplay
+- Customizable Minesweeper gameplay
 - Adjustable rows, columns, and mine count
 - Reset button to start fresh
 - Stats panel with current game state
