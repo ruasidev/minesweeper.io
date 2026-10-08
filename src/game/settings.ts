@@ -17,6 +17,10 @@ export type Settings = {
     cellSize: number // px
     cellGap: number // px
     cellFontScale: number // % of the cell size
+    // screens and panes switch instantly, and nothing moves under the pointer
+    reduceMotion: boolean
+    soundEffects: boolean
+    soundVolume: number // %
 }
 
 // In the order they appear on the status bar
@@ -41,4 +45,8 @@ export const defaultSettings: Settings = {
     cellSize: 40,
     cellGap: 2,
     cellFontScale: 75,
+    // starts out on for people whose computer is already set to reduce motion
+    reduceMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    soundEffects: true,
+    soundVolume: 60,
 }

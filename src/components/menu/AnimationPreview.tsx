@@ -21,7 +21,7 @@ export default function AnimationPreview({ animation }: { animation: AnimationCh
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="grid grid-cols-4 w-20 h-20"
+      className="grid grid-cols-4 w-20 h-20 game-motion"
       key={cycleKey}
     >
       {Array.from({ length: 16 }).map((_, i) => {

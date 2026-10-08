@@ -3,9 +3,6 @@ import { and, count, desc, eq, min, ne, sql } from "drizzle-orm"
 import { db } from "./db/index.js"
 import { gameResult, profile, user } from "./db/schema.js"
 
-// 3-20 letters, digits or underscores
-export const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,20}$/
-
 // A starting username from the name an account was created with
 function usernameFrom(name: string): string {
   const cleaned = name.replace(/[^A-Za-z0-9_]/g, "").slice(0, 20)

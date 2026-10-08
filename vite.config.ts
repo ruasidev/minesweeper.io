@@ -13,7 +13,8 @@ export default defineConfig({
     // The API is its own server (see server/). Proxying it keeps everything on one origin
     // in development, so sign-in cookies work without any cross-site setup
     proxy: {
-      '/api': 'http://localhost:3000',
+      // ws: the multiplayer WebSocket (/api/ws) goes through as well
+      '/api': { target: 'http://localhost:3000', ws: true },
     },
   },
 })

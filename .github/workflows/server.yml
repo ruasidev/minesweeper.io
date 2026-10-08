@@ -1,0 +1,65 @@
+name: Check the API image
+
+# Builds the API the way the host does (server/Dockerfile), then makes sure it starts and can reach a database.
+# It deploys nothing: Railway does that by itself when the branch it follows changes
+
+on:
+  push:
+    paths:
+      - "server/**"
+      - "shared/**"
+      - "railway.json"
+      - ".github/workflows/server.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: minesweeper
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # made up for this check: none of these are the real ones
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/minesweeper
+      BETTER_AUTH_SECRET: only-for-this-check-0123456789abcdefghijklmnop
+      BETTER_AUTH_URL: http://localhost:3000
+      CLIENT_ORIGIN: http://localhost:5173
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -f server/Dockerfile -t api .
+
+      - name: Bring the database up to date
+        run: docker run --rm --network host -e DATABASE_URL -e BETTER_AUTH_SECRET -e BETTER_AUTH_URL -e CLIENT_ORIGIN api node dist/server/src/scripts/migrate.js
+
+      - name: Start the API
+        run: docker run -d --name api --network host -e DATABASE_URL -e BETTER_AUTH_SECRET -e BETTER_AUTH_URL -e CLIENT_ORIGIN api
+
+      - name: Check it answers
+        run: |
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://localhost:3000/api/health; then break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:3000/api/health
+          # this one reads from the database
+          curl -fsS "http://localhost:3000/api/leaderboard/beginner?mode=singleplayer"
+
+      - name: Show the API's log
+        if: always()
+        run: docker logs api

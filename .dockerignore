@@ -1,0 +1,6 @@
+# server/Dockerfile copies only what it needs. This keeps dependencies, builds and secrets
+# from being handed to Docker at all
+.git
+**/node_modules
+**/dist
+**/.env

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Board } from "../game/types";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useChordHint, type ChordHint } from "../hooks/useChordHint";
 import { chordCell, createEmptyBoard, flagCell, getMaxMines, MIN_BOARD_SIZE, populateBoard, revealCell } from "../game/board";
 
 interface MinesweeperGameContextType {
@@ -17,7 +18,7 @@ interface MinesweeperGameContextType {
     isRunning: boolean
     resetKey: number
     lastClicked: { row: number; col: number } | null
-    chordHint: { row: number; col: number; id: number } | null
+    chordHint: ChordHint | null
     progress: number
     showResult: boolean
     setRows: (rows: number) => void
@@ -29,9 +30,6 @@ interface MinesweeperGameContextType {
 }
 
 const MinesweeperGameContext = createContext<MinesweeperGameContextType | undefined>(undefined)
-
-// How long a chord hint stays set: a little longer than the chordHint animation in appAnimations.css
-const CHORD_HINT_MS = 500
 
 export function MinesweeperGameProvider({ children }: { children: ReactNode }) {
     const [storedRows, setRows] = useLocalStorage<number>("rows", 10)
@@ -54,8 +52,7 @@ export function MinesweeperGameProvider({ children }: { children: ReactNode }) {
     const mines = Math.min(storedMines, maxMines)
 
     const [board, setBoard] = useState<Board>(createEmptyBoard(rows, cols))
-    // The cell of a chord that opened nothing; id changes on every attempt so the flash can replay
-    const [chordHint, setChordHint] = useState<{ row: number; col: number; id: number } | null>(null)
+    const [chordHint, flashChordHint] = useChordHint()
 
     const progress =
         board.status === "playing" || board.status === "won"
@@ -97,12 +94,6 @@ export function MinesweeperGameProvider({ children }: { children: ReactNode }) {
         resetGame()
     }, [rows, cols, mines])
 
-    useEffect(() => {
-        if (!chordHint) return
-        const t = setTimeout(() => setChordHint(null), CHORD_HINT_MS)
-        return () => clearTimeout(t)
-    }, [chordHint])
-
     const resetGame = () => {
         setBoard(createEmptyBoard(rows, cols))
         setInitialized(false)
@@ -117,7 +108,7 @@ export function MinesweeperGameProvider({ children }: { children: ReactNode }) {
             const chorded = chordCell(board, row, col)
             if(chorded === board) {
                 // Nothing opened (flags don't match the number): flash the cells the chord was checking
-                if(board.status === "playing") setChordHint(prev => ({ row, col, id: (prev?.id ?? 0) + 1 }))
+                if(board.status === "playing") flashChordHint(row, col)
                 return
             }
 

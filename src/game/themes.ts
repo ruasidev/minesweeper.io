@@ -11,6 +11,9 @@ export type ThemeChoices =
     | "pig"
     | "cyberpunk"
     | "grass"
+    | "slate"
+    | "paper"
+    | "mist"
 
 export type ThemeProps = {
     id: ThemeChoices
@@ -316,5 +319,75 @@ export const themes: ThemeProps[] = [
     cellHoverBgVisible: "hover:bg-green-100",
     cellHoverBgFlagged: "hover:bg-red-700",
     font: "font-monocraft"
-  }
+  },
+  // Quiet, low-contrast themes: one hue each, with a single soft accent
+  {
+    id: "slate",
+    name: "Slate",
+    author: "Claude",
+    background: "bg-slate-800",
+    menuBg: "bg-slate-700",
+    menuBorder: "border-slate-600",
+    cellHidden: "bg-slate-500",
+    cellVisible: "bg-slate-300",
+    cellFlagged: "bg-rose-400",
+    cellBorder: "border-slate-700",
+    textHead: "text-slate-100",
+    textBody: "text-slate-200",
+    itemBg: "bg-slate-600",
+    itemBorder: "border-slate-500",
+    itemHoverBg: "hover:bg-slate-500",
+    itemHoverBorder: "hover:border-sky-300",
+    itemSelectedBorder: "ring-sky-400",
+    cellHoverBorder: "hover:border-slate-300",
+    cellHoverBgHidden: "hover:bg-slate-400",
+    cellHoverBgVisible: "hover:bg-slate-200",
+    cellHoverBgFlagged: "hover:bg-rose-500",
+  },
+  {
+    id: "paper",
+    name: "Paper",
+    author: "Claude",
+    background: "bg-stone-200",
+    menuBg: "bg-stone-100",
+    menuBorder: "border-stone-300",
+    cellHidden: "bg-stone-400",
+    cellVisible: "bg-stone-100",
+    cellFlagged: "bg-orange-300",
+    cellBorder: "border-stone-300",
+    textHead: "text-stone-800",
+    textBody: "text-stone-700",
+    itemBg: "bg-stone-200",
+    itemBorder: "border-stone-300",
+    itemHoverBg: "hover:bg-stone-300",
+    itemHoverBorder: "hover:border-stone-500",
+    itemSelectedBorder: "ring-stone-500",
+    cellHoverBorder: "hover:border-stone-500",
+    cellHoverBgHidden: "hover:bg-stone-500",
+    cellHoverBgVisible: "hover:bg-stone-200",
+    cellHoverBgFlagged: "hover:bg-orange-400",
+  },
+  {
+    id: "mist",
+    name: "Mist",
+    author: "Claude",
+    background: "bg-slate-200",
+    menuBg: "bg-slate-100",
+    menuBorder: "border-slate-300",
+    cellHidden: "bg-slate-400",
+    cellVisible: "bg-slate-100",
+    cellFlagged: "bg-rose-300",
+    cellBorder: "border-slate-300",
+    textHead: "text-slate-800",
+    textBody: "text-slate-700",
+    itemBg: "bg-slate-200",
+    itemBorder: "border-slate-300",
+    itemHoverBg: "hover:bg-slate-300",
+    itemHoverBorder: "hover:border-sky-400",
+    itemSelectedBorder: "ring-sky-500",
+    cellHoverBorder: "hover:border-sky-500",
+    cellHoverBgHidden: "hover:bg-slate-500",
+    cellHoverBgVisible: "hover:bg-slate-200",
+    cellHoverBgFlagged: "hover:bg-rose-400",
+  },
 ]

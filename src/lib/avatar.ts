@@ -1,7 +1,7 @@
 import { API_URL } from "./authClient"
 
 // Shown until a player has a profile photo of their own
-const DEFAULT_AVATAR = `${import.meta.env.BASE_URL}favicon.png`
+const DEFAULT_AVATAR = `${import.meta.env.BASE_URL}default-avatar.png`
 
 // Uploaded photos are this many pixels on each side
 const AVATAR_SIZE = 256

@@ -1,26 +1,30 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
+import { Bomb, FlagTriangleRight } from "lucide-react"
 import type { CellProps } from "../../game/types"
 import { useTheme } from "../../context/ThemeContext"
-import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 import { useSettings } from "../../context/SettingsContext"
 
-export default function Cell({ cell, animationClass, animationDelay, chordHintKey }: CellProps) {
+export default function Cell({ cell, animationClass, animationDelay, chordHintKey, resetKey, onClick, onRightClick }: CellProps) {
   const [hideValue, setHideValue] = useState(false)
   const { theme } = useTheme()
   const { settings } = useSettings()
-  const { resetKey, handleClickCell, handleRightClickCell } = useMinesweeperGameContext()
+  // An uncovered mine that is simply sitting there. Only multiplayer has these: uncovering a mine doesn't end
+  // the game there. In singleplayer an uncovered mine means the game is lost, and the loss animation takes it from here
+  const isOpenMine = cell.revealed && cell.hasMine && !animationClass
 
   useEffect(() => {
     setHideValue(false)
   }, [resetKey])
 
-  let value = ""
+  let value: ReactNode = ""
   let textColor = ""
   if (cell.revealed && cell.neighborCount > 0) {
     value = cell.neighborCount.toString()
     textColor = getNumberColor(cell.neighborCount)
   }
-  if (cell.flagged) value = "F"
+  // filled in, so it still reads as a flag when the cells are small
+  if (cell.flagged) value = <FlagTriangleRight className="w-[1em] h-[1em]" fill="currentColor" />
+  if (isOpenMine) value = <Bomb className="w-[1em] h-[1em]" />
 
   if (hideValue) value = ""
 
@@ -28,7 +32,7 @@ export default function Cell({ cell, animationClass, animationDelay, chordHintKe
     ${theme.cellBorder} 
     ${theme.cellHoverBorder}
   `
-  if (cell.flagged) {
+  if (cell.flagged || isOpenMine) {
     themeClasses += `
       ${theme.cellFlagged} 
       ${theme.cellHoverBgFlagged}
@@ -47,8 +51,8 @@ export default function Cell({ cell, animationClass, animationDelay, chordHintKe
 
   return (
     <button
-      onClick={() => handleClickCell(cell.row, cell.col)}
-      onContextMenu={() => handleRightClickCell(cell.row, cell.col)}
+      onClick={() => onClick(cell.row, cell.col)}
+      onContextMenu={() => onRightClick(cell.row, cell.col)}
       style={{
         animationDelay: animationDelay,
         width: settings.cellSize,

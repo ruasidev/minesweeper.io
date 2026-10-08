@@ -70,10 +70,65 @@
   inherits: true;
   initial-value: 256px;
 }
+/* Whether the layout leaves room for the left pane (1) or not (0), and whether the pane itself is on screen.
+   Two separate things: brought back with its button, the pane lies over a game without pushing it aside */
+@property --nav-shown {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+@property --nav-visible {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
 .animate-nav-width {
-  transition: --nav-w 300ms ease-out;
+  transition: --nav-w 300ms ease-out, --nav-shown 300ms ease-out;
+}
+.animate-nav-visible {
+  transition: --nav-visible 300ms ease-out;
 }
 /* ...except while the pane is being dragged wider or narrower, when it follows the pointer exactly */
 .animate-nav-width[data-resizing] {
   transition: none;
+}
+
+/* Moving from one view to another: between the pages of the site, and between the stages of multiplayer
+   (the list of rooms, a room, a game). The new view eases in from the side it lies on (see ViewTransition.tsx).
+   --view-direction is 1 going further along and -1 coming back */
+@keyframes viewIn {
+  from { transform: translateX(calc(var(--view-direction) * 2.5rem)); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.animate-viewIn {
+  animation: viewIn 250ms ease-out;
+}
+
+/* A small card popping up beside what was clicked */
+@keyframes popIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.animate-popIn {
+  animation: popIn 120ms ease-out;
+}
+
+/* Settings → Reduce motion.
+   Everything in the interface changes instantly instead of sliding, fading or zooming, and nothing grows,
+   shrinks or bounces under the pointer. The game's own animations (winning, losing, the chord hint, and their
+   previews in the themes pane) are part of the game and keep playing: their elements are marked .game-motion */
+.reduce-motion *:not(.game-motion, .game-motion *) {
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}
+.reduce-motion .pressable {
+  scale: none !important;
+}
+.reduce-motion .scale-hover-105,
+.reduce-motion .scale-hover-108 {
+  transform: none !important;
+}
+.reduce-motion .bounce-hover {
+  animation: none !important;
 }

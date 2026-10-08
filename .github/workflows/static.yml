@@ -31,6 +31,9 @@ jobs:
 
       - name: Build project
         run: npm run build
+        env:
+          # Where the API is hosted (see "Hosting" in the README): the site is built to call it there
+          VITE_API_URL: https://api.wooasi.com
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -1,7 +1,11 @@
+import { useEffect, useRef } from "react"
 import { useTheme } from "../../context/ThemeContext"
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 import { useSettings } from "../../context/SettingsContext"
+import { useReportGameWidth } from "../../context/GameWidthContext"
 import { useReportGameResult } from "../../hooks/useReportGameResult"
+import { useBoardSounds } from "../../hooks/useBoardSounds"
+import { playSound } from "../../lib/sounds"
 import GameStatusBar from "./infoDisplay/GameStatusBar"
 import Board from "./Board"
 import GameResult from "./infoDisplay/GameResult"
@@ -17,11 +21,25 @@ export default function Game() {
   const { settings } = useSettings()
   const gameStarted = board.status !== "uninitialized"
   useReportGameResult()
+  useBoardSounds(board)
+
+  // The game-over screen arriving after a loss has a sound of its own.
+  // (A win already played its sound when the board was cleared.)
+  const resultWasShowing = useRef(showResult)
+  useEffect(() => {
+    if (showResult && !resultWasShowing.current && board.status === "lost") playSound("gameOver")
+    resultWasShowing.current = showResult
+  }, [showResult, board.status])
 
   // The status bar stays pinned while scrolling, floating over the controls and board.
   // With every item switched off there is nothing to show until a game starts and it gets its reset button
   const showStatusBar = gameStarted || Object.values(settings.statusBarItems).some(Boolean)
   const statusBarPosition = showStatusBar ? settings.statusBarPosition : null
+
+  // While a game is being played the app is told how wide it is, so the left pane can make way in a narrow window.
+  // A vertical status bar beside the board (at most 13rem with its gap) counts towards that
+  const boardWidth = board.cols * settings.cellSize + (board.cols - 1) * settings.cellGap
+  useReportGameWidth(board.status === "playing" ? boardWidth + (statusBarPosition === "left" ? 13 * 16 : 0) : null)
 
   return (
     // At the bottom the status bar itself is the space below the board, so less padding is needed there

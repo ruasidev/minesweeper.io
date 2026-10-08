@@ -5,7 +5,7 @@ type ScreenDimProps = {
     children: ReactNode
     // a click on the dimmed area itself calls this
     onDismiss?: () => void
-    // dim only a little and keep what's behind sharp
+    // dim only a little, keep what's behind sharp, and come up quickly
     soft?: boolean
 }
 
@@ -22,8 +22,8 @@ export default function ScreenDim({ visible, children, onDismiss, soft }: Screen
                 if (pressedOnDim.current && e.target === e.currentTarget) onDismiss?.()
             }}
             className={`
-            fixed inset-0 z-60 grid place-items-center transition-opacity duration-500 ease-out 
-            ${soft ? "bg-black/40" : "bg-black/60 backdrop-blur-sm"}
+            fixed inset-0 z-60 grid place-items-center transition-opacity ease-out 
+            ${soft ? "bg-black/40 duration-200" : "bg-black/60 backdrop-blur-sm duration-500"}
             ${visible ? "opacity-100" : "opacity-0"}
         `}>
             {children}

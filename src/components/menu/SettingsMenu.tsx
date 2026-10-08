@@ -64,6 +64,36 @@ export default function SettingsMenu() {
           <NumberInput label="font size" unit="%" value={settings.cellFontScale} min={30} max={100} onChange={cellFontScale => updateSettings({ cellFontScale })} />
         </div>
       </div>
+
+      <div>
+        <SidebarSectionHeader text="Sound" />
+        <div className="flex flex-col gap-4">
+          <button
+            aria-pressed={settings.soundEffects}
+            className={`${optionClass(settings.soundEffects)} w-full`}
+            onClick={() => updateSettings({ soundEffects: !settings.soundEffects })}
+          >
+            Sound effects
+          </button>
+          {settings.soundEffects && (
+            <NumberInput label="volume" unit="%" value={settings.soundVolume} min={0} max={100} onChange={soundVolume => updateSettings({ soundVolume })} />
+          )}
+        </div>
+      </div>
+
+      <div>
+        <SidebarSectionHeader text="Motion" />
+        <button
+          aria-pressed={settings.reduceMotion}
+          className={`${optionClass(settings.reduceMotion)} w-full`}
+          onClick={() => updateSettings({ reduceMotion: !settings.reduceMotion })}
+        >
+          Reduce motion
+        </button>
+        <p className={`mt-2 text-sm opacity-70 cursor-default ${theme.textBody}`}>
+          Screens and panes switch instantly, and nothing grows or bounces under the pointer. Win and loss animations still play.
+        </p>
+      </div>
     </>
   )
 }

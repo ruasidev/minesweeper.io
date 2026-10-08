@@ -8,13 +8,16 @@ import App from './App.tsx'
 import { ThemeProvider } from './context/ThemeContext.tsx'
 import { SettingsProvider } from './context/SettingsContext.tsx'
 import { AccountProvider } from './context/AccountContext.tsx'
+import { ConnectionProvider } from './context/ConnectionContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <SettingsProvider>
         <AccountProvider>
-          <App />
+          <ConnectionProvider>
+            <App />
+          </ConnectionProvider>
         </AccountProvider>
       </SettingsProvider>
     </ThemeProvider>

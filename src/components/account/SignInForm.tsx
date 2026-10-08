@@ -2,17 +2,18 @@ import { useEffect, useState, type FormEvent } from "react"
 import { useTheme } from "../../context/ThemeContext"
 import type { AuthMode } from "../../game/types"
 import { authClient } from "../../lib/authClient"
-
-// Same rule the server applies to usernames
-const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,20}$/
+import { playSound } from "../../lib/sounds"
+import { USERNAME_PATTERN } from "../../../shared/profile"
 
 type SignInFormProps = {
   mode: AuthMode
   onModeChange: (mode: AuthMode) => void
   onSignedIn: () => void
+  // put the cursor in the first box straight away: right for a window that was just opened, not for a form sitting on a page
+  autoFocus?: boolean
 }
 
-export default function SignInForm({ mode, onModeChange, onSignedIn }: SignInFormProps) {
+export default function SignInForm({ mode, onModeChange, onSignedIn, autoFocus }: SignInFormProps) {
   const { theme } = useTheme()
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
@@ -22,6 +23,10 @@ export default function SignInForm({ mode, onModeChange, onSignedIn }: SignInFor
 
   // an error from one form doesn't belong on the other
   useEffect(() => setError(null), [mode])
+
+  useEffect(() => {
+    if (error) playSound("error")
+  }, [error])
 
   const inputClass = `w-full px-3 py-2 rounded-md border select-text outline-none focus:ring-2
     ${theme.itemBg} ${theme.itemBorder} ${theme.textBody} ${theme.itemSelectedBorder}`
@@ -75,7 +80,7 @@ export default function SignInForm({ mode, onModeChange, onSignedIn }: SignInFor
             className={inputClass}
             placeholder="Username"
             autoComplete="username"
-            autoFocus
+            autoFocus={autoFocus}
             value={username}
             onChange={e => setUsername(e.target.value)}
             required
@@ -86,7 +91,7 @@ export default function SignInForm({ mode, onModeChange, onSignedIn }: SignInFor
           type="email"
           placeholder="Email"
           autoComplete="email"
-          autoFocus={mode === "signIn"}
+          autoFocus={autoFocus && mode === "signIn"}
           value={email}
           onChange={e => setEmail(e.target.value)}
           required
