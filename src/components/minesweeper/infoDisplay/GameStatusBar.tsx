@@ -4,6 +4,7 @@ import { useSettings } from "../../../context/SettingsContext"
 import { useTheme } from "../../../context/ThemeContext"
 import { statusBarItems, type StatusBarItem } from "../../../game/settings"
 import MiniClock from "./MiniClock"
+import ResetGameButton from "./ResetGameButton"
 
 export default function GameStatusBar() {
   const { theme } = useTheme()
@@ -40,6 +41,8 @@ export default function GameStatusBar() {
       {statusBarItems.filter(item => settings.statusBarItems[item.id]).map(item => (
         <div key={item.id} className="font-semibold">{content[item.id]}</div>
       ))}
+      {/* The board controls are hidden during a game, so this is the way back to them */}
+      {board.status !== "uninitialized" && <ResetGameButton />}
     </div>
   )
 }

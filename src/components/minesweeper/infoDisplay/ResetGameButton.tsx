@@ -7,7 +7,7 @@ export default function ResetGameButton() {
     return (
         <button
             onClick={resetGame}
-            className={`px-4 py-2 border rounded pressable
+            className={`px-3 border rounded font-semibold pressable
                 ${theme.itemSelectedBorder}
                 ${theme.textHead}
                 ${theme.menuBg}

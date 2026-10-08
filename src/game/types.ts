@@ -36,15 +36,25 @@ export type GameStatus =
     | "won" 
     | "lost"
 
-export type SidebarProps = {
-    isOpen: boolean
-    onClose: () => void
+// The pages of the site
+export type Route = "game" | "admin"
+
+// What the left pane can show in place of the navigation
+export type Panel = "themes" | "settings"
+
+export type MainNavigationProps = {
+    route: Route
+    onNavigate: (route: Route) => void
+    width: number
+    minWidth: number
+    onWidthChange: (width: number) => void
+    openPanel: Panel | null
+    onOpenPanel: (panel: Panel) => void
+    onClosePanel: () => void
 }
 
-export type SidebarPanelProps = SidebarProps & {
-    title: string
-    children: React.ReactNode
-}
+// Which form the account window shows to a signed-out player
+export type AuthMode = "signIn" | "signUp"
 
 export type NavigationBarProps = {
     children?: React.ReactNode

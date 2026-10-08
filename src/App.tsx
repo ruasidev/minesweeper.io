@@ -1,59 +1,75 @@
 import { useState } from "react"
 import { useTheme } from "./context/ThemeContext"
+import { useLocalStorage } from "./hooks/useLocalStorage"
+import { useRoute } from "./hooks/useRoute"
 import { GameAnimationProvider } from "./context/GameAnimationContext"
 import { MinesweeperGameProvider } from "./context/MinesweeperGameContext"
 
 import Game from "./components/minesweeper/Game"
-import SidebarMenu from "./components/menu/SidebarMenu"
+import AdminScreen from "./components/admin/AdminScreen"
 import NavigationBar from "./components/app/NavigationBar"
-import CustomizeMenuButton from "./components/menu/CustomizeMenuButton"
-import SettingsMenu from "./components/menu/SettingsMenu"
-import SettingsMenuButton from "./components/menu/SettingsMenuButton"
-import GithubButton from "./components/menu/GithubButton"
-import MultiplayerButton from "./components/menu/MultiplayerButton"
-
-// The panes that open on the right side of the screen; only one is open at a time
-type Panel = "themes" | "settings"
+import AccountModal from "./components/account/AccountModal"
+import AccountButtons from "./components/menu/AccountButtons"
+import MainNavigation, { NAV_DEFAULT_WIDTH, NAV_MIN_WIDTH, NAV_PANEL_MIN_WIDTH } from "./components/app/MainNavigation"
+import type { AuthMode, Panel } from "./game/types"
 
 function App() {
+  const { route, navigate } = useRoute()
+  // Themes and settings open inside the left pane, in place of the navigation
   const [openPanel, setOpenPanel] = useState<Panel | null>(null)
-  const togglePanel = (panel: Panel) => setOpenPanel(open => open === panel ? null : panel)
-  const closePanel = () => setOpenPanel(null)
+  const [navWidth, setNavWidth] = useLocalStorage<number>("navWidth", NAV_DEFAULT_WIDTH)
+  // they need more room than the navigation's links, so the pane is at least that wide while one is open
+  const paneMinWidth = openPanel ? NAV_PANEL_MIN_WIDTH : NAV_MIN_WIDTH
+  const paneWidth = Math.max(navWidth, paneMinWidth)
+
+  // The account window floats over everything. "Log in" and "Sign up" in the header open it on their own form
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [authMode, setAuthMode] = useState<AuthMode>("signIn")
+  const openAccount = (mode?: AuthMode) => {
+    if (mode) setAuthMode(mode)
+    setAccountOpen(true)
+  }
   const { theme } = useTheme();
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-x-hidden select-none">
       <NavigationBar>
-        <GithubButton />
-        <MultiplayerButton />
-        <CustomizeMenuButton isMenuOpen={openPanel === "themes"} onToggle={() => togglePanel("themes")} />
-        <SettingsMenuButton isMenuOpen={openPanel === "settings"} onToggle={() => togglePanel("settings")} />
+        <AccountButtons onOpenAuth={openAccount} onOpenProfile={() => openAccount()} />
       </NavigationBar>
 
-      <main className={`relative flex flex-1 min-h-0 ${theme.background} ${theme.font ?? ""}`}
-        // Used for adjusting spacing when sidebar menu is open
-        // this is so jank but it took so long to make work so i'm not touching it
+      <main className={`relative flex flex-1 min-h-0 animate-nav-width ${theme.background} ${theme.font ?? ""}`}
         style={
           {
-            ["--sidebar-w" as any]: "20rem",
-            ["--sidebar-gap" as any]: "2rem",
+            // the pane on the left: its width (draggable), and its distance from the edges
+            "--nav-w": `${paneWidth}px`,
+            "--nav-gap": "0.5rem",
           } as React.CSSProperties
         }
       >
         <GameAnimationProvider>
+          {/* Layers: the game underneath, the left pane floating over it, the account window over everything */}
           <div className={`flex-1 min-w-0 min-h-0`}>
+            {/* the game's state lives above both pages, so a game in progress is still there after a visit to the admin page */}
             <MinesweeperGameProvider>
-              <Game isMenuOpen={openPanel !== null} />
+              {route === "admin" ? <AdminScreen /> : <Game />}
             </MinesweeperGameProvider>
           </div>
 
-          <SidebarMenu
-            isOpen={openPanel === "themes"}
-            onClose={closePanel}
+          <MainNavigation
+            route={route}
+            onNavigate={navigate}
+            width={paneWidth}
+            minWidth={paneMinWidth}
+            onWidthChange={setNavWidth}
+            openPanel={openPanel}
+            onOpenPanel={setOpenPanel}
+            onClosePanel={() => setOpenPanel(null)}
           />
-          <SettingsMenu
-            isOpen={openPanel === "settings"}
-            onClose={closePanel}
+          <AccountModal
+            isOpen={accountOpen}
+            onClose={() => setAccountOpen(false)}
+            authMode={authMode}
+            onAuthModeChange={setAuthMode}
           />
         </GameAnimationProvider>
       </main>

@@ -35,6 +35,17 @@
   transition: transform 200ms ease;
 }
 
+/* A single tiny bounce when the pointer lands on it */
+@keyframes hoverBounce {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.03); }
+  70%  { transform: scale(0.99); }
+  100% { transform: scale(1); }
+}
+.bounce-hover:hover {
+  animation: hoverBounce 300ms ease-out;
+}
+
 .scale-hover-108:hover {
   transform: scale(1.08);
 }
@@ -50,4 +61,19 @@
   -webkit-backdrop-filter: grayscale(1) contrast(1000) invert(1);
   backdrop-filter: grayscale(1) contrast(1000) invert(1);
   animation: chordHint 450ms ease-out forwards;
+}
+
+/* The left pane's width. Registered as a length so a change to it can be animated, which moves
+   everything laid out from it (the pane, the board beside it, the bars over the board) together */
+@property --nav-w {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 256px;
+}
+.animate-nav-width {
+  transition: --nav-w 300ms ease-out;
+}
+/* ...except while the pane is being dragged wider or narrower, when it follows the pointer exactly */
+.animate-nav-width[data-resizing] {
+  transition: none;
 }

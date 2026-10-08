@@ -9,4 +9,11 @@ export default defineConfig({
     tailwindcss()
   ],
   base: '/',
+  server: {
+    // The API is its own server (see server/). Proxying it keeps everything on one origin
+    // in development, so sign-in cookies work without any cross-site setup
+    proxy: {
+      '/api': 'http://localhost:3000',
+    },
+  },
 })

@@ -1,12 +1,11 @@
-import type { SidebarProps } from "../../game/types"
 import { statusBarItems, statusBarPositions } from "../../game/settings"
 import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
 import NumberInput from "../app/NumberInput"
-import SidebarPanel from "./SidebarPanel"
 import SidebarSectionHeader from "./SidebarSectionHeader"
 
-export default function SettingsMenu({ isOpen, onClose }: SidebarProps) {
+// What the left pane shows for "Settings"
+export default function SettingsMenu() {
   const { theme } = useTheme()
   const { settings, updateSettings } = useSettings()
 
@@ -21,7 +20,7 @@ export default function SettingsMenu({ isOpen, onClose }: SidebarProps) {
   `
 
   return (
-    <SidebarPanel title="Settings" isOpen={isOpen} onClose={onClose}>
+    <>
       <div>
         <SidebarSectionHeader text="Status Bar Items" />
         <div className="grid grid-cols-2 gap-4">
@@ -65,6 +64,6 @@ export default function SettingsMenu({ isOpen, onClose }: SidebarProps) {
           <NumberInput label="font size" unit="%" value={settings.cellFontScale} min={30} max={100} onChange={cellFontScale => updateSettings({ cellFontScale })} />
         </div>
       </div>
-    </SidebarPanel>
+    </>
   )
 }

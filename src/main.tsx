@@ -7,12 +7,15 @@ import './styles/App.css'
 import App from './App.tsx'
 import { ThemeProvider } from './context/ThemeContext.tsx'
 import { SettingsProvider } from './context/SettingsContext.tsx'
+import { AccountProvider } from './context/AccountContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <SettingsProvider>
-        <App />
+        <AccountProvider>
+          <App />
+        </AccountProvider>
       </SettingsProvider>
     </ThemeProvider>
   </StrictMode>,

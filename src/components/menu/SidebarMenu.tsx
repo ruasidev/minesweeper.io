@@ -1,15 +1,14 @@
-import type { SidebarProps } from "../../game/types"
 import { LossAnimationSelect } from "./LossAnimationSelect"
 import WinAnimationSelect from "./WinAnimationSelect"
 import ThemeSelect from "./ThemeSelect"
-import SidebarPanel from "./SidebarPanel"
 
-export default function SidebarMenu({ isOpen, onClose }: SidebarProps) {
+// What the left pane shows for "Themes"
+export default function SidebarMenu() {
   return (
-    <SidebarPanel title="Menu" isOpen={isOpen} onClose={onClose}>
+    <>
       <ThemeSelect />
       <WinAnimationSelect />
       <LossAnimationSelect />
-    </SidebarPanel>
+    </>
   )
 }
