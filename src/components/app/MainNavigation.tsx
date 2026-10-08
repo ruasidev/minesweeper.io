@@ -220,6 +220,10 @@ export default function MainNavigation({
             <NavItem icon={<CircleHelp className="w-5 h-5 shrink-0" />} label="How to play" onClick={() => onOpenPanel("help")} />
             <NavItem icon={<Paintbrush className="w-5 h-5 shrink-0" />} label="Themes" onClick={() => onOpenPanel("themes")} />
             <NavItem icon={<Settings className="w-5 h-5 shrink-0" />} label="Settings" onClick={() => onOpenPanel("settings")} />
+            <div className={`flex justify-center gap-4 text-xs opacity-60 ${theme.textBody}`}>
+              <a className="hover:underline" href="/privacy.html" target="_blank" rel="noopener">Privacy</a>
+              <a className="hover:underline" href="/terms.html" target="_blank" rel="noopener">Terms</a>
+            </div>
           </div>
         </div>
       </div>

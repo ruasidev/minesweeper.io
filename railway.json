@@ -3,10 +3,13 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "server/Dockerfile",
-    "watchPatterns": ["server/**", "shared/**", "railway.json"]
+    "watchPatterns": [
+      "server/**",
+      "shared/**",
+      "railway.json"
+    ]
   },
   "deploy": {
-    "preDeployCommand": ["node dist/server/src/scripts/migrate.js"],
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 60,
     "numReplicas": 1,

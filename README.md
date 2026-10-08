@@ -106,9 +106,10 @@ sign-in cookie as the site's own. On an unrelated address (such as the one Railw
 What does the work:
 
 - `server/Dockerfile` builds the API.
-- `railway.json` tells Railway to use it, to bring the database up to date before each new version starts
-  (`server/src/scripts/migrate.ts`), and to run exactly one copy that never sleeps: rooms live in that one
-  copy's memory. For the same reason it only redeploys when `server/`, `shared/` or `railway.json` change.
+- The image brings the database up to date every time it starts (`server/src/scripts/migrate.ts`), then
+  starts the API.
+- `railway.json` tells Railway to use that image and to run exactly one copy that never sleeps: rooms live in
+  that one copy's memory. For the same reason it only redeploys when `server/`, `shared/` or `railway.json` change.
   Every deploy of the API empties the rooms and chats, so a change to the site alone doesn't cause one.
 - `.github/workflows/static.yml` builds the site with `VITE_API_URL` set to the API's address.
 - `.github/workflows/server.yml` builds that same image on GitHub whenever the server changes, and checks that it
@@ -159,6 +160,24 @@ DATABASE_URL="<DATABASE_PUBLIC_URL>" npm run set-role -- someone@example.com adm
 
 If the API ever moves to another address, change `VITE_API_URL` in the workflow and `BETTER_AUTH_URL` on the host,
 and the redirect URI at Google.
+
+`public/privacy.html` and `public/terms.html` are the privacy policy and the terms. They are linked from the
+sign-in form and the left pane, and they are the links to give Google for the sign-in screen
+(`https://minesweeper.wooasi.com/privacy.html` and `/terms.html`). Keep the policy true: if the site starts
+storing or sharing something new, say so there.
+
+### Releasing changes
+
+Pushing to GitHub is all it takes; nothing is done by hand on Railway.
+
+- The site: every push to `main` rebuilds it and publishes it on GitHub Pages.
+- The API: Railway follows one branch (set under the service's Settings, Source). A push to that branch that
+  changes `server/`, `shared/` or `railway.json` rebuilds and restarts the API, which takes a few minutes and
+  empties the rooms and chats. A push that only changes the site leaves the API running.
+- The database: commit the migration that `npm run db:generate` writes. The API applies it when it next starts.
+- If a new version of the API fails to start, Railway keeps the previous one running and the reason is in the
+  deploy's log.
+- Settings (the variables) are changed on Railway itself, and take effect after pressing Deploy there.
 
 ### Not done yet
 

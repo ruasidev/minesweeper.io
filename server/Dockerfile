@@ -19,4 +19,6 @@ COPY --from=build /app/server/dist ./dist
 # the migrations, for scripts/migrate
 COPY server/drizzle ./drizzle
 USER node
-CMD ["node", "dist/server/src/index.js"]
+# Brings the database up to date, then starts the API. If the database can't be reached or a migration fails,
+# it stops here with the reason in the log, and the host keeps the previous version running
+CMD ["sh", "-c", "node dist/server/src/scripts/migrate.js && exec node dist/server/src/index.js"]

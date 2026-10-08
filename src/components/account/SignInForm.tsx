@@ -122,6 +122,13 @@ export default function SignInForm({ mode, onModeChange, onSignedIn, autoFocus }
       </button>
 
       {error && <p role="alert" className="text-sm text-red-500 font-semibold">{error}</p>}
+
+      {/* plain pages of their own (public/), opened beside the game rather than in place of it */}
+      <p className={`text-center text-xs opacity-70 cursor-default ${theme.textBody}`}>
+        By continuing you agree to the{" "}
+        <a className="underline" href="/terms.html" target="_blank" rel="noopener">Terms</a> and the{" "}
+        <a className="underline" href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.
+      </p>
     </div>
   )
 }

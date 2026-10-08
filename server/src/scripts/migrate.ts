@@ -1,6 +1,7 @@
 // Brings the database up to date with the migrations in drizzle/. It does what `npm run db:migrate` does, without
 // drizzle-kit: that is a development tool, and isn't installed where the server is hosted.
-// Run from server/, after building:  node dist/server/src/scripts/migrate.js
+// The server's image runs it every time it starts (see the Dockerfile).
+// By hand, from server/ after building:  node dist/server/src/scripts/migrate.js
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { db, pool } from "../db/index.js"
 

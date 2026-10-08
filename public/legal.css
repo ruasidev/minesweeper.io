@@ -1,0 +1,64 @@
+/* The privacy policy and the terms (privacy.html, terms.html). They are plain pages rather than part of the app,
+   so they can be read without the game loading, also by whoever reviews the Google sign-in screen */
+:root {
+  color-scheme: dark;
+  --page: #171717;
+  --bar: #1f2937;
+  --line: #374151;
+  --text: #e5e7eb;
+  --quiet: #9ca3af;
+  --link: #7dd3fc;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --page: #f9fafb;
+    --bar: #ffffff;
+    --line: #e5e7eb;
+    --text: #1f2937;
+    --quiet: #6b7280;
+    --link: #0369a1;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font: 16px/1.65 system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.9rem 1.25rem;
+  background: var(--bar);
+  border-bottom: 1px solid var(--line);
+}
+header .home {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-right: auto;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+}
+header img { width: 2rem; height: 2rem; }
+header nav { display: flex; gap: 1rem; font-size: 0.9rem; }
+main { max-width: 44rem; margin: 0 auto; padding: 2rem 1.25rem 5rem; }
+h1 { margin: 0; font-size: 1.9rem; line-height: 1.2; }
+h2 { margin: 2.2rem 0 0.4rem; font-size: 1.15rem; }
+p, ul { margin: 0.6rem 0; }
+ul { padding-left: 1.3rem; }
+li { margin: 0.3rem 0; }
+a { color: var(--link); }
+.updated { color: var(--quiet); font-size: 0.9rem; }
+.summary {
+  margin: 1.5rem 0 0;
+  padding: 0.9rem 1.1rem;
+  background: var(--bar);
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+}

@@ -44,9 +44,7 @@ jobs:
       - name: Build the image
         run: docker build -f server/Dockerfile -t api .
 
-      - name: Bring the database up to date
-        run: docker run --rm --network host -e DATABASE_URL -e BETTER_AUTH_SECRET -e BETTER_AUTH_URL -e CLIENT_ORIGIN api node dist/server/src/scripts/migrate.js
-
+      # starting it also brings the (empty) database up to date
       - name: Start the API
         run: docker run -d --name api --network host -e DATABASE_URL -e BETTER_AUTH_SECRET -e BETTER_AUTH_URL -e CLIENT_ORIGIN api
 
