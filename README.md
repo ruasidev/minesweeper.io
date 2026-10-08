@@ -118,26 +118,34 @@ Setting it up, once:
 
 1. Push the branch that has `server/` and `railway.json` on it. Don't merge it into `main` yet: that publishes
    the site, which would have no API to talk to. On GitHub, under Actions, "Check the API image" should go green.
-2. On Railway, make a project from this GitHub repo and set the service to deploy that branch.
-   Add a PostgreSQL database to the project.
-3. Give the API service these variables:
+2. On Railway, make a project from this GitHub repo and pick that branch. It appears as one box on the
+   project's canvas, and its first deploy fails: it has no database or settings yet.
+3. Add the database: **+ Create** at the top right of the canvas (or right-click the canvas), then
+   **Database**, then **Add PostgreSQL**. A second box named `Postgres` appears and starts by itself.
+4. Give the API its settings: click the API's box, open its **Variables** tab, choose **Raw Editor** and paste
+   this, with your own values in the three marked places:
 
-   | Variable | Value |
-   | --- | --- |
-   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
-   | `BETTER_AUTH_SECRET` | a new one from `openssl rand -base64 32`, not the one used in development |
-   | `BETTER_AUTH_URL` | `https://api.wooasi.com` |
-   | `CLIENT_ORIGIN` | `https://minesweeper.wooasi.com` (exactly that: no `/` on the end) |
-   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | the same OAuth client as in development |
+   ```
+   DATABASE_URL=${{Postgres.DATABASE_URL}}
+   BETTER_AUTH_SECRET=<a new one from: openssl rand -base64 32>
+   BETTER_AUTH_URL=https://api.wooasi.com
+   CLIENT_ORIGIN=https://minesweeper.wooasi.com
+   PORT=3000
+   GOOGLE_CLIENT_ID=<from the Google OAuth client>
+   GOOGLE_CLIENT_SECRET=<from the Google OAuth client>
+   ```
 
-   Paste the values bare. Quotes around a value, as a `.env` file allows, would become part of it here.
-
-4. In the service's networking settings add the custom domain `api.wooasi.com`, and add the DNS records Railway
-   shows for it where `wooasi.com`'s DNS is managed.
-5. On the Google OAuth client add the redirect URI `https://api.wooasi.com/api/auth/callback/google`.
+   `${{Postgres.DATABASE_URL}}` is typed exactly like that: Railway fills in the address of the box named
+   `Postgres`. Paste the other values bare, since quotes around a value would become part of it, and
+   `CLIENT_ORIGIN` must have no `/` on the end. Save, then press **Deploy** on the banner that appears.
+   The deploy's log should say `The database is up to date` and then `API listening`.
+5. Give it its address: in the API box open **Settings**, then **Networking**, then **Custom Domain**. Enter
+   `api.wooasi.com`, and `3000` if it asks for a port. Railway then shows DNS records to add; add them where
+   `wooasi.com`'s DNS is managed (the same place the `minesweeper` record for GitHub Pages was added).
+6. On the Google OAuth client add the redirect URI `https://api.wooasi.com/api/auth/callback/google`.
    The OAuth consent screen also has to be published, or only its listed test users can sign in.
-6. Check that `https://api.wooasi.com/api/health` answers `{"ok":true}`.
-7. Merge into `main`. GitHub Pages rebuilds the site, now pointed at the API. Switch the Railway service to
+7. Check that `https://api.wooasi.com/api/health` answers `{"ok":true}`.
+8. Merge into `main`. GitHub Pages rebuilds the site, now pointed at the API. Switch the Railway service to
    deploy `main` as well.
 
 Accounts are separate from the ones in development, so sign up on the live site first. To make that account an

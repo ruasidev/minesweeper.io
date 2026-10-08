@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "description": "Marks the files in this folder as ES modules wherever they are built. The server's image builds them with no package.json above them, and without this they came out as CommonJS, which the server cannot import.",
+  "type": "module"
+}
