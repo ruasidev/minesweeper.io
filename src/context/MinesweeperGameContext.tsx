@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Board } from "../game/types";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { createEmptyBoard, flagCell, populateBoard, revealCell } from "../game/board";
+import { chordCell, createEmptyBoard, flagCell, getMaxMines, MIN_BOARD_SIZE, populateBoard, revealCell } from "../game/board";
 
 interface MinesweeperGameContextType {
     board: Board
@@ -9,6 +9,7 @@ interface MinesweeperGameContextType {
     rows: number
     cols: number
     mines: number
+    maxMines: number
     time: number
     timeSeconds: number
     timeMinutes: number
@@ -16,6 +17,7 @@ interface MinesweeperGameContextType {
     isRunning: boolean
     resetKey: number
     lastClicked: { row: number; col: number } | null
+    chordHint: { row: number; col: number; id: number } | null
     progress: number
     showResult: boolean
     setRows: (rows: number) => void
@@ -28,17 +30,32 @@ interface MinesweeperGameContextType {
 
 const MinesweeperGameContext = createContext<MinesweeperGameContextType | undefined>(undefined)
 
+// How long a chord hint stays set: a little longer than the chordHint animation in appAnimations.css
+const CHORD_HINT_MS = 500
+
 export function MinesweeperGameProvider({ children }: { children: ReactNode }) {
-    const [rows, setRows] = useLocalStorage<number>("rows", 10)
-    const [cols, setCols] = useLocalStorage<number>("cols", 20)
-    const [mines, setMines] = useLocalStorage<number>("mines", 20)
+    const [storedRows, setRows] = useLocalStorage<number>("rows", 10)
+    const [storedCols, setCols] = useLocalStorage<number>("cols", 20)
+    const [storedMines, setMines] = useLocalStorage<number>("mines", 20)
     const [time, setTime] = useLocalStorage<number>("time", 0)
     const [initialized, setInitialized] = useLocalStorage<boolean>("isInitialized", false)
     const [isRunning, setIsRunning] = useLocalStorage<boolean>("isRunning", false)
     const [resetKey, setResetKey] = useLocalStorage<number>("resetKey", 0)
     const [lastClicked, setLastClicked] = useLocalStorage<{ row: number; col: number } | null>("lastClicked", null)
     const [showResult, setShowResult] = useLocalStorage<boolean>("showResult", false)
+
+    // Clamp on read: localStorage can still hold a size below the minimum
+    const rows = Math.max(storedRows, MIN_BOARD_SIZE)
+    const cols = Math.max(storedCols, MIN_BOARD_SIZE)
+
+    // The chosen mine count is kept as-is and only capped to what the current board can hold,
+    // so it comes back when the board is made bigger again
+    const maxMines = getMaxMines(rows, cols)
+    const mines = Math.min(storedMines, maxMines)
+
     const [board, setBoard] = useState<Board>(createEmptyBoard(rows, cols))
+    // The cell of a chord that opened nothing; id changes on every attempt so the flash can replay
+    const [chordHint, setChordHint] = useState<{ row: number; col: number; id: number } | null>(null)
 
     const progress =
         board.status === "playing" || board.status === "won"
@@ -80,6 +97,12 @@ export function MinesweeperGameProvider({ children }: { children: ReactNode }) {
         resetGame()
     }, [rows, cols, mines])
 
+    useEffect(() => {
+        if (!chordHint) return
+        const t = setTimeout(() => setChordHint(null), CHORD_HINT_MS)
+        return () => clearTimeout(t)
+    }, [chordHint])
+
     const resetGame = () => {
         setBoard(createEmptyBoard(rows, cols))
         setInitialized(false)
@@ -89,6 +112,24 @@ export function MinesweeperGameProvider({ children }: { children: ReactNode }) {
     }
 
     function handleClickCell(row: number, col: number) {
+        // Clicking an already revealed cell chords it
+        if(board.grid[row][col].revealed) {
+            const chorded = chordCell(board, row, col)
+            if(chorded === board) {
+                // Nothing opened (flags don't match the number): flash the cells the chord was checking
+                if(board.status === "playing") setChordHint(prev => ({ row, col, id: (prev?.id ?? 0) + 1 }))
+                return
+            }
+
+            // A chord over a misplaced flag hits a mine: the loss animation starts from that mine
+            const hitMine = chorded.status === "lost"
+                ? chorded.grid.flat().find(cell => cell.hasMine && cell.revealed)
+                : undefined
+            setLastClicked(hitMine ? { row: hitMine.row, col: hitMine.col } : { row, col })
+            setBoard(chorded)
+            return
+        }
+
         setLastClicked({ row, col })
         setBoard(prev => {
             if(!initialized) {
@@ -108,7 +149,7 @@ export function MinesweeperGameProvider({ children }: { children: ReactNode }) {
     return (
         <MinesweeperGameContext.Provider 
             value={{ 
-                rows, cols, mines, time, timeSeconds, timeMinutes, initialized, isRunning, resetKey, board, lastClicked, progress, showResult,
+                rows, cols, mines, maxMines, time, timeSeconds, timeMinutes, initialized, isRunning, resetKey, board, lastClicked, chordHint, progress, showResult,
                 setRows, setCols, setMines, resetGame, handleClickCell, handleRightClickCell, setBoard
             }}>
             {children}

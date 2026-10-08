@@ -1,12 +1,13 @@
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 import { useTheme } from "../../context/ThemeContext"
+import { MIN_BOARD_SIZE } from "../../game/board"
 import NumberInput from "../app/NumberInput"
 import ResetGameButton from "./infoDisplay/ResetGameButton"
 
 // Holds sliders and buttons for changing the board state
 export default function GameControls() {
   const { theme } = useTheme()
-  const { rows, cols, mines, setRows, setCols, setMines } = useMinesweeperGameContext()
+  const { rows, cols, mines, maxMines, setRows, setCols, setMines } = useMinesweeperGameContext()
   return (
     <div
       className={`border rounded-md flex gap-4 p-2
@@ -15,9 +16,9 @@ export default function GameControls() {
         ${theme.menuBorder}
       `}
     >
-      <NumberInput label="rows" value={rows} onChange={setRows} />
-      <NumberInput label="cols" value={cols} onChange={setCols} />
-      <NumberInput label="mines" value={mines} onChange={setMines} />
+      <NumberInput label="rows" value={rows} min={MIN_BOARD_SIZE} onChange={setRows} />
+      <NumberInput label="cols" value={cols} min={MIN_BOARD_SIZE} onChange={setCols} />
+      <NumberInput label="mines" value={mines} max={Math.min(99, maxMines)} onChange={setMines} />
       <ResetGameButton />
     </div>
   )

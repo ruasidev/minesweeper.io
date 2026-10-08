@@ -2,20 +2,21 @@ import Cell from "./Cell"
 import type { AnimationChoices } from "../../game/animations"
 import { useGameAnimations } from "../../context/GameAnimationContext"
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
+import { useSettings } from "../../context/SettingsContext"
 
 export default function Board() {
-  // match Cell size: Tailwind w-10 h-10 = 2.5rem ≈ 40px
-  const CELL_PX = 40
+  const { settings } = useSettings()
   const { lossAnimation, winAnimation } = useGameAnimations()
-  const { board, lastClicked } = useMinesweeperGameContext()
+  const { board, lastClicked, chordHint } = useMinesweeperGameContext()
 
   return (
     <div
-      className="grid gap-0.5"
+      className="grid"
       onContextMenu={(e) => e.preventDefault()}
       style={{
-        gridTemplateColumns: `repeat(${board.cols}, ${CELL_PX}px)`,
-        gridAutoRows: `${CELL_PX}px`,
+        gridTemplateColumns: `repeat(${board.cols}, ${settings.cellSize}px)`,
+        gridAutoRows: `${settings.cellSize}px`,
+        gap: settings.cellGap,
       }}
     >
       {board.grid.map((row, r) =>
@@ -52,12 +53,21 @@ export default function Board() {
               ? `${(Math.abs(r - lastClicked.row) + Math.abs(c - lastClicked.col)) * lossAnimation.animDuration}ms`
               : "0ms"
 
+          // failed chord → flash the hidden, unflagged cells around the chorded cell
+          const isChordHinted =
+            chordHint &&
+            !cell.revealed &&
+            !cell.flagged &&
+            Math.abs(r - chordHint.row) <= 1 &&
+            Math.abs(c - chordHint.col) <= 1
+
           return (
             <Cell
               key={`${r}-${c}`}
               cell={cell}
               animationClass={animationClass}
               animationDelay={animationDelay}
+              chordHintKey={isChordHinted ? chordHint.id : undefined}
             />
           )
         })

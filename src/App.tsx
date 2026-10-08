@@ -7,11 +7,18 @@ import Game from "./components/minesweeper/Game"
 import SidebarMenu from "./components/menu/SidebarMenu"
 import NavigationBar from "./components/app/NavigationBar"
 import CustomizeMenuButton from "./components/menu/CustomizeMenuButton"
+import SettingsMenu from "./components/menu/SettingsMenu"
+import SettingsMenuButton from "./components/menu/SettingsMenuButton"
 import GithubButton from "./components/menu/GithubButton"
 import MultiplayerButton from "./components/menu/MultiplayerButton"
 
+// The panes that open on the right side of the screen; only one is open at a time
+type Panel = "themes" | "settings"
+
 function App() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [openPanel, setOpenPanel] = useState<Panel | null>(null)
+  const togglePanel = (panel: Panel) => setOpenPanel(open => open === panel ? null : panel)
+  const closePanel = () => setOpenPanel(null)
   const { theme } = useTheme();
 
   return (
@@ -19,7 +26,8 @@ function App() {
       <NavigationBar>
         <GithubButton />
         <MultiplayerButton />
-        <CustomizeMenuButton isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        <CustomizeMenuButton isMenuOpen={openPanel === "themes"} onToggle={() => togglePanel("themes")} />
+        <SettingsMenuButton isMenuOpen={openPanel === "settings"} onToggle={() => togglePanel("settings")} />
       </NavigationBar>
 
       <main className={`relative flex flex-1 min-h-0 ${theme.background} ${theme.font ?? ""}`}
@@ -35,13 +43,17 @@ function App() {
         <GameAnimationProvider>
           <div className={`flex-1 min-w-0 min-h-0`}>
             <MinesweeperGameProvider>
-              <Game isMenuOpen={isMenuOpen} />
+              <Game isMenuOpen={openPanel !== null} />
             </MinesweeperGameProvider>
           </div>
 
           <SidebarMenu
-            isOpen={isMenuOpen}
-            onClose={() => setIsMenuOpen(false)}
+            isOpen={openPanel === "themes"}
+            onClose={closePanel}
+          />
+          <SettingsMenu
+            isOpen={openPanel === "settings"}
+            onClose={closePanel}
           />
         </GameAnimationProvider>
       </main>

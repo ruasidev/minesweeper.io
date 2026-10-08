@@ -6,11 +6,14 @@ import './styles/animations/appAnimations.css'
 import './styles/App.css'
 import App from './App.tsx'
 import { ThemeProvider } from './context/ThemeContext.tsx'
+import { SettingsProvider } from './context/SettingsContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      <App />
+      <SettingsProvider>
+        <App />
+      </SettingsProvider>
     </ThemeProvider>
   </StrictMode>,
 )

@@ -10,6 +10,15 @@ export function createEmptyBoard(rows: number, cols: number): Board {
   return { rows, cols, grid, mines: 0, status: "uninitialized", revealedCount: 0, flaggedCount: 0 }
 }
 
+// Smallest allowed number of rows / cols
+export const MIN_BOARD_SIZE = 4
+
+// Most mines a board can hold while keeping the first click and its neighbors safe
+// (worst case is a first click that has all of its neighbors on the board)
+export function getMaxMines(rows: number, cols: number): number {
+  return rows * cols - Math.min(rows, 3) * Math.min(cols, 3)
+}
+
 export function populateBoard(board: Board, mines: number, safeR: number, safeC: number, { excludeAdj = true }: { excludeAdj?: boolean }): Board {
   const { rows, cols } = board
   const grid = copyGrid(board.grid)
@@ -129,6 +138,24 @@ export function revealCell(board: Board, r: number, c: number, minesForInit?: nu
   const status = revealedCount === totalSafe ? "won" : "playing"
 
   return { ...working, grid, revealedCount, status }
+}
+
+// Chording: clicking a revealed cell that already has as many flags around it as its number
+// reveals the rest of its neighbors. If a flag is misplaced, one of those is a mine → lose
+export function chordCell(board: Board, r: number, c: number): Board {
+  const cell = board.grid[r][c]
+  if (board.status !== "playing" || !cell.revealed) return board
+
+  const neighbors = cellNeighbors(board.rows, board.cols, r, c)
+  const flagCount = neighbors.filter(([nr, nc]) => board.grid[nr][nc].flagged).length
+  if (flagCount !== cell.neighborCount) return board
+
+  let working = board
+  for (const [nr, nc] of neighbors) {
+    working = revealCell(working, nr, nc)
+    if (working.status !== "playing") break
+  }
+  return working
 }
 
 

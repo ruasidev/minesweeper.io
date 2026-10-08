@@ -1,14 +1,13 @@
-import type { Dispatch, SetStateAction } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { X, Paintbrush } from "lucide-react";
 
-export default function CustomizeMenuButton({ isMenuOpen, setIsMenuOpen }: 
-        { isMenuOpen: boolean, setIsMenuOpen: Dispatch<SetStateAction<boolean>>; }) {
+export default function CustomizeMenuButton({ isMenuOpen, onToggle }: { isMenuOpen: boolean, onToggle: () => void }) {
     const { theme } = useTheme()
 
     return (
         <button
-            onClick={() => setIsMenuOpen(v => !v)}
+            data-panel-toggle
+            onClick={onToggle}
             className={`p-2 rounded transition-colors hover:opacity-80 pressable ${theme.textHead} ${theme.itemHoverBg}`}
             title="Customize themes and animations"
         >

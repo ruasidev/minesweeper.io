@@ -14,6 +14,7 @@ export type CellProps = {
   cell: Cell
   animationClass?: string
   animationDelay?: string
+  chordHintKey?: number
 }
 
 // Domain model; data structure representing the board itself
@@ -40,6 +41,11 @@ export type SidebarProps = {
     onClose: () => void
 }
 
+export type SidebarPanelProps = SidebarProps & {
+    title: string
+    children: React.ReactNode
+}
+
 export type NavigationBarProps = {
     children?: React.ReactNode
 }
@@ -47,6 +53,9 @@ export type NavigationBarProps = {
 export type NumberInputProps = {
     label: string
     value: number
+    min?: number
+    max?: number
+    unit?: string
     onChange: (n: number) => void
 }
 

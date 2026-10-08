@@ -39,3 +39,15 @@
   transform: scale(1.08);
 }
 
+/* Chord hint: a flash over the cells a failed chord was checking.
+   The backdrop filter turns the cell colour underneath into pure black or white and flips it,
+   so the flash is lighter on dark cells and darker on light cells whatever the theme. */
+@keyframes chordHint {
+  0%   { opacity: 0.35; }
+  100% { opacity: 0; }
+}
+.animate-chordHint {
+  -webkit-backdrop-filter: grayscale(1) contrast(1000) invert(1);
+  backdrop-filter: grayscale(1) contrast(1000) invert(1);
+  animation: chordHint 450ms ease-out forwards;
+}

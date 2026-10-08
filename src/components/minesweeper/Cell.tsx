@@ -2,10 +2,12 @@ import { useEffect, useState } from "react"
 import type { CellProps } from "../../game/types"
 import { useTheme } from "../../context/ThemeContext"
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
+import { useSettings } from "../../context/SettingsContext"
 
-export default function Cell({ cell, animationClass, animationDelay }: CellProps) {
+export default function Cell({ cell, animationClass, animationDelay, chordHintKey }: CellProps) {
   const [hideValue, setHideValue] = useState(false)
   const { theme } = useTheme()
+  const { settings } = useSettings()
   const { resetKey, handleClickCell, handleRightClickCell } = useMinesweeperGameContext()
 
   useEffect(() => {
@@ -47,17 +49,27 @@ export default function Cell({ cell, animationClass, animationDelay }: CellProps
     <button
       onClick={() => handleClickCell(cell.row, cell.col)}
       onContextMenu={() => handleRightClickCell(cell.row, cell.col)}
-      style={{ animationDelay: animationDelay }}
-      className={`w-10 h-10 border flex items-center justify-center rounded font-extrabold text-3xl
+      style={{
+        animationDelay: animationDelay,
+        width: settings.cellSize,
+        height: settings.cellSize,
+        fontSize: settings.cellSize * settings.cellFontScale / 100,
+      }}
+      className={`border flex items-center justify-center rounded font-extrabold leading-none
         ${themeClasses}
         ${textColor}
         ${animationClass ? `animate-${animationClass}` : ""}
+        ${chordHintKey !== undefined ? "relative" : ""}
       `}
       onAnimationStart={() => {
         if (animationClass) setHideValue(true)
       }}
     >
       {value}
+      {/* keyed so a repeated chord attempt restarts the flash */}
+      {chordHintKey !== undefined && (
+        <span key={chordHintKey} className="absolute inset-0 rounded-[inherit] animate-chordHint" />
+      )}
     </button>
   )
 }
