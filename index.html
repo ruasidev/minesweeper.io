@@ -6,9 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link href="src/index.css" rel="stylesheet">
     <title>Minesweeper World</title>
+    <meta name="description" content="Minesweeper World: classic minesweeper with themes, a daily challenge, leaderboards and live multiplayer." />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- What is on the page until the game has loaded, which then takes its place. It is also all that is seen by
+           anything that reads the page without running it, such as the check Google makes before showing the game's
+           name on its sign-in screen: that check looks here for the name and for a link to the privacy policy -->
+      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; background: #171717; color: #e5e7eb; font-family: system-ui, Avenir, Helvetica, Arial, sans-serif; text-align: center;">
+        <img src="/logo.png" alt="" width="96" height="96" />
+        <h1 style="margin: 0; font-size: 1.75rem;">Minesweeper World</h1>
+        <p style="margin: 0; opacity: 0.7;">Classic minesweeper with themes, a daily challenge, leaderboards and live multiplayer.</p>
+        <p style="margin: 1rem 0 0; font-size: 0.85rem;">
+          <a href="/privacy.html" style="color: #7dd3fc;">Privacy Policy</a>
+          &nbsp;·&nbsp;
+          <a href="/terms.html" style="color: #7dd3fc;">Terms of Service</a>
+        </p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
