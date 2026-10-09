@@ -179,11 +179,10 @@ export default function SignInForm({ mode, onModeChange, onSignedIn, autoFocus, 
           </p>
         )}
 
-        {/* the one button in the game's own colours, so it is plainly the thing to press */}
+        {/* the one button filled in with the theme's highlight, so it is plainly the thing to press */}
         <button
           type="submit"
-          className="mt-1 w-full py-2.5 rounded-lg pressable font-bold text-white disabled:opacity-60
-            bg-linear-to-r from-[#db2777] to-[#7c3aed] shadow-md shadow-black/30 hover:brightness-110"
+          className={`mt-1 w-full py-2.5 rounded-lg pressable font-bold disabled:opacity-60 ${theme.itemSelected}`}
           disabled={busy}
         >
           {mode === "signIn" ? "Log in" : "Create account"}

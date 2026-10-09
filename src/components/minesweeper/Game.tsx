@@ -1,14 +1,16 @@
 import { useEffect, useRef } from "react"
-import { useTheme } from "../../context/ThemeContext"
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 import { useSettings } from "../../context/SettingsContext"
 import { useReportGameWidth } from "../../context/GameWidthContext"
 import { useBoardSounds } from "../../hooks/useBoardSounds"
+import { useLayout } from "../../hooks/useLayout"
 import { playSound } from "../../lib/sounds"
 import GameStatusBar from "./infoDisplay/GameStatusBar"
 import Board from "./Board"
+import BoardStage from "./BoardStage"
+import BoardViewport from "./BoardViewport"
+import GameDock from "./GameDock"
 import GameResult from "./infoDisplay/GameResult"
-import GameControls from "./GameControls"
 import { NAV_SPACE } from "../app/MainNavigation"
 
 // Empty space kept to the right of the board, so its end is obvious when scrolled all the way over
@@ -18,9 +20,9 @@ const RIGHT_SPACE = "3rem"
 const SIDE_BAR_SPACE = "13rem"
 
 export default function Game() {
-  const { theme } = useTheme()
   const { board, showResult } = useMinesweeperGameContext()
   const { settings } = useSettings()
+  const { compact } = useLayout()
   const gameStarted = board.status !== "uninitialized"
   useBoardSounds(board)
 
@@ -43,14 +45,32 @@ export default function Game() {
   const boardWidth = board.cols * settings.cellSize + (board.cols - 1) * settings.cellGap
   useReportGameWidth(board.status === "playing" ? boardWidth + (barBeside ? 13 * 16 : 0) : null)
 
+  // On a phone or a tablet: the figures along the top, the board in the room between, and under it the dock, which
+  // is where the board is picked before a game and what a tap does is switched during one
+  if (compact) {
+    return (
+      <div className="h-full" style={{ paddingTop: "var(--top-space)", paddingBottom: "var(--bottom-space)", paddingLeft: NAV_SPACE, paddingRight: "env(safe-area-inset-right)" }}>
+        <BoardStage status={showStatusBar && <GameStatusBar />} dock={<GameDock />}>
+          <BoardViewport rows={board.rows} cols={board.cols}>
+            <Board />
+          </BoardViewport>
+        </BoardStage>
+        {showResult && <GameResult />}
+      </div>
+    )
+  }
+
   return (
-    // At the bottom the status bar itself is the space below the board, so less padding is needed there
-    <div className={`h-full min-h-0 overflow-y-auto overflow-x-hidden pt-4 px-2 hide-scrollbar ${statusBarPosition === "bottom" ? "pb-4" : "pb-24"} ${theme.background}`}>
+    // The page is the whole screen and scrolls as one: the board passes under the header going up, and under the
+    // left pane going sideways. What floats over it stays put: the status bar, and the dock along the bottom
+    <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden px-2 pb-2 hide-scrollbar" style={{ paddingTop: "calc(var(--top-space) + 1rem)" }}>
       <div className="flex flex-col gap-6 w-full min-w-0 min-h-full">
         {/* STATS */}
         {statusBarPosition === "top" && (
-          // the margins centre it over the board, in the space beside the navigation
-          <div className="sticky top-0 z-10 self-center" style={{ marginLeft: NAV_SPACE, marginRight: RIGHT_SPACE }}>
+          // The margins centre it over the board, in the space beside the navigation. It stops a gap short of the
+          // header as the page scrolls: where it sticks is measured from under the padding that keeps the page
+          // clear of the header, which is a little more than a gap
+          <div className="sticky z-10 self-center" style={{ top: "calc(var(--gap) - 1rem)", marginLeft: NAV_SPACE, marginRight: RIGHT_SPACE }}>
             <GameStatusBar />
           </div>
         )}
@@ -72,17 +92,13 @@ export default function Game() {
           </div>
         )}
 
-        {/* CONTROLS */}
-        {/* Hidden once the game starts. They keep their space so the board doesn't jump under the cursor on the first click */}
-        <div className={`w-full transition-opacity duration-300 ${gameStarted ? "opacity-0" : ""}`} inert={gameStarted} style={{ paddingLeft: NAV_SPACE, paddingRight: RIGHT_SPACE }}>
-          <div className="flex justify-center">
-            <GameControls />
-          </div>
-        </div>
-
         {/* BOARD */}
-        <div
-          className="relative z-0 w-full min-w-0 overflow-x-auto hide-scrollbar px-3 -mx-1"
+        <BoardViewport
+          rows={board.rows}
+          cols={board.cols}
+          centered
+          // in the middle of the height that is over, when there is any: a board taller than that starts at the top
+          className="relative z-0 w-full min-w-0 px-3 -mx-1 my-auto"
           style={{
             // The board starts beside the navigation and slides underneath it when scrolled sideways.
             // A status bar standing on the left needs room beside the navigation too, and one on the right
@@ -91,17 +107,16 @@ export default function Game() {
             paddingRight: statusBarPosition === "right" ? `calc(${SIDE_BAR_SPACE} + 0.5rem)` : RIGHT_SPACE,
           }}
         >
-          <div className="w-max mx-auto">
-            <Board />
-          </div>
-        </div>
+          <Board />
+        </BoardViewport>
 
-        {statusBarPosition === "bottom" && (
-          // mt-auto keeps it at the bottom of the screen when the board is shorter than the screen
-          <div className="sticky bottom-0 z-10 self-center mt-auto" style={{ marginLeft: NAV_SPACE, marginRight: RIGHT_SPACE }}>
-            <GameStatusBar />
-          </div>
-        )}
+        {/* Along the bottom of the screen, over the board where the board is taller than that: the dock, with the
+            status bar on top of it if that is where the status bar has been put. The board's own margins keep them
+            at the bottom when the board is short. The space is kept while the dock is away, so nothing shifts when it goes */}
+        <div className="sticky bottom-2 z-10 self-center flex flex-col items-center justify-end gap-2 min-h-14 pointer-events-none *:pointer-events-auto" style={{ marginLeft: NAV_SPACE, marginRight: RIGHT_SPACE }}>
+          {statusBarPosition === "bottom" && <GameStatusBar />}
+          <GameDock />
+        </div>
 
         {showResult && (
           <GameResult />

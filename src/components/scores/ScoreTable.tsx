@@ -1,7 +1,10 @@
+import { Trophy } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
 import { ghostColors } from "../../game/themes"
+import { useFormStyles } from "../../hooks/useFormStyles"
 import type { ScoreEntry } from "../../lib/api"
 import { avatarSrc } from "../../lib/avatar"
+import { MEDALS } from "../../lib/gameResults"
 import { formatScore } from "../../lib/time"
 import PlayerName from "../account/PlayerName"
 
@@ -19,58 +22,90 @@ type ScoreTableProps = {
   onRemove?: (entry: ScoreEntry) => void
 }
 
-// A leaderboard: who cleared a board, quickest first
+const plural = (count: number, word: string) => `${count} ${count === 1 ? word : `${word}s`}`
+const dayOf = (at: string | number | Date) => new Date(at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+
+// A leaderboard: who cleared a board, quickest first. A row reads the way a result is said: where they came, who
+// they are, and at the end of the row the time, which is what the board is ranked by. On a phone there is only room
+// for those three, so the rest of each row (mines hit, the day) moves to a small line under the player's name
 export default function ScoreTable({ entries, emptyText, highlightUserId, showDate, hideMineHits, onRemove }: ScoreTableProps) {
   const { theme } = useTheme()
-  if (entries.length === 0) return <p className={`px-4 pb-4 opacity-70 cursor-default ${theme.textBody}`}>{emptyText}</p>
+  const styles = useFormStyles()
+  if (entries.length === 0) {
+    return (
+      <div className={`flex flex-col items-center gap-3 px-6 py-10 border-t text-center cursor-default ${theme.itemBorder} ${theme.textBody}`}>
+        <Trophy className="w-8 h-8 opacity-40" />
+        <p className="opacity-70">{emptyText}</p>
+      </div>
+    )
+  }
 
-  const headClass = `px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
-  const cellClass = "px-4 py-2 whitespace-nowrap"
+  const headClass = `px-3 sm:px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
+  const cellClass = "px-3 sm:px-4 py-2.5 whitespace-nowrap"
+  // shown as columns of their own only where there is room for them
+  const wideOnly = "hidden sm:table-cell"
 
   return (
     <div className="overflow-x-auto">
       <table className={`w-full text-sm text-left cursor-default ${theme.textBody}`}>
         <thead>
           <tr className={`border-y ${theme.itemBorder} ${theme.itemBg}`}>
-            <th className={`${headClass} w-12`}>#</th>
+            <th className={`${headClass} w-12 sm:w-14 text-center`}>#</th>
             <th className={headClass}>Player</th>
+            {!hideMineHits && <th className={`${headClass} ${wideOnly} text-right`}>Mines hit</th>}
+            {showDate && <th className={`${headClass} ${wideOnly}`}>Set on</th>}
             <th className={`${headClass} text-right`}>Time</th>
-            {!hideMineHits && <th className={`${headClass} text-right`}>Mines hit</th>}
-            {showDate && <th className={headClass}>Set on</th>}
             {onRemove && <th className={headClass} />}
           </tr>
         </thead>
         <tbody>
-          {entries.map((entry, index) => (
-            <tr key={entry.userId} className={`border-b last:border-b-0 ${theme.itemBorder} ${entry.userId === highlightUserId ? theme.itemBg : ""}`}>
-              <td className={`${cellClass} font-semibold tabular-nums`}>{index + 1}</td>
-              <td className={cellClass}>
-                <div className="flex items-center gap-3">
-                  <img
-                    src={avatarSrc(entry.image)}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className={`w-7 h-7 rounded-full object-cover border ${theme.itemBg} ${theme.itemBorder}`}
-                  />
-                  <PlayerName playerId={entry.userId} username={entry.username} />
-                </div>
-              </td>
-              <td className={`${cellClass} text-right font-semibold tabular-nums`}>{formatScore(entry.durationMs)}</td>
-              {!hideMineHits && <td className={`${cellClass} text-right tabular-nums`}>{entry.mineHits}</td>}
-              {showDate && <td className={cellClass}>{new Date(entry.at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</td>}
-              {onRemove && (
-                <td className={`${cellClass} text-right`}>
-                  <button
-                    className={`px-2 py-1 rounded text-xs font-semibold pressable ${ghostColors(theme)}`}
-                    title="Admins: take this player's results off this leaderboard"
-                    onClick={() => onRemove(entry)}
-                  >
-                    Remove
-                  </button>
+          {entries.map((entry, index) => {
+            const own = entry.userId === highlightUserId
+            return (
+              <tr key={entry.userId} className={`border-b last:border-b-0 ${theme.itemBorder} ${own ? theme.itemBg : ""}`}>
+                <td className={`${cellClass} text-center`}>
+                  {index < MEDALS.length
+                    ? <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-extrabold tabular-nums ${MEDALS[index]}`}>{index + 1}</span>
+                    : <span className="font-semibold tabular-nums opacity-70">{index + 1}</span>}
                 </td>
-              )}
-            </tr>
-          ))}
+                <td className={cellClass}>
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={avatarSrc(entry.image)}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      className={`w-7 h-7 shrink-0 rounded-full object-cover border ${theme.itemBg} ${theme.itemBorder}`}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <PlayerName playerId={entry.userId} username={entry.username} />
+                        {own && <span className={styles.tag}>You</span>}
+                      </div>
+                      {(showDate || !hideMineHits) && (
+                        <div className="sm:hidden text-xs opacity-60">
+                          {[!hideMineHits && `${plural(entry.mineHits, "mine")} hit`, showDate && dayOf(entry.at)].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                {!hideMineHits && <td className={`${cellClass} ${wideOnly} text-right tabular-nums`}>{entry.mineHits}</td>}
+                {showDate && <td className={`${cellClass} ${wideOnly} opacity-80`}>{dayOf(entry.at)}</td>}
+                <td className={`${cellClass} text-right text-base font-bold tabular-nums ${theme.textHead}`}>{formatScore(entry.durationMs)}</td>
+                {onRemove && (
+                  <td className={`${cellClass} text-right`}>
+                    <button
+                      className={`px-2 py-1 rounded text-xs font-semibold pressable ${ghostColors(theme)}`}
+                      title="Admins: take this player's results off this leaderboard"
+                      onClick={() => onRemove(entry)}
+                    >
+                      Remove
+                    </button>
+                  </td>
+                )}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>

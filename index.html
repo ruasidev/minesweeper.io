@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit: the app draws right to the edges of a phone's screen and keeps clear of the notch itself.
+         interactive-widget: on Android the page is resized when the keyboard comes up, so nothing ends up under it -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <link href="src/index.css" rel="stylesheet">
     <title>Minesweeper World</title>
     <meta name="description" content="Minesweeper World: classic minesweeper with themes, a daily challenge, leaderboards and live multiplayer." />
@@ -12,7 +14,8 @@
     <meta property="og:site_name" content="Minesweeper World" />
     <!-- How a link to the game looks when it is shared (Discord, iMessage, X and the rest): a small line with the
          site's name, this title and description, and the picture underneath. theme-color is the stripe down the
-         side of the card on Discord -->
+         side of the card on Discord, and what a phone's browser tints its own bars with until the game has loaded
+         and taken that over: the colour of the game's background -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://minesweeper.wooasi.com/" />
     <meta property="og:title" content="Play Minesweeper solo or race your friends" />
@@ -22,7 +25,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="The Minesweeper World logo and name beside a minesweeper board" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#8b5cf6" />
+    <meta name="theme-color" content="#0d1117" />
     <script type="application/ld+json">
       { "@context": "https://schema.org", "@type": "WebSite", "name": "Minesweeper World", "url": "https://minesweeper.wooasi.com/" }
     </script>
@@ -32,14 +35,14 @@
       <!-- What is on the page until the game has loaded, which then takes its place. It is also all that is seen by
            anything that reads the page without running it, such as the check Google makes before showing the game's
            name on its sign-in screen: that check looks here for the name and for a link to the privacy policy -->
-      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; background: #171717; color: #e5e7eb; font-family: system-ui, Avenir, Helvetica, Arial, sans-serif; text-align: center;">
+      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; background: #0d1117; color: #f0f6fc; font-family: system-ui, Avenir, Helvetica, Arial, sans-serif; text-align: center;">
         <img src="/logo.png" alt="" width="96" height="96" />
         <h1 style="margin: 0; font-size: 1.75rem;">Minesweeper World</h1>
         <p style="margin: 0; opacity: 0.7;">Classic minesweeper with themes, a daily challenge, leaderboards and live multiplayer.</p>
         <p style="margin: 1rem 0 0; font-size: 0.85rem;">
-          <a href="/privacy.html" style="color: #7dd3fc;">Privacy Policy</a>
+          <a href="/privacy.html" style="color: #c3cbd5;">Privacy Policy</a>
           &nbsp;·&nbsp;
-          <a href="/terms.html" style="color: #7dd3fc;">Terms of Service</a>
+          <a href="/terms.html" style="color: #c3cbd5;">Terms of Service</a>
         </p>
       </div>
     </div>

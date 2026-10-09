@@ -2,25 +2,27 @@ import Cell from "./Cell"
 import type { AnimationChoices } from "../../game/animations"
 import type { BoardGridProps } from "../../game/types"
 import { useGameAnimations } from "../../context/GameAnimationContext"
-import { useSettings } from "../../context/SettingsContext"
+import { useBoardInput } from "../../hooks/useBoardInput"
 
-// Draws a board and reports clicks on its cells. Whose board it is, and what a click does, is up to whoever uses it:
-// singleplayer plays it right here in the browser, multiplayer asks the server
 // how much later the blast of a mine reaches a cell for every cell it is away
 const BLAST_MS_PER_CELL = 45
 
+// Draws a board and reports what is done to its cells. Whose board it is, and what uncovering or flagging a cell
+// does, is up to whoever uses it: singleplayer plays it right here in the browser, multiplayer asks the server.
+// How big the cells are is up to what it is drawn in: the --cell-size, --cell-gap and --cell-font of a BoardViewport
 export default function BoardGrid({ board, lastClicked, chordHint, blast, resetKey, onCellClick, onCellRightClick }: BoardGridProps) {
-  const { settings } = useSettings()
   const { lossAnimation, winAnimation } = useGameAnimations()
+  const input = useBoardInput(board, onCellClick, onCellRightClick)
 
   return (
     <div
-      className="grid game-motion"
-      onContextMenu={(e) => e.preventDefault()}
+      className="grid game-motion board-grid"
+      {...input}
       style={{
-        gridTemplateColumns: `repeat(${board.cols}, ${settings.cellSize}px)`,
-        gridAutoRows: `${settings.cellSize}px`,
-        gap: settings.cellGap,
+        gridTemplateColumns: `repeat(${board.cols}, var(--cell-size, 40px))`,
+        gridAutoRows: "var(--cell-size, 40px)",
+        gap: "var(--cell-gap, 2px)",
+        fontSize: "var(--cell-font, 30px)",
       }}
     >
       {board.grid.map((row, r) =>
@@ -65,6 +67,8 @@ export default function BoardGrid({ board, lastClicked, chordHint, blast, resetK
             Math.abs(r - chordHint.row) <= 1 &&
             Math.abs(c - chordHint.col) <= 1
 
+          const blastHere = blast?.covered.has(`${r},${c}`) ? blast : null
+
           return (
             <Cell
               key={`${r}-${c}`}
@@ -72,12 +76,9 @@ export default function BoardGrid({ board, lastClicked, chordHint, blast, resetK
               animationClass={animationClass}
               animationDelay={animationDelay}
               chordHintKey={isChordHinted ? chordHint.id : undefined}
-              blast={blast?.covered.has(`${r},${c}`)
-                ? { id: blast.id, delayMs: Math.round(Math.hypot(r - blast.row, c - blast.col) * BLAST_MS_PER_CELL) }
-                : undefined}
+              blastId={blastHere?.id}
+              blastDelayMs={blastHere ? Math.round(Math.hypot(r - blastHere.row, c - blastHere.col) * BLAST_MS_PER_CELL) : undefined}
               resetKey={resetKey}
-              onClick={onCellClick}
-              onRightClick={onCellRightClick}
             />
           )
         })

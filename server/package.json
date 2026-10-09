@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "set-role": "tsx src/scripts/set-role.ts"
+    "set-role": "tsx src/scripts/set-role.ts",
+    "demo": "tsx scripts/demo.ts start",
+    "demo:clear": "tsx scripts/demo.ts clear"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.4",

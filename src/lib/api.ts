@@ -132,13 +132,18 @@ export type HistoryGame = {
   outcome: string
   durationMs: number
   mineHits: number
+  // A multiplayer game: where they came, out of how many, and how far it moved their rating (null where ratings
+  // didn't move). All null for any other kind of game, and for multiplayer games from before these were kept
+  place: number | null
+  players: number | null
+  ratingChange: number | null
   // how many moves they made
   moves: number
   at: string
 }
 
 // A recorded game in full, for playing back: the board it was played on and every move
-export type RecordedGame = Omit<HistoryGame, "moves"> & {
+export type RecordedGame = Omit<HistoryGame, "moves" | "place" | "players" | "ratingChange"> & {
   userId: string
   username: string
   image: string | null

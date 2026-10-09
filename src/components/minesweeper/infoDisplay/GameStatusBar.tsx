@@ -6,15 +6,16 @@ import { useSettings } from "../../../context/SettingsContext"
 import { useTheme } from "../../../context/ThemeContext"
 import { statusBarItems, type StatusBarItem } from "../../../game/settings"
 import type { GameStatus } from "../../../game/types"
+import { useLayout } from "../../../hooks/useLayout"
 import GameBar, { BarField } from "../GameBar"
 import MiniClock from "./MiniClock"
 import ResetGameButton from "./ResetGameButton"
 
 // what each item is captioned with on the bar: shorter than its name in the settings
 const CAPTIONS: Record<StatusBarItem, string> = {
-  mines: "Mines",
+  mines: "Mines in all",
   status: "Status",
-  flags: "Flags left",
+  flags: "Mines left",
   revealed: "Revealed",
   progress: "Progress",
   time: "Time",
@@ -29,17 +30,26 @@ const STATES: Record<GameStatus, { word: string, dot: string }> = {
 }
 
 // How the game stands: figures to read, nothing to set. It is made of the same bar as the board's settings
-// (GameControls), which is the one with things to press
+// (GameControls), which is the one with things to press.
+// On a phone it is a strip the width of the screen with the figures shared out across it, in two rows when there
+// are more than fit in one; on a phone held sideways it goes down the side
 export default function GameStatusBar() {
   const { theme } = useTheme()
   const { settings } = useSettings()
   const { session } = useAccount()
   const { rows, cols, mines, board, progress, timeSeconds, timeMinutes, saved } = useMinesweeperGameContext()
-  const formattedTime = `${timeMinutes.toString().padStart(2, "0")}:${timeSeconds.toString().padStart(2, "0")}`
+  // a board nobody has played on yet has taken no time, whatever the game before it left on the clock
+  const fresh = board.status === "uninitialized"
+  const formattedTime = fresh ? "00:00" : `${timeMinutes.toString().padStart(2, "0")}:${timeSeconds.toString().padStart(2, "0")}`
 
+  const { mode, compact, short } = useLayout()
   // Standing beside the board, on either side, the items are stacked instead of laid out in a row
-  const isVertical = settings.statusBarPosition === "left" || settings.statusBarPosition === "right"
+  const isVertical = compact ? short : settings.statusBarPosition === "left" || settings.statusBarPosition === "right"
   const state = STATES[board.status]
+  const shown = statusBarItems.filter(item => settings.statusBarItems[item.id])
+  // a phone's width holds four of them side by side
+  const columns = !compact ? undefined : mode === "phone" && shown.length > 4 ? Math.ceil(shown.length / 2) : Math.max(1, shown.length)
+  const started = board.status !== "uninitialized"
 
   const content: Record<StatusBarItem, ReactNode> = {
     mines: mines,
@@ -61,8 +71,15 @@ export default function GameStatusBar() {
   }
 
   return (
-    <GameBar icon={<Activity className="w-4 h-4" />} label="Game" vertical={isVertical}>
-      {statusBarItems.filter(item => settings.statusBarItems[item.id]).map(item => (
+    <GameBar
+      icon={<Activity className="w-4 h-4" />}
+      label="Game"
+      vertical={isVertical}
+      columns={columns}
+      // up here, away from the thumbs that are busy on the board: it throws the game away
+      action={compact && started && <ResetGameButton iconOnly={!isVertical} />}
+    >
+      {shown.map(item => (
         <BarField key={item.id} label={CAPTIONS[item.id]} vertical={isVertical}>
           <span className={`text-sm font-bold leading-5 tabular-nums ${theme.textHead}`}>{content[item.id]}</span>
         </BarField>
@@ -70,14 +87,14 @@ export default function GameStatusBar() {
       {/* Someone signed in expects their games to count. This one won't: the server isn't running it */}
       {session && !saved && (
         <span
-          className="px-2 py-1 rounded-md bg-amber-500/15 text-amber-500 text-xs font-semibold"
+          className="col-span-full px-2 py-1 rounded-md bg-amber-500/15 text-amber-500 text-xs font-semibold"
           title="The connection to the server is down, so this game is played in your browser alone and isn't kept"
         >
           Offline: not saved
         </span>
       )}
       {/* The board's settings are hidden during a game, so this is the way back to them */}
-      {board.status !== "uninitialized" && <ResetGameButton />}
+      {!compact && started && <ResetGameButton />}
     </GameBar>
   )
 }

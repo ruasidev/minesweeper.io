@@ -4,7 +4,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useChordHint, type ChordHint } from "../hooks/useChordHint";
 import { chordCell, createEmptyBoard, flagCell, getMaxMines, knownMinesAround, MIN_BOARD_SIZE, populateBoard, revealCell } from "../game/board";
 import { soloBoard } from "../lib/multiplayerBoard";
-import { CELL_MINE } from "../../shared/protocol";
+import { BOARD_PRESETS, CELL_MINE } from "../../shared/protocol";
 import { useAccount } from "./AccountContext";
 import { useConnection } from "./ConnectionContext";
 
@@ -41,6 +41,10 @@ const MinesweeperGameContext = createContext<MinesweeperGameContextType | undefi
 // how long the server gets to answer the first click of a game before the game is played in the browser instead
 const SERVER_ANSWER_MS = 2500
 
+// The board a first visit starts on: Beginner on a phone, where all of it fits on the screen, and a wider board
+// of the same difficulty where there is the width for it
+const FIRST_BOARD = window.innerWidth < 640 ? BOARD_PRESETS[0].settings : { rows: 10, cols: 20, mines: 20 }
+
 // The singleplayer game. It is played in one of two ways, and everything that draws it is the same for both:
 //
 // - Signed in and connected, the server runs it. The first click is sent to the server, which lays the mines
@@ -51,9 +55,9 @@ export function MinesweeperGameProvider({ children }: { children: ReactNode }) {
     const connection = useConnection()
     const { session, refreshProfile } = useAccount()
 
-    const [storedRows, setRows] = useLocalStorage<number>("rows", 10)
-    const [storedCols, setCols] = useLocalStorage<number>("cols", 20)
-    const [storedMines, setMines] = useLocalStorage<number>("mines", 20)
+    const [storedRows, setRows] = useLocalStorage<number>("rows", FIRST_BOARD.rows)
+    const [storedCols, setCols] = useLocalStorage<number>("cols", FIRST_BOARD.cols)
+    const [storedMines, setMines] = useLocalStorage<number>("mines", FIRST_BOARD.mines)
     const [time, setTime] = useLocalStorage<number>("time", 0)
     const [initialized, setInitialized] = useLocalStorage<boolean>("isInitialized", false)
     const [localRunning, setIsRunning] = useLocalStorage<boolean>("isRunning", false)

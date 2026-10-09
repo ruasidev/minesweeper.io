@@ -6,7 +6,8 @@ import type { Multiplayer } from "../../hooks/useMultiplayer"
 import { PASSCODE_MAX, PASSCODE_MIN, ROOM_NAME_MAX, type RoomVisibility } from "../../../shared/protocol"
 import SidebarSectionHeader from "../menu/SidebarSectionHeader"
 
-export default function CreateRoomForm({ multiplayer }: { multiplayer: Multiplayer }) {
+// `bare` is for where something else frames the form and heads it: the sheet it is shown in on a phone
+export default function CreateRoomForm({ multiplayer, bare }: { multiplayer: Multiplayer, bare?: boolean }) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { profile } = useAccount()
@@ -26,8 +27,8 @@ export default function CreateRoomForm({ multiplayer }: { multiplayer: Multiplay
   }
 
   return (
-    <form className={`${styles.card} flex flex-col gap-4 p-4 w-full max-w-sm`} onSubmit={handleSubmit}>
-      <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>Create a room</h2>
+    <form className={bare ? "flex flex-col gap-4" : `${styles.card} flex flex-col gap-4 p-4 w-full max-w-sm`} onSubmit={handleSubmit}>
+      {!bare && <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>Create a room</h2>}
 
       <input
         className={styles.input}
@@ -62,7 +63,7 @@ export default function CreateRoomForm({ multiplayer }: { multiplayer: Multiplay
         />
       )}
 
-      <button type="submit" className={styles.button} disabled={multiplayer.status !== "connected"}>Create room</button>
+      <button type="submit" className={styles.primary} disabled={multiplayer.status !== "connected"}>Create room</button>
       {error && <p role="alert" className="text-sm text-red-500 font-semibold">{error}</p>}
     </form>
   )

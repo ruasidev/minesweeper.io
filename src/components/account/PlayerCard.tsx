@@ -2,10 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
+import { useLayout } from "../../hooks/useLayout"
 import { navigate } from "../../hooks/useRoute"
 import { getPlayerProfile, type PlayerProfile } from "../../lib/api"
 import { avatarSrc } from "../../lib/avatar"
 import AdminBadge from "../admin/AdminBadge"
+import FloatingWindow from "../app/FloatingWindow"
 import Badges from "./Badges"
 import LevelBar from "./LevelBar"
 import ProfileStats from "./ProfileStats"
@@ -23,10 +25,13 @@ type PlayerCardProps = {
 // Another player's profile on a small card: who they are and how they've played. Nothing on it can be changed.
 // It closes on a click anywhere else, or the Escape key.
 // It is drawn at the top of the page rather than where it is used, because the left pane and the chats
-// cut off whatever is inside them
+// cut off whatever is inside them.
+// On a phone there is no room beside a name for a card to pop up in, so it comes up from the bottom as a sheet
 export default function PlayerCard({ playerId, anchor, onClose }: PlayerCardProps) {
   const { theme } = useTheme()
   const { settings } = useSettings()
+  const { mode, short } = useLayout()
+  const asSheet = mode === "phone" || short
   const cardRef = useRef<HTMLDivElement>(null)
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -55,6 +60,8 @@ export default function PlayerCard({ playerId, anchor, onClose }: PlayerCardProp
   }, [anchor, profile, error])
 
   useEffect(() => {
+    // the sheet closes itself: by its X, or a press on the dimmed screen around it
+    if (asSheet) return
     const handlePress = (e: MouseEvent) => {
       const target = e.target as Node
       // a click on the name itself is left to the name, which closes the card it opened
@@ -69,19 +76,10 @@ export default function PlayerCard({ playerId, anchor, onClose }: PlayerCardProp
       document.removeEventListener("mousedown", handlePress)
       document.removeEventListener("keydown", handleKey)
     }
-  }, [anchor, onClose])
+  }, [anchor, onClose, asSheet])
 
-  return createPortal(
-    <div
-      ref={cardRef}
-      className={`fixed z-50 flex flex-col gap-4 w-80 max-h-[80vh] overflow-y-auto hide-scrollbar p-4 rounded-xl border cursor-default
-        shadow-2xl shadow-black/70 ring-1 ring-white/20
-        ${position ? (settings.reduceMotion ? "" : "animate-popIn") : "invisible"}
-        ${theme.menuBg}
-        ${theme.menuBorder}
-      `}
-      style={position ?? { top: 0, left: 0 }}
-    >
+  const card = (
+    <>
       {error && <p role="alert" className="text-sm text-red-500 font-semibold">{error}</p>}
       {!profile && !error && <span className={`text-sm opacity-70 ${theme.textBody}`}>Loading…</span>}
       {profile && (
@@ -119,6 +117,30 @@ export default function PlayerCard({ playerId, anchor, onClose }: PlayerCardProp
           </button>
         </>
       )}
+    </>
+  )
+
+  if (asSheet) {
+    return createPortal(
+      <FloatingWindow title="Player" sheet className="" onClose={onClose}>
+        <div className="flex flex-col gap-4 cursor-default">{card}</div>
+      </FloatingWindow>,
+      document.body,
+    )
+  }
+
+  return createPortal(
+    <div
+      ref={cardRef}
+      className={`fixed z-50 flex flex-col gap-4 w-80 max-h-[80vh] overflow-y-auto hide-scrollbar p-4 rounded-xl border cursor-default
+        shadow-2xl shadow-black/70 ring-1 ring-white/20
+        ${position ? (settings.reduceMotion ? "" : "animate-popIn") : "invisible"}
+        ${theme.menuBg}
+        ${theme.menuBorder}
+      `}
+      style={position ?? { top: 0, left: 0 }}
+    >
+      {card}
     </div>,
     document.body,
   )

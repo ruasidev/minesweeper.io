@@ -1,6 +1,6 @@
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
-import { NAV_SPACE } from "../app/MainNavigation"
+import Page from "../app/Page"
 import AdminBadge from "./AdminBadge"
 import SuspectGamesPanel from "./SuspectGamesPanel"
 import UsersPanel from "./UsersPanel"
@@ -12,13 +12,7 @@ export default function AdminScreen() {
   const { isPending, isAdmin } = useAccount()
 
   return (
-    <div className={`h-full overflow-y-auto hide-scrollbar ${theme.background}`} style={{ paddingLeft: NAV_SPACE }}>
-      <div className="flex flex-col gap-4 py-4 pl-2 pr-4">
-        <div className="flex items-center gap-3">
-          <h1 className={`text-2xl font-semibold cursor-default ${theme.textHead}`}>Admin</h1>
-          {isAdmin && <AdminBadge />}
-        </div>
-
+    <Page title="Admin" aside={isAdmin && <AdminBadge />} maxWidth="max-w-none">
         {isPending ? null : isAdmin ? (
           <>
             <UsersPanel />
@@ -27,7 +21,6 @@ export default function AdminScreen() {
         ) : (
           <p className={`cursor-default ${theme.textBody}`}>This part of the site is for admin accounts only.</p>
         )}
-      </div>
-    </div>
+    </Page>
   )
 }

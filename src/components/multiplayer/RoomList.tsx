@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react"
-import { Lock } from "lucide-react"
+import { Lock, Plus } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import type { Multiplayer } from "../../hooks/useMultiplayer"
 
-// Every room there is. Private ones are listed too, and ask for their passcode before letting anyone in
-export default function RoomList({ multiplayer }: { multiplayer: Multiplayer }) {
+// Every room there is. Private ones are listed too, and ask for their passcode before letting anyone in.
+// `onCreate` is given where the form for a new room isn't on the page beside the list: the list then gets a
+// button that brings it up
+export default function RoomList({ multiplayer, onCreate }: { multiplayer: Multiplayer, onCreate?: () => void }) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   // the private room whose passcode is being asked for, and what has been typed
@@ -26,12 +28,18 @@ export default function RoomList({ multiplayer }: { multiplayer: Multiplayer }) 
   }
 
   return (
-    <section className={`${styles.card} flex-1 min-w-80 overflow-hidden`}>
+    <section className={`${styles.card} flex-1 min-w-0 sm:min-w-80 overflow-hidden`}>
       <div className="flex items-center gap-4 p-4">
         <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>Rooms</h2>
         <span className={`text-sm opacity-70 cursor-default ${theme.textBody}`}>
           {multiplayer.rooms.length} open
         </span>
+        {onCreate && (
+          <button className={`${styles.primary} ml-auto inline-flex items-center gap-1.5 py-2! text-sm`} disabled={multiplayer.status !== "connected"} onClick={onCreate}>
+            <Plus className="w-4 h-4" />
+            Create
+          </button>
+        )}
       </div>
 
       {multiplayer.rooms.length === 0 && (
@@ -66,9 +74,9 @@ export default function RoomList({ multiplayer }: { multiplayer: Multiplayer }) 
           </div>
 
           {unlockingId === room.id && (
-            <form className="flex gap-2" onSubmit={unlock}>
+            <form className="flex flex-wrap gap-2" onSubmit={unlock}>
               <input
-                className={styles.input}
+                className={`${styles.input} flex-1 min-w-40 w-auto!`}
                 placeholder="Passcode"
                 autoComplete="off"
                 autoFocus

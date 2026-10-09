@@ -46,7 +46,7 @@ export default function GameResult() {
   return (
     <ScreenDim visible={visible}>
       <div
-        className={`flex flex-col items-center gap-6 p-8 rounded-2xl text-center shadow-2xl border-2 max-w-lg w-full mx-4 max-h-[92vh] overflow-y-auto hide-scrollbar
+        className={`flex flex-col items-center gap-4 sm:gap-6 p-5 sm:p-8 rounded-2xl text-center shadow-2xl border-2 w-[calc(100%-1rem)] max-w-lg max-h-[calc(100%-1rem)] overflow-y-auto hide-scrollbar
           transform transition-transform duration-500 ease-out
           ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}
           ${theme.menuBg}
@@ -54,11 +54,11 @@ export default function GameResult() {
         `}
       >
         <div className="flex flex-col items-center gap-3 cursor-default">
-          <span className={`flex items-center justify-center w-16 h-16 rounded-full text-white ring-8 ${won ? "bg-green-500 ring-green-500/20" : "bg-red-500 ring-red-500/20"}`}>
-            {won ? <Trophy className="w-8 h-8" /> : <Bomb className="w-8 h-8" />}
+          <span className={`flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full text-white ring-8 ${won ? "bg-green-500 ring-green-500/20" : "bg-red-500 ring-red-500/20"}`}>
+            {won ? <Trophy className="w-6 h-6 sm:w-8 sm:h-8" /> : <Bomb className="w-6 h-6 sm:w-8 sm:h-8" />}
           </span>
-          <h2 className={`text-4xl font-extrabold ${won ? "text-green-500" : "text-red-500"}`}>{won ? "Board cleared!" : "Game over"}</h2>
-          <p className={`text-lg ${theme.textBody}`}>{detail}</p>
+          <h2 className={`text-3xl sm:text-4xl font-extrabold ${won ? "text-green-500" : "text-red-500"}`}>{won ? "Board cleared!" : "Game over"}</h2>
+          <p className={`sm:text-lg ${theme.textBody}`}>{detail}</p>
         </div>
 
         {!won && (
@@ -78,7 +78,7 @@ export default function GameResult() {
           </>
         )}
 
-        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-left">
           <GameResultItem label="Time">{formattedTime}</GameResultItem>
           <GameResultItem label="Board">{rows} × {cols}</GameResultItem>
           <GameResultItem label="Mines">{mines}</GameResultItem>
@@ -87,7 +87,8 @@ export default function GameResult() {
             : <GameResultItem label="Flags right">{rightFlags} of {flags.length}</GameResultItem>}
         </div>
 
-        <div className="flex flex-wrap justify-center gap-3">
+        {/* side by side where they fit; on a phone each is the full width, the way on first */}
+        <div className="w-full flex flex-col sm:flex-row sm:flex-wrap justify-center gap-2 sm:gap-3">
           <PlayAgainButton label={won ? "Play again" : "Try again"} />
           <button
             className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg pressable font-semibold ${ghostColors(theme)}`}

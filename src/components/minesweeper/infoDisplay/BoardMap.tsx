@@ -1,8 +1,11 @@
 import { useTheme } from "../../../context/ThemeContext"
 import type { Board } from "../../../game/types"
+import { useViewportWidth } from "../../../hooks/useViewportWidth"
 
-// the map is about this wide, however many columns the board has
+// the map is about this wide, however many columns the board has: less where the screen is narrower than that
 const MAP_WIDTH = 380
+// what the result window around the map takes up of the screen's width, in px
+const WINDOW_EDGES = 76
 
 // What each cell of a lost board is on the map, and the colour it is drawn in. Covered and uncovered cells take the
 // theme's own colours, so the map looks like the board; the rest are the same in every theme
@@ -24,7 +27,8 @@ function kindOf(cell: Board["grid"][number][number]): Kind | null {
 // game, and which of their flags were right. Under it, what each colour on it means
 export default function BoardMap({ board }: { board: Board }) {
   const { theme } = useTheme()
-  const size = Math.max(3, Math.min(16, Math.floor(MAP_WIDTH / board.cols)))
+  const width = Math.min(MAP_WIDTH, useViewportWidth() - WINDOW_EDGES)
+  const size = Math.max(3, Math.min(16, Math.floor(width / board.cols)))
   const gap = size > 5 ? 1 : 0
   const cells = board.grid.flat()
   const counts = new Map<Kind, number>()

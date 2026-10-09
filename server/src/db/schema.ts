@@ -113,6 +113,12 @@ export const gameRecord = pgTable("game_record", {
   outcome: text("outcome").notNull(),
   durationMs: integer("duration_ms").notNull(),
   mineHits: integer("mine_hits").notNull(),
+  // A multiplayer game: where this player came, out of how many, and how far it moved their rating (null where
+  // ratings didn't move: an unrated game, or one played alone). All null for any other kind of game, and for
+  // multiplayer games from before these were kept
+  place: integer("place"),
+  players: integer("players"),
+  ratingChange: integer("rating_change"),
   // the fewest clicks the board could be cleared in from its opening
   bv: integer("bv").notNull(),
   moves: jsonb("moves").$type<Move[]>().notNull(),

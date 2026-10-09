@@ -275,6 +275,9 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
       outcome: gameRecord.outcome,
       durationMs: gameRecord.durationMs,
       mineHits: gameRecord.mineHits,
+      place: gameRecord.place,
+      players: gameRecord.players,
+      ratingChange: gameRecord.ratingChange,
       moves: sql<number>`jsonb_array_length(${gameRecord.moves})`.mapWith(Number),
       at: gameRecord.createdAt,
     }).from(gameRecord)

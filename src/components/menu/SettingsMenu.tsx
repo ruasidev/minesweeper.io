@@ -1,7 +1,8 @@
-import { statusBarItems, statusBarPositions } from "../../game/settings"
+import { HOLD_MS_MAX, HOLD_MS_MIN, statusBarItems, statusBarPositions } from "../../game/settings"
 import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
 import { ghostColors } from "../../game/themes"
+import { useLayout } from "../../hooks/useLayout"
 import NumberInput from "../app/NumberInput"
 import SidebarSectionHeader from "./SidebarSectionHeader"
 
@@ -9,6 +10,7 @@ import SidebarSectionHeader from "./SidebarSectionHeader"
 export default function SettingsMenu() {
   const { theme } = useTheme()
   const { settings, updateSettings } = useSettings()
+  const { compact, touch } = useLayout()
 
   // One of several choices: the chosen one is filled with the theme's highlight, the others are bare
   const optionClass = (selected: boolean) => `p-2 rounded-md pressable font-semibold text-sm
@@ -25,7 +27,7 @@ export default function SettingsMenu() {
     <>
       <div>
         <SidebarSectionHeader text="Status Bar Items" />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
           {statusBarItems.map(item => {
             const shown = settings.statusBarItems[item.id]
             return (
@@ -42,7 +44,8 @@ export default function SettingsMenu() {
         </div>
       </div>
 
-      <div>
+      {/* on a small screen the status bar has one place it can go, so there is nothing to choose */}
+      {!compact && <div>
         <SidebarSectionHeader text="Status Bar Position" />
         <div className="grid grid-cols-2 gap-4">
           {statusBarPositions.map(position => (
@@ -56,7 +59,7 @@ export default function SettingsMenu() {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       <div>
         <SidebarSectionHeader text="Cells" />
@@ -65,7 +68,32 @@ export default function SettingsMenu() {
           <NumberInput label="spacing" unit="px" value={settings.cellGap} min={0} max={12} onChange={cellGap => updateSettings({ cellGap })} />
           <NumberInput label="font size" unit="%" value={settings.cellFontScale} min={30} max={100} onChange={cellFontScale => updateSettings({ cellFontScale })} />
         </div>
+        {compact && (
+          <p className={`mt-2 text-sm opacity-70 cursor-default ${theme.textBody}`}>
+            A board that doesn't fit the screen at this size is shrunk to fit, as long as its cells stay big enough to press.
+            {touch && " Pinch a board with two fingers to zoom it."}
+          </p>
+        )}
       </div>
+
+      {/* only where a finger is what cells are pressed with */}
+      {touch && (
+        <div>
+          <SidebarSectionHeader text="Touch" />
+          <NumberInput
+            label="hold to flag"
+            unit=" ms"
+            value={settings.holdMs}
+            min={HOLD_MS_MIN}
+            max={HOLD_MS_MAX}
+            step={50}
+            onChange={holdMs => updateSettings({ holdMs })}
+          />
+          <p className={`mt-2 text-sm opacity-70 cursor-default ${theme.textBody}`}>
+            How long a finger stays on a cell before it is flagged. Shorter is quicker; longer leaves less chance of flagging a cell you meant to tap.
+          </p>
+        </div>
+      )}
 
       <div>
         <SidebarSectionHeader text="Sound" />

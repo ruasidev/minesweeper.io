@@ -1,6 +1,7 @@
 import type { AuthMode } from "../../game/types"
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
+import { useLayout } from "../../hooks/useLayout"
 import AdminBadge from "../admin/AdminBadge"
 import FloatingWindow from "../app/FloatingWindow"
 import AuthShowcase from "./AuthShowcase"
@@ -19,6 +20,9 @@ type AccountModalProps = {
 export default function AccountModal({ isOpen, onClose, authMode, onAuthModeChange }: AccountModalProps) {
   const { theme } = useTheme()
   const { session, isPending, isAdmin } = useAccount()
+  const { mode, short } = useLayout()
+  // a phone has room for the form and nothing beside it
+  const cramped = mode === "phone" || short
 
   if (!isOpen) return null
 
@@ -27,9 +31,9 @@ export default function AccountModal({ isOpen, onClose, authMode, onAuthModeChan
       // Just wide enough for the form, or for the form and what an account is for beside it when there is room.
       // It is as tall as signing up needs either way, so switching to logging in doesn't make the window jump
       <FloatingWindow onClose={onClose} className="w-[min(27rem,94vw)] md:w-[min(54rem,94vw)] max-h-[94vh]">
-        <div className="flex min-h-[40rem]">
-          <AuthShowcase />
-          <div className="flex-1 min-w-0 flex flex-col justify-center px-7 py-10 sm:px-10">
+        <div className={`flex ${cramped ? "min-h-full" : "min-h-[40rem]"}`}>
+          {!cramped && <AuthShowcase />}
+          <div className={`flex-1 min-w-0 flex flex-col justify-center ${cramped ? "px-5 py-12" : "px-7 py-10 sm:px-10"}`}>
             <SignInForm mode={authMode} onModeChange={onAuthModeChange} onSignedIn={onClose} autoFocus />
           </div>
         </div>

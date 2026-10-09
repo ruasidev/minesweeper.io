@@ -1,11 +1,13 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react"
-import { Check, Eye, EyeOff, Link, Pause, Play, SkipBack, StepBack, StepForward } from "lucide-react"
+import { ArrowLeft, Check, Eye, EyeOff, Link, Pause, Play, SkipBack, StepBack, StepForward } from "lucide-react"
 import { useReportGameWidth } from "../../context/GameWidthContext"
 import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
 import type { Blast } from "../../game/types"
 import { useFormStyles } from "../../hooks/useFormStyles"
+import { useLayout } from "../../hooks/useLayout"
 import { getRecordedGame, type RecordedGame } from "../../lib/api"
+import { cellBox, dotIn } from "../../lib/boardMetrics"
 import { avatarSrc } from "../../lib/avatar"
 import { describeBoard, describeOutcome } from "../../lib/gameResults"
 import { makeReplay, movesMadeBy, type Replay } from "../../lib/replay"
@@ -14,6 +16,8 @@ import { formatScore } from "../../lib/time"
 import type { Board } from "../../../shared/board"
 import { mineBlastRadius } from "../../../shared/protocol"
 import BoardGrid from "../minesweeper/BoardGrid"
+import BoardStage from "../minesweeper/BoardStage"
+import BoardViewport from "../minesweeper/BoardViewport"
 import { BlastRing } from "../multiplayer/PlayableBoard"
 
 // The board is only redrawn when a move changes it, not for every tick of the clock in between
@@ -45,6 +49,7 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { settings: display } = useSettings()
+  const { compact, short } = useLayout()
   const replay = useMemo(() => makeReplay(game), [game])
   // how far into the replay, in milliseconds
   const [position, setPosition] = useState(0)
@@ -57,7 +62,7 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
   // worked out while drawing, so the board and the move it shows never fall out of step
   if (shown.moveCount !== moveCount) setShown(show(replay, moveCount, shown))
   // drawn as a game in progress whatever its end: a win or a loss playing out over it would get in the way of going back
-  const board = useMemo(() => ({ ...shown.board, status: "playing" as const }), [shown.board])
+  const drawn = useMemo(() => ({ ...shown.board, status: "playing" as const }), [shown.board])
   const atEnd = position >= replay.lengthMs
 
   useEffect(() => {
@@ -149,11 +154,108 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
     return () => document.removeEventListener("keydown", handleKey)
   })
 
-  const step = display.cellSize + display.cellGap
   useReportGameWidth(game.cols * display.cellSize + (game.cols - 1) * display.cellGap)
   const lastMove = moveCount > 0 ? replay.moves[moveCount - 1] : null
   const lastHitMine = moveCount > 0 && replay.mineHitsAfter(moveCount) > replay.mineHitsAfter(moveCount - 1)
-  const iconButton = `${styles.ghost} p-2!`
+  const iconButton = `${styles.ghost} ${compact ? "p-2.5!" : "p-2!"}`
+
+  const board = (
+    <BoardViewport rows={game.rows} cols={game.cols} centered readOnly className="pb-4">
+      <Grid board={drawn} lastClicked={null} chordHint={null} blast={shown.blast} resetKey={0} onCellClick={nothing} onCellRightClick={nothing} />
+      {/* where the mines are: the player never saw this */}
+      {showMines && drawn.grid.flat().filter(cell => cell.hasMine && !cell.revealed).map(cell => (
+        <span key={`${cell.row}-${cell.col}`} className="absolute rounded-full bg-red-500 ring-2 ring-black/40" style={dotIn(cell.row, cell.col, 0.28)} />
+      ))}
+      {/* the cell the latest move was made on: red where it set a mine off, amber for a flag */}
+      {lastMove && (
+        <span
+          className={`absolute rounded ring-[3px] ${lastHitMine ? "ring-red-500" : lastMove[1] === 1 ? "ring-amber-400" : "ring-white"} shadow-[0_0_8px_2px_rgba(0,0,0,0.5)]`}
+          style={cellBox(lastMove[2], lastMove[3])}
+        />
+      )}
+      {shown.blast && <BlastRing key={shown.blast.id} blast={shown.blast} radius={mineBlastRadius(game)} />}
+    </BoardViewport>
+  )
+
+  const transport = (
+    <div className="flex items-center gap-1">
+      <button className={iconButton} title="Back to the start" onClick={() => goToMove(0)}><SkipBack className="w-4 h-4" /></button>
+      <button className={iconButton} title="Back one move (←)" onClick={() => goToMove(moveCount - 1)}><StepBack className="w-4 h-4" /></button>
+      <button className={`${styles.button} ${compact ? "p-2.5!" : "p-2!"}`} title={playing ? "Pause (space)" : "Play (space)"} onClick={togglePlaying}>
+        {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+      </button>
+      <button className={iconButton} title="On one move (→)" onClick={() => goToMove(moveCount + 1)}><StepForward className="w-4 h-4" /></button>
+    </div>
+  )
+  const scrubber = (
+    <input
+      type="range"
+      aria-label="Position in the replay"
+      min={0}
+      max={replay.lengthMs}
+      step={1}
+      value={position}
+      onChange={e => setPosition(Number(e.target.value))}
+      className={`flex-1 min-w-0 h-2 rounded-lg appearance-none cursor-pointer accent-red-500 ${theme.cellHidden}`}
+    />
+  )
+  const mineHits = replay.mineHitsAfter(moveCount)
+  const moveCounter = (
+    <>
+      Move {moveCount} of {replay.moves.length}
+      {mineHits > 0 && ` · ${mineHits} ${mineHits === 1 ? "mine" : "mines"} hit`}
+    </>
+  )
+
+  // On a small screen the board has the room, and the controls are a dock under it, as they are on a video:
+  // where it has got to on top, and under that what is pressed, with the speeds folded into one button that steps
+  // through them and the mines behind an eye
+  if (compact) {
+    return (
+      <BoardStage
+        status={
+          <section className={`${styles.card} flex items-center gap-1 p-1.5 cursor-default ${short ? "flex-wrap" : ""} ${theme.textBody}`}>
+            <button className={`${styles.ghost} shrink-0 p-2.5!`} title="Back to the history" aria-label="Back to the history" onClick={onBack}>
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="flex-1 min-w-0 text-sm">
+              <div className={`font-semibold leading-tight truncate ${theme.textHead}`}>@{game.username} · {describeBoard(game)}</div>
+              <div className="opacity-70 leading-tight truncate">{KINDS[game.kind]} · {describeOutcome(game.outcome, game.durationMs)}</div>
+            </div>
+            <button className={`${styles.ghost} shrink-0 p-2.5!`} title={copied ? "Link copied" : "Copy a link to this replay"} aria-label="Copy a link to this replay" onClick={copyLink}>
+              {copied ? <Check className="w-5 h-5" /> : <Link className="w-5 h-5" />}
+            </button>
+          </section>
+        }
+        dock={
+          <section className={`${styles.card} flex flex-col gap-1 px-2 py-2 cursor-default ${theme.textBody}`}>
+            <div className="flex items-center gap-2 px-1 text-xs font-semibold tabular-nums">
+              <span>{formatScore(replay.startMs + position)}</span>
+              {!short && scrubber}
+              <span className={short ? "ml-auto opacity-70" : "opacity-70"}>{formatScore(replay.startMs + replay.lengthMs)}</span>
+            </div>
+            {short && <div className="flex px-1 py-2">{scrubber}</div>}
+            <div className={`flex items-center gap-1 ${short ? "flex-wrap" : ""}`}>
+              {transport}
+              <span className="flex-1 min-w-0 px-1 text-center text-xs font-semibold tabular-nums truncate">{moveCounter}</span>
+              <button
+                className={`${styles.ghost} shrink-0 w-12 px-0! py-2.5! text-sm tabular-nums`}
+                title="Playback speed: tap to change"
+                onClick={() => setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length])}
+              >
+                {speed}×
+              </button>
+              <button className={`${showMines ? styles.option(true) : styles.ghost} shrink-0 p-2.5!`} aria-pressed={showMines} title={showMines ? "Hide the mines" : "Show the mines"} onClick={() => setShowMines(on => !on)}>
+                {showMines ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </section>
+        }
+      >
+        {board}
+      </BoardStage>
+    )
+  }
 
   return (
     <>
@@ -177,45 +279,13 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
         </div>
       </section>
 
-      <div className="overflow-x-auto hide-scrollbar pb-4">
-        <div className="relative w-max mx-auto pointer-events-none">
-          <Grid board={board} lastClicked={null} chordHint={null} blast={shown.blast} resetKey={0} onCellClick={nothing} onCellRightClick={nothing} />
-          {/* where the mines are: the player never saw this */}
-          {showMines && board.grid.flat().filter(cell => cell.hasMine && !cell.revealed).map(cell => (
-            <span
-              key={`${cell.row}-${cell.col}`}
-              className="absolute rounded-full bg-red-500 ring-2 ring-black/40"
-              style={{
-                top: cell.row * step + display.cellSize / 2 - display.cellSize * 0.14,
-                left: cell.col * step + display.cellSize / 2 - display.cellSize * 0.14,
-                width: display.cellSize * 0.28,
-                height: display.cellSize * 0.28,
-              }}
-            />
-          ))}
-          {/* the cell the latest move was made on: red where it set a mine off, amber for a flag */}
-          {lastMove && (
-            <span
-              className={`absolute rounded ring-[3px] ${lastHitMine ? "ring-red-500" : lastMove[1] === 1 ? "ring-amber-400" : "ring-white"} shadow-[0_0_8px_2px_rgba(0,0,0,0.5)]`}
-              style={{ top: lastMove[2] * step, left: lastMove[3] * step, width: display.cellSize, height: display.cellSize }}
-            />
-          )}
-          {shown.blast && <BlastRing key={shown.blast.id} blast={shown.blast} radius={mineBlastRadius(game)} />}
-        </div>
-      </div>
+      {board}
 
       {/* The controls run along the bottom, as on a video. They stay there while a tall board is scrolled,
           and sit at the foot of the screen under a short one */}
       <section className={`${styles.card} sticky bottom-2 z-20 mt-auto flex flex-col gap-3 p-4 cursor-default ${theme.textBody}`}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-center gap-1">
-            <button className={iconButton} title="Back to the start" onClick={() => goToMove(0)}><SkipBack className="w-4 h-4" /></button>
-            <button className={iconButton} title="Back one move (←)" onClick={() => goToMove(moveCount - 1)}><StepBack className="w-4 h-4" /></button>
-            <button className={`${styles.button} p-2!`} title={playing ? "Pause (space)" : "Play (space)"} onClick={togglePlaying}>
-              {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-            </button>
-            <button className={iconButton} title="On one move (→)" onClick={() => goToMove(moveCount + 1)}><StepForward className="w-4 h-4" /></button>
-          </div>
+          {transport}
 
           <div className="flex items-center gap-1" role="group" aria-label="Speed">
             {SPEEDS.map(option => (
@@ -230,24 +300,12 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
             {showMines ? "Hide the mines" : "Show the mines"}
           </button>
 
-          <span className="ml-auto text-sm font-semibold tabular-nums">
-            Move {moveCount} of {replay.moves.length}
-            {replay.mineHitsAfter(moveCount) > 0 && ` · ${replay.mineHitsAfter(moveCount)} ${replay.mineHitsAfter(moveCount) === 1 ? "mine" : "mines"} hit`}
-          </span>
+          <span className="ml-auto text-sm font-semibold tabular-nums">{moveCounter}</span>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="w-16 text-sm font-semibold tabular-nums">{formatScore(replay.startMs + position)}</span>
-          <input
-            type="range"
-            aria-label="Position in the replay"
-            min={0}
-            max={replay.lengthMs}
-            step={1}
-            value={position}
-            onChange={e => setPosition(Number(e.target.value))}
-            className={`flex-1 h-2 rounded-lg appearance-none cursor-pointer accent-red-500 ${theme.cellHidden}`}
-          />
+          {scrubber}
           <span className="w-16 text-right text-sm tabular-nums opacity-70">{formatScore(replay.startMs + replay.lengthMs)}</span>
         </div>
       </section>

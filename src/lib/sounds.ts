@@ -6,6 +6,7 @@ import errorSound from "../../ui-sounds/error-sound.mp3"
 import gameStartCountdown from "../../ui-sounds/game-start-countdown.mp3"
 import itemRewardSound from "../../ui-sounds/item-reward-sound.mp3"
 import keyboardClick from "../../ui-sounds/keyboard-click.mp3"
+import leaveRoom from "../../ui-sounds/leave-room.mp3"
 import lossSound from "../../ui-sounds/loss-sound.mp3"
 import popExplosion from "../../ui-sounds/pop-explosion.mp3"
 import roomJoin from "../../ui-sounds/room-join.mp3"
@@ -43,6 +44,8 @@ const SOUNDS = {
   win: { file: itemRewardSound, volume: 1 },
   // multiplayer: someone coming into the room, yourself included
   roomJoin: { file: roomJoin, volume: 0.8 },
+  // ...and someone going out of it, yourself included
+  roomLeave: { file: leaveRoom, volume: 0.8 },
   // a recorded game being opened to watch back
   replayOpen: { file: buttonClickSelect, volume: 0.4 },
   // each number of the countdown before a game starts, and the moment it does

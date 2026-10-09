@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import { useConnection } from "../../context/ConnectionContext"
+import { useLayout } from "../../hooks/useLayout"
 import { playSound } from "../../lib/sounds"
-import { NAV_SPACE } from "../app/MainNavigation"
+import FloatingWindow from "../app/FloatingWindow"
+import Page from "../app/Page"
 import ViewTransition from "../app/ViewTransition"
 import ChatDock from "./ChatDock"
 import CreateRoomForm from "./CreateRoomForm"
@@ -14,12 +16,6 @@ import RoomList from "./RoomList"
 import RoomView from "./RoomView"
 import SignedOutMultiplayer from "./SignedOutMultiplayer"
 import SpectateView from "./SpectateView"
-
-type MultiplayerScreenProps = {
-  // a room to walk straight into on arriving, picked from the list in the left pane
-  joinRoomId: string | null
-  onJoinHandled: () => void
-}
 
 // What a signed-in player is looking at in multiplayer, from the outside in
 const STAGES = ["rooms", "room", "game", "results", "watching"] as const
@@ -31,26 +27,18 @@ type AfterGame = { place: "results" } | { place: "room" } | { place: "watching",
 // A board that has just been cleared stays up this long, for its win to play out, before the results take its place
 const WIN_HOLD_MS = 1600
 
-// The part of the page that scrolls, under its heading
-function PageBody({ children }: { children: ReactNode }) {
-  const { theme } = useTheme()
-  return (
-    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden hide-scrollbar">
-      <div className="flex flex-col gap-4 py-4 pl-2 pr-4">
-        <h1 className={`text-2xl font-semibold cursor-default ${theme.textHead}`}>Multiplayer</h1>
-        {children}
-      </div>
-    </div>
-  )
-}
-
 // The rooms to join, the room this player is in, or the game being played there.
 // Leaving the multiplayer page leaves the room
-function Lobby({ joinRoomId, onJoinHandled }: MultiplayerScreenProps) {
+function Lobby() {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const multiplayer = useConnection()
   const { session, refreshProfile } = useAccount()
+  const { mode, compact } = useLayout()
+  // On a phone the form for a new room is a sheet brought up from the list, rather than a card above it
+  const [creating, setCreating] = useState(false)
+  // ...which has done its job once there is a room to be in
+  if (creating && multiplayer.room) setCreating(false)
   const { leaveRoom, spectate } = multiplayer
   useEffect(() => leaveRoom, [leaveRoom])
 
@@ -95,15 +83,6 @@ function Lobby({ joinRoomId, onJoinHandled }: MultiplayerScreenProps) {
     setAfterGame({ place })
   }
 
-  // A room picked from the list in the left pane is joined as soon as the connection is up, if it can simply
-  // be walked into. (A private one is left for its passcode to be typed, in the list on this page.)
-  const { status, rooms, joinRoom } = multiplayer
-  useEffect(() => {
-    if (!joinRoomId || status !== "connected") return
-    const picked = rooms.find(room => room.id === joinRoomId)
-    if (picked && picked.visibility === "public" && !picked.inGame) joinRoom(joinRoomId)
-    onJoinHandled()
-  }, [joinRoomId, status, rooms, joinRoom, onJoinHandled])
   const stage: typeof STAGES[number] = !room ? "rooms"
     : !game || outcome === null ? "room"
     : outcome === "playing" || holdingBoard ? "game"
@@ -118,8 +97,12 @@ function Lobby({ joinRoomId, onJoinHandled }: MultiplayerScreenProps) {
     const before = lastSeen.current
     lastSeen.current = { roomId, playerCount, stage, gameOver }
     if (roomId && (roomId !== before.roomId || playerCount > before.playerCount)) playSound("roomJoin")
-    // ...and the screen-change sound for coming back out: from someone's board to the results, from there to the room
-    if (STAGES.indexOf(stage) < STAGES.indexOf(before.stage)) playSound("transition")
+    // ...one for someone going out of it: this player leaving the room, or another player leaving them in it
+    const left = before.roomId !== null && (roomId === null || (roomId === before.roomId && playerCount < before.playerCount))
+    if (left) playSound("roomLeave")
+    // ...and the screen-change sound for coming back out: from someone's board to the results, from there to the room.
+    // (Out of the room altogether has just had its own.)
+    else if (STAGES.indexOf(stage) < STAGES.indexOf(before.stage)) playSound("transition")
     // a game that is over has just been scored: fetch the player's level and rating again in a moment
     if (gameOver && !before.gameOver) setTimeout(refreshProfile, 1500)
   }, [roomId, playerCount, stage, gameOver, refreshProfile])
@@ -131,24 +114,32 @@ function Lobby({ joinRoomId, onJoinHandled }: MultiplayerScreenProps) {
 
   if (multiplayer.status === "replaced") {
     return (
-      <PageBody>
+      <Page title="Multiplayer">
         <div className={`${styles.card} flex flex-col items-start gap-4 p-4 w-full max-w-sm`}>
           <p className={`cursor-default ${theme.textBody}`}>Multiplayer was opened with this account in another tab or on another device.</p>
           <button className={styles.button} onClick={multiplayer.reconnect}>Use it here instead</button>
         </div>
-      </PageBody>
+      </Page>
     )
   }
 
+  // a board on a small screen takes the page over: it lays itself out in the room there is
+  const onBoard = stage === "game" || stage === "watching"
   return (
-    <>
-      <PageBody>
-        {multiplayer.status === "connecting" && (
+      <Page
+        title="Multiplayer"
+        // a board, with the other players either side of it, has the whole width
+        maxWidth={onBoard ? "max-w-none" : undefined}
+        fill={onBoard}
+        // stays put along the bottom in the room and at the results; out of the way wherever there is a board
+        footer={(stage === "room" || stage === "results") && <ChatDock multiplayer={multiplayer} />}
+      >
+        {multiplayer.status === "connecting" && !(onBoard && compact) && (
           <p className={`text-sm opacity-70 cursor-default ${theme.textBody}`}>Connecting…</p>
         )}
-        {multiplayer.notice && <p role="alert" className="text-sm text-red-500 font-semibold cursor-default">{multiplayer.notice}</p>}
+        {multiplayer.notice && <p role="alert" className={`text-sm text-red-500 font-semibold cursor-default ${onBoard && compact ? "px-3 pt-2" : ""}`}>{multiplayer.notice}</p>}
         {/* creating or joining a room, starting a game, and going back again each ease the new view in */}
-        <ViewTransition view={stage} order={STAGES} className="flex flex-col gap-4">
+        <ViewTransition view={stage} order={STAGES} className={onBoard && compact ? "flex-1 min-h-0" : `flex flex-col ${mode === "phone" ? "gap-3" : "gap-4"}`}>
           {room && game && stage === "game" ? (
             <GameView room={room} game={game} multiplayer={multiplayer} />
           ) : room && game && stage === "results" ? (
@@ -161,6 +152,16 @@ function Lobby({ joinRoomId, onJoinHandled }: MultiplayerScreenProps) {
               multiplayer={multiplayer}
               onViewResults={game && outcome !== null ? () => setAfterGame({ place: "results" }) : undefined}
             />
+          ) : mode === "phone" ? (
+            // the rooms come first on a phone: they are what most people are here for
+            <>
+              <RoomList multiplayer={multiplayer} onCreate={() => setCreating(true)} />
+              {creating && (
+                <FloatingWindow title="Create a room" sheet className="w-[min(26rem,94vw)]" onClose={() => setCreating(false)}>
+                  <CreateRoomForm multiplayer={multiplayer} bare />
+                </FloatingWindow>
+              )}
+            </>
           ) : (
             <div className="flex flex-wrap items-start gap-4">
               <CreateRoomForm multiplayer={multiplayer} />
@@ -168,29 +169,20 @@ function Lobby({ joinRoomId, onJoinHandled }: MultiplayerScreenProps) {
             </div>
           )}
         </ViewTransition>
-      </PageBody>
-
-      {/* stays put along the bottom in the room and at the results; out of the way wherever there is a board */}
-      {(stage === "room" || stage === "results") && <ChatDock multiplayer={multiplayer} />}
-    </>
+      </Page>
   )
 }
 
 // The multiplayer part of the site. It takes the game's place beside the left pane
-export default function MultiplayerScreen({ joinRoomId, onJoinHandled }: MultiplayerScreenProps) {
-  const { theme } = useTheme()
+export default function MultiplayerScreen() {
   const { session, isPending } = useAccount()
 
+  if (isPending) return <Page title="Multiplayer">{null}</Page>
+  // keyed by account, so signing in as someone else starts a fresh connection as them
+  if (session) return <Lobby key={session.user.id} />
   return (
-    <div className={`h-full flex flex-col ${theme.background}`} style={{ paddingLeft: NAV_SPACE }}>
-      {isPending ? null : session ? (
-        // keyed by account, so signing in as someone else starts a fresh connection as them
-        <Lobby key={session.user.id} joinRoomId={joinRoomId} onJoinHandled={onJoinHandled} />
-      ) : (
-        <PageBody>
-          <SignedOutMultiplayer />
-        </PageBody>
-      )}
-    </div>
+    <Page title="Multiplayer">
+      <SignedOutMultiplayer />
+    </Page>
   )
 }

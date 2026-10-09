@@ -80,7 +80,7 @@ export default function ProfileView({ onSignedOut }: { onSignedOut: () => void }
   )
 
   return (
-    <div className="flex flex-wrap items-start gap-x-16 gap-y-8">
+    <div className="flex flex-wrap items-start gap-x-16 gap-y-8 max-sm:pb-4">
       <div className="flex flex-col gap-5 w-full max-w-sm">
         <div className="flex items-center gap-4">
           <img

@@ -30,10 +30,14 @@ type RecordDetails = {
   // how the game ended for the player, where that isn't what the game itself says (a singleplayer game thrown away)
   outcome?: string
   suspectReason?: string | null
+  // a multiplayer game: where the player came, out of how many, and how far it moved their rating
+  place?: number
+  players?: number
+  ratingChange?: number | null
 }
 
 // Keeps one player's game, move by move, with the board it was played on
-export async function saveRecord(kind: GameKind, game: Game, playerId: string, now: number, { outcome, suspectReason = null }: RecordDetails = {}) {
+export async function saveRecord(kind: GameKind, game: Game, playerId: string, now: number, { outcome, suspectReason = null, place, players, ratingChange }: RecordDetails = {}) {
   const result = recordOf(game, playerId, now)
   if (!result) return
   await db.insert(gameRecord).values({
@@ -48,6 +52,9 @@ export async function saveRecord(kind: GameKind, game: Game, playerId: string, n
     outcome: outcome ?? result.outcome,
     durationMs: Math.round(result.durationMs),
     mineHits: result.mineHits,
+    place,
+    players,
+    ratingChange,
     bv: game.bv,
     moves: result.moves,
     suspect: suspectReason !== null,

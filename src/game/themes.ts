@@ -1,4 +1,6 @@
 export type ThemeChoices =
+    | "midnight"
+    | "deep-sea"
     | "classic"
     | "classic-light"
     | "ocean"
@@ -48,8 +50,69 @@ export type ThemeProps = {
     font?: string
 }
 
+// The theme a first visit gets
+export const DEFAULT_THEME: ThemeChoices = "midnight"
+
 export const themes: ThemeProps[] = [
   // In the order they are listed in the themes pane: the dark ones, then the light ones
+  // What a first visit gets: the look of most dark apps, so nothing about it needs getting used to. Cool dark greys
+  // that step a little lighter for each layer floating above the last, one plain blue for whatever is chosen or is
+  // the thing to press (the blue of the board's 1s), and red flags. The uncovered cells are a pale grey, which the
+  // numbers (whose colours are the same in every theme) read clearly on
+  {
+    id: "midnight",
+    name: "Midnight",
+    author: "Claude",
+    dark: true,
+    background: "bg-[#0d1117]",
+    menuBg: "bg-[#161b22]",
+    menuBorder: "border-[#2b323c]",
+    cellHidden: "bg-[#3d4857]",
+    cellVisible: "bg-[#d8dee6]",
+    cellFlagged: "bg-[#e5484d]",
+    cellBorder: "border-[#0d1117]",
+    textHead: "text-[#f0f6fc]",
+    textBody: "text-[#c3cbd5]",
+    itemBg: "bg-[#21262e]",
+    itemBorder: "border-[#373f4b]",
+    itemHoverBg: "hover:bg-[#2b323c]",
+    itemHoverBorder: "hover:border-[#58a6ff]",
+    itemSelectedBorder: "ring-[#58a6ff]",
+    itemSelected: "bg-[#2563eb] text-white",
+    cellHoverBorder: "hover:border-[#58a6ff]",
+    cellHoverBgHidden: "hover:bg-[#4b586a]",
+    cellHoverBgVisible: "hover:bg-[#e8edf3]",
+    cellHoverBgFlagged: "hover:bg-[#cf3d42]",
+  },
+  // Named for the ships the game is named for. The app is the deep petrol blue-green of the sea
+  // at depth, a step lighter for each layer that floats above the last; whatever is chosen or is the thing to press
+  // is brass; and the flags are a signal red. The uncovered cells are a pale sea mist, which the numbers (whose
+  // colours are the same in every theme) read clearly on
+  {
+    id: "deep-sea",
+    name: "Deep Sea",
+    author: "Claude",
+    dark: true,
+    background: "bg-[#0a1d24]",
+    menuBg: "bg-[#102a34]",
+    menuBorder: "border-[#1e4351]",
+    cellHidden: "bg-[#2e6878]",
+    cellVisible: "bg-[#dfeaec]",
+    cellFlagged: "bg-[#e8534a]",
+    cellBorder: "border-[#0a1d24]",
+    textHead: "text-[#f1f7f8]",
+    textBody: "text-[#b9ced4]",
+    itemBg: "bg-[#173844]",
+    itemBorder: "border-[#295767]",
+    itemHoverBg: "hover:bg-[#1e4856]",
+    itemHoverBorder: "hover:border-[#ecb84a]",
+    itemSelectedBorder: "ring-[#ecb84a]",
+    itemSelected: "bg-[#ecb84a] text-[#0a1d24]",
+    cellHoverBorder: "hover:border-[#ecb84a]",
+    cellHoverBgHidden: "hover:bg-[#3a8094]",
+    cellHoverBgVisible: "hover:bg-[#eef5f6]",
+    cellHoverBgFlagged: "hover:bg-[#d2433b]",
+  },
   // Dark themes built on well-known editor palettes. The colours are each palette's own; the uncovered cells are
   // one of its light tones, so the numbers (whose colours are the same in every theme) stay readable on them
   {

@@ -17,12 +17,13 @@ export default function ScreenDim({ visible, children, onDismiss, soft }: Screen
 
     return (
         <div
-            onMouseDown={(e) => { pressedOnDim.current = e.target === e.currentTarget }}
+            onPointerDown={(e) => { pressedOnDim.current = e.target === e.currentTarget }}
             onClick={(e) => {
                 if (pressedOnDim.current && e.target === e.currentTarget) onDismiss?.()
             }}
+            // as tall as what can be seen of the screen, which on a phone is less than the screen while its keyboard is up
             className={`
-            fixed inset-0 z-60 grid place-items-center transition-opacity ease-out 
+            fixed inset-x-0 top-0 app-height z-60 grid place-items-center safe-top safe-bottom safe-left safe-right transition-opacity ease-out 
             ${soft ? "bg-black/40 duration-200" : "bg-black/60 backdrop-blur-sm duration-500"}
             ${visible ? "opacity-100" : "opacity-0"}
         `}>

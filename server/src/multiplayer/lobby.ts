@@ -262,7 +262,12 @@ function finishGame(room: Room, game: Game) {
     }
     // kept after the ratings are worked out, so this game isn't counted among the ones already played
     for (const result of results) {
-      await saveRecord("multiplayer", game, result.playerId, now, { suspectReason: reasons.get(result.playerId) })
+      await saveRecord("multiplayer", game, result.playerId, now, {
+        suspectReason: reasons.get(result.playerId),
+        place: result.place,
+        players: results.length,
+        ratingChange: game.ratingChanges?.get(result.playerId) ?? null,
+      })
     }
     // the results everyone is looking at can now say how far each rating moved
     if (rooms.get(room.id) === room && room.game === game) sendRoomToMembers(room)

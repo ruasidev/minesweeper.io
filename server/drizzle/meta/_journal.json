@@ -50,6 +50,13 @@
       "when": 1791511069393,
       "tag": "0006_anticheat",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791580057429,
+      "tag": "0007_match_details",
+      "breakpoints": true
     }
   ]
 }

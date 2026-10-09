@@ -42,3 +42,43 @@ export function ordinal(place: number): string {
   const suffix = lastTwo >= 11 && lastTwo <= 13 ? "th" : ["th", "st", "nd", "rd"][place % 10] ?? "th"
   return `${place}${suffix}`
 }
+
+// gold, silver and bronze, for the first three places of anything that is ranked
+export const MEDALS = ["bg-[#e9b949] text-[#3b2a05]", "bg-[#c4c8cf] text-[#2a2d33]", "bg-[#c98a5a] text-[#33190a]"]
+
+// What a game in a match history came to: the few words for it, whether that is a good end or a bad one, and what
+// goes under those words in smaller ones
+export type Verdict = { word: string, tone: "good" | "bad" | "plain", detail: string }
+
+type PlayedGame = {
+  kind: "singleplayer" | "multiplayer" | "daily"
+  outcome: string
+  durationMs: number
+  mineHits: number
+  place: number | null
+  players: number | null
+}
+
+export function verdictOf(game: PlayedGame): Verdict {
+  const time = formatScore(game.durationMs)
+  const hits = game.mineHits > 0 ? ` · ${game.mineHits} ${game.mineHits === 1 ? "mine" : "mines"} hit` : ""
+  const cleared = game.outcome === "cleared"
+
+  // singleplayer is won or lost; a game thrown away is neither
+  if (game.kind === "singleplayer") {
+    if (cleared) return { word: "Won", tone: "good", detail: `Cleared in ${time}` }
+    if (game.outcome === "lost") return { word: "Lost", tone: "bad", detail: `Hit a mine at ${time}` }
+    return { word: "Abandoned", tone: "plain", detail: `Left at ${time}` }
+  }
+  if (game.kind === "daily") {
+    return cleared
+      ? { word: "Cleared", tone: "good", detail: `In ${time}${hits}` }
+      : { word: "Not finished", tone: "plain", detail: `Stopped at ${time}${hits}` }
+  }
+  // multiplayer is where they came, where there was anyone to come ahead of or behind
+  const placed = game.place !== null && game.players !== null && game.players > 1
+  const position = placed ? `${ordinal(game.place!)} of ${game.players}` : null
+  if (cleared) return { word: position ?? "Cleared", tone: "good", detail: `Cleared in ${time}${hits}` }
+  const stopped = STOPPED[game.outcome as keyof typeof STOPPED] ?? "Did not finish"
+  return { word: position ? `${stopped} · ${position}` : stopped, tone: "bad", detail: `Stopped at ${time}${hits}` }
+}

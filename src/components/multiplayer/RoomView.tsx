@@ -3,6 +3,7 @@ import { Lock } from "lucide-react"
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
+import { useLayout } from "../../hooks/useLayout"
 import type { Multiplayer } from "../../hooks/useMultiplayer"
 import { avatarSrc } from "../../lib/avatar"
 import { getMaxMines, MIN_BOARD_SIZE } from "../../../shared/board"
@@ -27,6 +28,7 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { session } = useAccount()
+  const { touch } = useLayout()
   const isHost = room.hostId === session?.user.id
   const game = room.game
   const gameOn = game !== null && !game.over
@@ -69,25 +71,25 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
 
   return (
     <>
-      <section className={`${styles.card} flex items-center gap-3 p-4`}>
+      <section className={`${styles.card} flex flex-wrap items-center gap-x-3 gap-y-2 p-4`}>
         <h2 className={`min-w-0 text-xl font-semibold truncate cursor-default ${theme.textHead}`}>{room.name}</h2>
         <span className={`${styles.tag} inline-flex items-center gap-1`}>
           {room.visibility === "private" && <Lock className="w-3 h-3" />}
           {room.visibility}
         </span>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
           {onViewResults && <button className={styles.ghost} onClick={onViewResults}>{gameOn ? "Results so far" : "Last game's results"}</button>}
           <button className={styles.ghost} onClick={multiplayer.leaveRoom}>Leave room</button>
         </div>
       </section>
 
-      <div className="flex flex-wrap items-start gap-4">
-        <section className={`${styles.card} flex flex-col gap-4 p-4 flex-1 min-w-80 max-w-2xl`}>
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_22rem] items-start gap-3 sm:gap-4">
+        <section className={`${styles.card} flex flex-col gap-4 p-4 min-w-0`}>
           <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>Game</h2>
 
           <div>
             <SidebarSectionHeader text="Mode" />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
               {BOARD_PRESETS.map(preset => modeButton(preset.id, preset.label, describe(preset.settings), () => {
                 setCustomChosen(false)
                 multiplayer.setSettings(preset.settings)
@@ -97,24 +99,26 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
           </div>
 
           {canSetUp && mode === "custom" && (
-            <div className="grid grid-cols-3 gap-4">
-              <NumberInput label="rows" value={rows} min={MIN_BOARD_SIZE} max={BOARD_SIZE_MAX} onChange={rows => changeSettings({ rows })} />
-              <NumberInput label="cols" value={cols} min={MIN_BOARD_SIZE} max={BOARD_SIZE_MAX} onChange={cols => changeSettings({ cols })} />
-              <NumberInput label="mines" value={mines} max={maxMines} onChange={mines => changeSettings({ mines })} />
+            // three side by side where there is a mouse to work them with; one under the other, with buttons to step
+            // them exactly, where it is a finger
+            <div className={`grid gap-4 ${touch ? "max-w-md" : "grid-cols-3"}`}>
+              <NumberInput stepper={touch} label="rows" value={rows} min={MIN_BOARD_SIZE} max={BOARD_SIZE_MAX} onChange={rows => changeSettings({ rows })} />
+              <NumberInput stepper={touch} label="cols" value={cols} min={MIN_BOARD_SIZE} max={BOARD_SIZE_MAX} onChange={cols => changeSettings({ cols })} />
+              <NumberInput stepper={touch} label="mines" value={mines} max={maxMines} onChange={mines => changeSettings({ mines })} />
             </div>
           )}
 
-          <div className={`flex items-center gap-4 pt-4 border-t ${theme.menuBorder}`}>
-            <span className={`cursor-default ${theme.textBody}`}>
+          <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 pt-4 border-t ${theme.menuBorder}`}>
+            <span className={`flex-1 min-w-48 cursor-default ${theme.textBody}`}>
               {gameOn ? `A game is being played: ${stillPlaying} still playing. The next one can start when they are done.`
                 : isHost ? "Everyone plays the same board."
                 : "Waiting for the host to start the game."}
             </span>
-            {isHost && <button className={`${styles.button} ml-auto px-6`} disabled={gameOn} onClick={multiplayer.startGame}>Start game</button>}
+            {isHost && <button className={`${styles.primary} ml-auto px-6! max-sm:w-full`} disabled={gameOn} onClick={multiplayer.startGame}>Start game</button>}
           </div>
         </section>
 
-        <section className={`${styles.card} flex flex-col gap-4 p-4 w-full max-w-sm`}>
+        <section className={`${styles.card} flex flex-col gap-4 p-4 min-w-0`}>
           <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>Players ({room.players.length})</h2>
           <div className="flex flex-col gap-3">
             {room.players.map(player => (

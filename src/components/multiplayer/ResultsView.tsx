@@ -73,22 +73,26 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
   // ratings only move in a game that counts, and when there was somebody to be measured against
   const rated = game.rated && game.players.length > 1
 
-  const headClass = `px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
-  const cellClass = "px-4 py-2.5 whitespace-nowrap"
+  const headClass = `px-3 sm:px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
+  const cellClass = "px-3 sm:px-4 py-2.5 whitespace-nowrap"
+  // On a phone there is room for who, their rating and the way to their board: how each of them did moves to a
+  // line under their name
+  const wideOnly = "hidden sm:table-cell"
 
   return (
     <>
-      <section className={`${styles.card} flex flex-wrap items-center gap-x-6 gap-y-4 p-5 cursor-default ${theme.textBody}`}>
+      <section className={`${styles.card} flex flex-wrap items-center gap-x-6 gap-y-4 p-4 sm:p-5 cursor-default ${theme.textBody}`}>
         <div className="min-w-0">
           <div className="text-sm opacity-70 truncate">{room.name}</div>
-          <h2 className={`text-3xl font-extrabold ${tone || theme.textHead}`}>{title}</h2>
+          <h2 className={`text-2xl sm:text-3xl font-extrabold ${tone || theme.textHead}`}>{title}</h2>
           {detail && <div className="mt-1 font-semibold tabular-nums">{detail}</div>}
         </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        {/* on a phone they share one row the width of the card, rather than wrap however they happen to */}
+        <div className="ml-auto flex flex-wrap items-center gap-2 max-sm:w-full max-sm:flex-nowrap max-sm:text-sm max-sm:*:flex-1 max-sm:*:px-1!">
+          <button className={styles.button} onClick={onBackToRoom}>Back to room</button>
           {room.hostId === myId && !game.over && (
             <button className={styles.ghost} title="Stop the game for everyone still playing" onClick={multiplayer.endGame}>End game</button>
           )}
-          <button className={styles.button} onClick={onBackToRoom}>Back to room</button>
           <button className={styles.ghost} onClick={multiplayer.leaveRoom}>Leave room</button>
         </div>
       </section>
@@ -103,10 +107,10 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
           <table className="w-full text-sm text-left">
             <thead>
               <tr className={`border-y ${theme.itemBorder} ${theme.itemBg}`}>
-                <th className={`${headClass} w-12`}>#</th>
+                <th className={`${headClass} w-10 sm:w-12`}>#</th>
                 <th className={headClass}>Player</th>
-                <th className={headClass}>Result</th>
-                <th className={`${headClass} text-right`}>Mines hit</th>
+                <th className={`${headClass} ${wideOnly}`}>Result</th>
+                <th className={`${headClass} ${wideOnly} text-right`}>Mines hit</th>
                 <th className={`${headClass} text-right`}>Rating</th>
                 <th className={headClass} />
               </tr>
@@ -124,12 +128,20 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
                         referrerPolicy="no-referrer"
                         className={`w-7 h-7 rounded-full object-cover border ${theme.itemBg} ${theme.itemBorder}`}
                       />
-                      <PlayerName playerId={player.id} username={player.username} />
-                      {player.id === myId && <span className={styles.tag}>You</span>}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <PlayerName playerId={player.id} username={player.username} />
+                          {player.id === myId && <span className={styles.tag}>You</span>}
+                        </div>
+                        <div className="sm:hidden text-xs opacity-70 tabular-nums">
+                          {describeResult(progress)}
+                          {progress.mineHits > 0 && ` · ${progress.mineHits} ${progress.mineHits === 1 ? "mine" : "mines"} hit`}
+                        </div>
+                      </div>
                     </div>
                   </td>
-                  <td className={`${cellClass} tabular-nums ${progress.outcome === "cleared" ? "font-bold" : ""}`}>{describeResult(progress)}</td>
-                  <td className={`${cellClass} text-right tabular-nums`}>{progress.mineHits}</td>
+                  <td className={`${cellClass} ${wideOnly} tabular-nums ${progress.outcome === "cleared" ? "font-bold" : ""}`}>{describeResult(progress)}</td>
+                  <td className={`${cellClass} ${wideOnly} text-right tabular-nums`}>{progress.mineHits}</td>
                   <td className={`${cellClass} text-right tabular-nums`}>
                     <RatingChange change={progress.ratingChange} pending={rated && game.over} />
                   </td>
@@ -139,7 +151,7 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
                       title="Look at the board as they left it"
                       onClick={() => onWatch(player.id)}
                     >
-                      {player.id === myId ? "My board" : "View board"}
+                      {player.id === myId ? "My board" : <>View<span className="max-sm:hidden"> board</span></>}
                     </button>
                   </td>
                 </tr>
@@ -170,7 +182,7 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
                 : "No time limit until half the players have finished. Click a board to watch it."}
             </span>
           </div>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-2 sm:gap-4">
             {stillPlaying.map(({ player, progress }) => (
               <OpponentBox key={player.id} player={player} progress={progress} game={game} onSpectate={() => onWatch(player.id)} />
             ))}

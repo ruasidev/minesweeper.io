@@ -20,6 +20,34 @@ The game board stays visible on the left, while controls and customization optio
 - Tailwind CSS
 - Vite
 
+## Layout and design
+
+One design on every screen size. The page fills the whole screen, and the app's own pieces are **panes** that float
+over it a gap in from the edges, with the page scrolling underneath them.
+
+| | Header | Navigation | A board being played |
+| --- | --- | --- | --- |
+| **Desktop** (wide, with a mouse) | across the top | the full pane on the left, which folds down to the rail while a board needs the room | the page scrolls; status bar above, dock along the bottom |
+| **Tablet**, or a narrow window | across the top | a rail of tabs on the left | the board pans in its own space between a status strip and a dock |
+| **Phone** | across the top, slimmer | tabs along the bottom | the same |
+| **Phone on its side** | none (the rail carries the logo and the account) | the rail | status and dock go down the right-hand side |
+
+On a phone or tablet, "More" brings up everything the desktop pane holds besides the main pages: global chat, how
+to play, themes and settings. What is the signed-in player's own (their profile, their match history, signing out)
+is in one place on every layout: the menu behind their picture in the header.
+
+On a touch screen a tap uncovers and holding flags (how long is a setting), the Dig / Flag switch under the board
+swaps those two, a board bigger than the screen is dragged about, and two fingers zoom it.
+
+Where to change it:
+
+- `src/hooks/useLayout.ts`: which of the layouts a screen gets, and the widths they change at.
+- `src/App.tsx` (`spaces`): the gap around the panes, the height of the header, the width of the rail.
+- `src/hooks/useFormStyles.ts`: what a pane, a card and each kind of button look like.
+- `src/components/app/Page.tsx`: the margins and width of every page but the singleplayer one.
+- `src/components/minesweeper/BoardViewport.tsx`: how big boards are drawn, and when one is shrunk to fit.
+- `src/game/themes.ts`: the colours. `DEFAULT_THEME` is what a first visit gets.
+
 ## Accounts (branch `multiplayer-development`)
 
 The game is a static site. Accounts, profiles and stats come from a small API in `server/`
@@ -41,6 +69,21 @@ npm run dev               # API on http://localhost:3000
 
 Then start the site as usual from the repo root with `npm run dev`. The Vite dev server proxies `/api` to the API,
 so everything is on `http://localhost:5173`. (`npm run dev:server` from the root also starts the API.)
+
+### A populated demo
+
+To see the site as it would look with people in it (for screenshots, or to try multiplayer alone), with both the
+API and the site running:
+
+```sh
+npm run demo          # makes 52 made-up players and their games, then puts a dozen of them in live rooms
+npm run demo:clear    # removes every made-up player and everything of theirs
+```
+
+The first run fills the leaderboards, the daily challenge, profiles and match histories (every game is a real
+one, so its replay works). Then the live players open rooms, play each other, chat, and wait in one room for you
+to join. They stay until you press Ctrl-C, or for two hours. It only works against a database on your own
+machine: the made-up accounts all have addresses ending in `@demo.invalid` (`server/scripts/demo.ts`).
 
 ### Google sign-in
 

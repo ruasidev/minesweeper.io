@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Bomb, CalendarCheck, CalendarDays, ChevronRight, Minus, Swords, Trophy } from "lucide-react"
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import type { AuthMode } from "../../game/types"
@@ -6,8 +7,8 @@ import { useFormStyles } from "../../hooks/useFormStyles"
 import { navigate } from "../../hooks/useRoute"
 import { getHistory, type HistoryGame } from "../../lib/api"
 import { avatarSrc } from "../../lib/avatar"
-import { describeBoard, describeOutcome } from "../../lib/gameResults"
-import { NAV_SPACE } from "../app/MainNavigation"
+import { describeBoard, MEDALS, ordinal, verdictOf } from "../../lib/gameResults"
+import Page from "../app/Page"
 import ReplayView from "./ReplayView"
 
 const KINDS: Record<HistoryGame["kind"], string> = { singleplayer: "Singleplayer", multiplayer: "Multiplayer", daily: "Daily challenge" }
@@ -47,8 +48,39 @@ function GameList({ ownerId, isOwn }: { ownerId: string, isOwn: boolean }) {
       .finally(() => setLoadingMore(false))
   }
 
-  const headClass = `px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
-  const cellClass = "px-4 py-2.5 whitespace-nowrap"
+  const when = (game: HistoryGame) => new Date(game.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+  const tones = { good: "text-green-500", bad: "text-red-500", plain: "" }
+  const marks = { good: "bg-green-500/15 text-green-500", bad: "bg-red-500/15 text-red-500", plain: `${theme.itemBg} opacity-80` }
+
+  // What is at the head of a row, so a column of them can be read at a glance: the place they came in a multiplayer
+  // game (a medal for the first three), and otherwise a sign for how the game ended, in the colour of that
+  function mark(game: HistoryGame, tone: "good" | "bad" | "plain") {
+    const frame = "shrink-0 flex items-center justify-center w-10 h-10 rounded-lg text-sm font-extrabold tabular-nums"
+    if (game.kind === "multiplayer" && game.place !== null && (game.players ?? 0) > 1) {
+      // a medal is for a board that was cleared: a place come by giving up is only a place
+      const look = game.outcome === "cleared" ? MEDALS[game.place - 1] ?? marks.plain : marks.bad
+      return <span className={`${frame} ${look}`}>{ordinal(game.place)}</span>
+    }
+    const Icon = game.kind === "daily" ? (tone === "good" ? CalendarCheck : CalendarDays)
+      : game.kind === "multiplayer" ? Swords
+      : tone === "good" ? Trophy : tone === "bad" ? Bomb : Minus
+    return <span className={`${frame} ${marks[tone]}`}><Icon className="w-5 h-5" /></span>
+  }
+
+  // how far a multiplayer game moved their rating
+  function rating(game: HistoryGame) {
+    if (game.kind !== "multiplayer") return null
+    const change = game.ratingChange
+    if (change === null) return <span className="text-xs opacity-50">{game.rated ? "–" : "Unrated"}</span>
+    return (
+      <>
+        <span className={`block text-base font-bold tabular-nums ${change > 0 ? "text-green-500" : change < 0 ? "text-red-500" : "opacity-70"}`}>
+          {change > 0 ? `+${change}` : change < 0 ? `−${-change}` : "±0"}
+        </span>
+        <span className="block text-[10px] font-semibold uppercase tracking-wide opacity-60">Rating</span>
+      </>
+    )
+  }
 
   return (
     <section className={`${styles.card} overflow-hidden cursor-default ${theme.textBody}`}>
@@ -66,43 +98,37 @@ function GameList({ ownerId, isOwn }: { ownerId: string, isOwn: boolean }) {
         <p className="px-4 pb-4 opacity-70">{isOwn ? "No games yet. Play one while signed in and it will be here." : "No games to show yet."}</p>
       )}
 
-      {history && history.games.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead>
-              <tr className={`border-y ${theme.itemBorder} ${theme.itemBg}`}>
-                <th className={headClass}>When</th>
-                <th className={headClass}>Game</th>
-                <th className={headClass}>Board</th>
-                <th className={headClass}>Result</th>
-                <th className={`${headClass} text-right`}>Mines hit</th>
-                <th className={`${headClass} text-right`}>Moves</th>
-                <th className={headClass} />
-              </tr>
-            </thead>
-            <tbody>
-              {history.games.map(game => (
-                <tr
-                  key={game.id}
-                  className={`border-b last:border-b-0 cursor-pointer ${theme.itemBorder} ${theme.itemHoverBg}`}
-                  onClick={() => navigate("history", ownerId, game.id)}
-                >
-                  <td className={cellClass}>{new Date(game.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
-                  <td className={cellClass}>
-                    {KINDS[game.kind]}
-                    {game.rated && <span className={`${styles.tag} ml-2`}>Rated</span>}
-                  </td>
-                  <td className={cellClass}>{describeBoard(game)}</td>
-                  <td className={`${cellClass} tabular-nums ${game.outcome === "cleared" ? "font-bold" : ""}`}>{describeOutcome(game.outcome, game.durationMs)}</td>
-                  <td className={`${cellClass} text-right tabular-nums`}>{game.mineHits}</td>
-                  <td className={`${cellClass} text-right tabular-nums`}>{game.moves}</td>
-                  <td className={`${cellClass} text-right font-semibold`}>Watch</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* A row is read left to right as: how it went, what it was, what it came to, and what it did to their rating.
+          On a phone the middle two go one under the other */}
+      {history?.games.map((game) => {
+        const verdict = verdictOf(game)
+        return (
+          <button
+            key={game.id}
+            className={`w-full flex items-center gap-3 sm:gap-4 px-4 py-3.5 border-t text-left cursor-pointer ${theme.itemBorder} ${theme.itemHoverBg}`}
+            title="Watch this game back"
+            onClick={() => navigate("history", ownerId, game.id)}
+          >
+            {mark(game, verdict.tone)}
+            <span className="flex-1 min-w-0 sm:flex sm:items-center sm:gap-6">
+              <span className="block sm:flex-1 min-w-0">
+                {/* on a phone the name of the game is never cut short: its label drops under it instead */}
+                <span className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 font-semibold ${theme.textHead}`}>
+                  <span className="sm:truncate">{KINDS[game.kind]} · {describeBoard(game)}</span>
+                  {game.rated && <span className={styles.tag}>Rated</span>}
+                </span>
+                <span className="block text-xs opacity-70 truncate">{when(game)} · {game.moves} {game.moves === 1 ? "move" : "moves"}</span>
+              </span>
+              <span className="block sm:w-60 sm:shrink-0 max-sm:mt-1.5">
+                <span className={`block font-bold truncate ${tones[verdict.tone] || theme.textHead}`}>{verdict.word}</span>
+                <span className="block text-xs opacity-70 tabular-nums truncate">{verdict.detail}</span>
+              </span>
+            </span>
+            <span className="shrink-0 w-14 sm:w-16 text-right">{rating(game)}</span>
+            <ChevronRight className="w-4 h-4 shrink-0 opacity-60" />
+          </button>
+        )
+      })}
 
       {history?.more && (
         <div className={`p-3 border-t ${theme.itemBorder}`}>
@@ -120,10 +146,10 @@ export default function HistoryScreen({ userId, gameId, onOpenAuth }: HistoryScr
   const { session, isPending } = useAccount()
   const ownerId = userId ?? session?.user.id ?? null
 
+  // a game being played back on a small screen takes the page over, as a game being played does
+  const watching = Boolean(session && ownerId) && gameId !== null
   return (
-    <div className={`h-full overflow-y-auto hide-scrollbar ${theme.background}`} style={{ paddingLeft: NAV_SPACE }}>
-      <div className="flex flex-col gap-4 min-h-full py-4 pl-2 pr-4">
-        <h1 className={`text-2xl font-semibold cursor-default ${theme.textHead}`}>Match history</h1>
+    <Page title="Match history" maxWidth={watching ? "max-w-none" : undefined} fill={watching}>
         {isPending ? null : !session || !ownerId ? (
           <div className={`${styles.card} flex flex-col items-start gap-3 p-4 max-w-md cursor-default ${theme.textBody}`}>
             <p>
@@ -138,7 +164,6 @@ export default function HistoryScreen({ userId, gameId, onOpenAuth }: HistoryScr
         ) : (
           <GameList ownerId={ownerId} isOwn={ownerId === session.user.id} />
         )}
-      </div>
-    </div>
+    </Page>
   )
 }

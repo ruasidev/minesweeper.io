@@ -4,12 +4,14 @@ import { useSettings } from "../../context/SettingsContext"
 import { useBoardSounds } from "../../hooks/useBoardSounds"
 import { useChordHint } from "../../hooks/useChordHint"
 import type { OwnBoard } from "../../hooks/useMultiplayer"
+import { boxAround, cellBox } from "../../lib/boardMetrics"
 import { boardFromCells } from "../../lib/multiplayerBoard"
 import { playSound } from "../../lib/sounds"
 import type { Blast } from "../../game/types"
 import { knownMinesAround } from "../../../shared/board"
 import { CELL_FLAGGED, CELL_HIDDEN, CELL_MINE, mineBlastRadius, type BoardSettings } from "../../../shared/protocol"
 import BoardGrid from "../minesweeper/BoardGrid"
+import BoardViewport from "../minesweeper/BoardViewport"
 
 // The board is only redrawn when the board itself changes, not for everything else going on around it
 const Grid = memo(BoardGrid)
@@ -54,18 +56,10 @@ function useBlast(cells: string, cols: number): Blast | null {
 
 // The ring that spreads out from a mine as it goes off, as far as its blast reaches
 export function BlastRing({ blast, radius }: { blast: Blast, radius: number }) {
-  const { settings } = useSettings()
-  const step = settings.cellSize + settings.cellGap
-  const size = (2 * radius + 1) * step
   return (
     <div
       className="absolute z-10 rounded-full pointer-events-none game-motion animate-blastRing"
-      style={{
-        left: blast.col * step + settings.cellSize / 2 - size / 2,
-        top: blast.row * step + settings.cellSize / 2 - size / 2,
-        width: size,
-        height: size,
-      }}
+      style={boxAround(blast.row, blast.col, 2 * radius + 1)}
     />
   )
 }
@@ -83,7 +77,6 @@ function countAt(startsAt: number, now: number): number | null {
 // made on ringed, and the dim lifts on the instant play begins: when a game is a race, that instant has to be
 // unmistakable. Everything is timed to the moment itself, the sounds by the sound hardware's own clock
 function StartCountdown({ startsAt, start }: { startsAt: number, start: { row: number, col: number } }) {
-  const { settings } = useSettings()
   const [count, setCount] = useState(() => countAt(startsAt, Date.now()))
   const markerRef = useRef<HTMLDivElement>(null)
 
@@ -117,15 +110,16 @@ function StartCountdown({ startsAt, start }: { startsAt: number, start: { row: n
   }, [])
 
   if (count === null) return null
-  const step = settings.cellSize + settings.cellGap
   return (
     <div className={`absolute inset-0 z-10 pointer-events-none rounded ${count > 0 ? "bg-black/45" : ""}`}>
       <div
         ref={markerRef}
         className="absolute rounded ring-4 ring-white shadow-[0_0_12px_4px_rgba(0,0,0,0.6)]"
-        style={{ top: start.row * step, left: start.col * step, width: settings.cellSize, height: settings.cellSize }}
+        style={cellBox(start.row, start.col)}
       />
-      <div className="sticky top-1/3 flex justify-center">
+      {/* In the middle of what can be seen of the board, wherever that is on a board too big for its space:
+          it is as wide as that space (100cqw, see .board-viewport) and stays put while the board is panned */}
+      <div className="sticky top-1/3 left-0 w-[min(100%,100cqw)] flex justify-center">
         <span className={`text-7xl font-extrabold [text-shadow:0_2px_12px_rgba(0,0,0,0.9)] ${count > 0 ? "text-white" : "text-green-400"}`}>
           {count > 0 ? count : "Go!"}
         </span>
@@ -188,23 +182,20 @@ export default function PlayableBoard({ settings, ownBoard, startsAt, start, fin
   }, [canPlay, onFlag])
 
   return (
-    <div className="overflow-x-auto hide-scrollbar pb-20">
-      {/* centred while it fits; a board wider than its space starts at the left and scrolls */}
-      <div className={`relative w-max ${centered ? "mx-auto" : ""}`}>
-        <Grid
-          board={board}
-          lastClicked={lastClicked}
-          chordHint={chordHint}
-          blast={blast}
-          resetKey={0}
-          onCellClick={handleClick}
-          onCellRightClick={handleRightClick}
-        />
-        <MineCooldown until={ownBoard.cooldownUntil} />
-        {blast && <BlastRing key={blast.id} blast={blast} radius={mineBlastRadius(settings)} />}
-        {startsAt !== null && <StartCountdown startsAt={startsAt} start={start} />}
-      </div>
-    </div>
+    <BoardViewport rows={settings.rows} cols={settings.cols} centered={centered} className="pb-20">
+      <Grid
+        board={board}
+        lastClicked={lastClicked}
+        chordHint={chordHint}
+        blast={blast}
+        resetKey={0}
+        onCellClick={handleClick}
+        onCellRightClick={handleRightClick}
+      />
+      <MineCooldown until={ownBoard.cooldownUntil} />
+      {blast && <BlastRing key={blast.id} blast={blast} radius={mineBlastRadius(settings)} />}
+      {startsAt !== null && <StartCountdown startsAt={startsAt} start={start} />}
+    </BoardViewport>
   )
 }
 
@@ -223,12 +214,10 @@ export function SpectatedBoard({ settings, board: watched }: { settings: BoardSe
   useReportGameWidth(settings.cols * display.cellSize + (settings.cols - 1) * display.cellGap)
 
   return (
-    <div className="overflow-x-auto hide-scrollbar pb-20">
-      <div className="relative w-max mx-auto pointer-events-none">
-        <Grid board={board} lastClicked={null} chordHint={null} blast={blast} resetKey={0} onCellClick={nothing} onCellRightClick={nothing} />
-        <MineCooldown until={watched.cooldownUntil} />
-        {blast && <BlastRing key={blast.id} blast={blast} radius={mineBlastRadius(settings)} />}
-      </div>
-    </div>
+    <BoardViewport rows={settings.rows} cols={settings.cols} centered readOnly className="pb-20">
+      <Grid board={board} lastClicked={null} chordHint={null} blast={blast} resetKey={0} onCellClick={nothing} onCellRightClick={nothing} />
+      <MineCooldown until={watched.cooldownUntil} />
+      {blast && <BlastRing key={blast.id} blast={blast} radius={mineBlastRadius(settings)} />}
+    </BoardViewport>
   )
 }
