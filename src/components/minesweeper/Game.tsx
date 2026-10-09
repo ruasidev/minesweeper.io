@@ -3,7 +3,6 @@ import { useTheme } from "../../context/ThemeContext"
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 import { useSettings } from "../../context/SettingsContext"
 import { useReportGameWidth } from "../../context/GameWidthContext"
-import { useReportGameResult } from "../../hooks/useReportGameResult"
 import { useBoardSounds } from "../../hooks/useBoardSounds"
 import { playSound } from "../../lib/sounds"
 import GameStatusBar from "./infoDisplay/GameStatusBar"
@@ -23,7 +22,6 @@ export default function Game() {
   const { board, showResult } = useMinesweeperGameContext()
   const { settings } = useSettings()
   const gameStarted = board.status !== "uninitialized"
-  useReportGameResult()
   useBoardSounds(board)
 
   // The game-over screen arriving after a loss has a sound of its own.

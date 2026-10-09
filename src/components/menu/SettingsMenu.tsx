@@ -1,7 +1,7 @@
 import { statusBarItems, statusBarPositions } from "../../game/settings"
 import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
-import { itemColors } from "../../game/themes"
+import { ghostColors } from "../../game/themes"
 import NumberInput from "../app/NumberInput"
 import SidebarSectionHeader from "./SidebarSectionHeader"
 
@@ -10,12 +10,15 @@ export default function SettingsMenu() {
   const { theme } = useTheme()
   const { settings, updateSettings } = useSettings()
 
-  // Same look as the items in the themes menu: what is selected is filled with the theme's highlight
-  const optionClass = (selected: boolean) => `p-2 rounded-md border pressable font-semibold text-sm
-    ${itemColors(theme, selected)}
-    ${theme.itemHoverBorder}
-    ${theme.itemBorder}
-    ${selected ? "" : "opacity-60"}
+  // One of several choices: the chosen one is filled with the theme's highlight, the others are bare
+  const optionClass = (selected: boolean) => `p-2 rounded-md pressable font-semibold text-sm
+    ${ghostColors(theme, selected)}
+    ${selected ? "" : "opacity-70"}
+  `
+  // Something switched on or off by itself. Switched off it keeps a box: with nothing around it, and nothing
+  // beside it that is filled in, it would read as a label rather than something to press
+  const switchClass = (on: boolean) => `p-2 rounded-md border pressable font-semibold text-sm
+    ${on ? `${theme.itemSelected} border-transparent` : `${theme.itemBg} ${theme.itemHoverBg} ${theme.itemBorder} ${theme.textBody} opacity-70`}
   `
 
   return (
@@ -29,7 +32,7 @@ export default function SettingsMenu() {
               <button
                 key={item.id}
                 aria-pressed={shown}
-                className={optionClass(shown)}
+                className={switchClass(shown)}
                 onClick={() => updateSettings({ statusBarItems: { ...settings.statusBarItems, [item.id]: !shown } })}
               >
                 {item.label}
@@ -46,7 +49,7 @@ export default function SettingsMenu() {
             <button
               key={position.id}
               aria-pressed={settings.statusBarPosition === position.id}
-              className={optionClass(settings.statusBarPosition === position.id)}
+              className={`${optionClass(settings.statusBarPosition === position.id)} border border-transparent`}
               onClick={() => updateSettings({ statusBarPosition: position.id })}
             >
               {position.label}
@@ -69,7 +72,7 @@ export default function SettingsMenu() {
         <div className="flex flex-col gap-4">
           <button
             aria-pressed={settings.soundEffects}
-            className={`${optionClass(settings.soundEffects)} w-full`}
+            className={`${switchClass(settings.soundEffects)} w-full`}
             onClick={() => updateSettings({ soundEffects: !settings.soundEffects })}
           >
             Sound effects
@@ -84,7 +87,7 @@ export default function SettingsMenu() {
         <SidebarSectionHeader text="Motion" />
         <button
           aria-pressed={settings.reduceMotion}
-          className={`${optionClass(settings.reduceMotion)} w-full`}
+          className={`${switchClass(settings.reduceMotion)} w-full`}
           onClick={() => updateSettings({ reduceMotion: !settings.reduceMotion })}
         >
           Reduce motion

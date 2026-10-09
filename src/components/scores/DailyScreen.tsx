@@ -121,7 +121,7 @@ export default function DailyScreen({ onOpenAuth }: { onOpenAuth: (mode: AuthMod
                 <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>Today's board: {describe(info.settings)}</h2>
                 <p className="cursor-default">One board a day, the same for everyone, against the clock. You need an account to play it.</p>
                 <div className="flex gap-2">
-                  <button className={styles.button} onClick={() => onOpenAuth("signIn")}>Log in</button>
+                  <button className={styles.ghost} onClick={() => onOpenAuth("signIn")}>Log in</button>
                   <button className={styles.button} onClick={() => onOpenAuth("signUp")}>Sign up</button>
                 </div>
               </section>

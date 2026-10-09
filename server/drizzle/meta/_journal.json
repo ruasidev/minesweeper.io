@@ -43,6 +43,13 @@
       "when": 1791497451023,
       "tag": "0005_progression",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791511069393,
+      "tag": "0006_anticheat",
+      "breakpoints": true
     }
   ]
 }

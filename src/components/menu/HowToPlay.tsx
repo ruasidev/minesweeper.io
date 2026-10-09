@@ -31,6 +31,11 @@ export default function HowToPlay() {
         "If a flag is in the wrong place, chording uncovers a mine.",
         "If the flags don't add up yet, the cells it is waiting on flash.",
       ])}
+      {section("Fair play", [
+        "When you are signed in, the server runs every game: singleplayer, multiplayer and the daily challenge. It holds the mines and times the game, so results can be trusted.",
+        "Each game is recorded move by move. A result that is faster than a person can play is kept off the leaderboards.",
+        "Signed out, singleplayer is played in your browser and nothing is kept.",
+      ])}
       {section("Multiplayer", [
         "Everyone in the room plays the same board, starting from the same opening.",
         "Uncovering a mine doesn't end your game: it goes off, and covers back up what you had uncovered around it.",

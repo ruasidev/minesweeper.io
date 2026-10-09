@@ -48,7 +48,8 @@ export async function openDailyGame(userId: string, now: number): Promise<{ date
   }
 }
 
-export async function saveDailyResult(userId: string, date: string, durationMs: number, mineHits: number) {
-  await db.update(dailyAttempt).set({ durationMs, mineHits })
+// `hiddenReason` is why the result should be kept off the leaderboard (too fast to have been a person), if it should
+export async function saveDailyResult(userId: string, date: string, durationMs: number, mineHits: number, hiddenReason: string | null = null) {
+  await db.update(dailyAttempt).set({ durationMs, mineHits, hidden: hiddenReason !== null, hiddenReason })
     .where(and(eq(dailyAttempt.userId, userId), eq(dailyAttempt.date, date)))
 }

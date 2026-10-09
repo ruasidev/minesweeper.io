@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
+import { navigate } from "../../hooks/useRoute"
 import { getPlayerProfile, type PlayerProfile } from "../../lib/api"
 import { avatarSrc } from "../../lib/avatar"
 import AdminBadge from "../admin/AdminBadge"
@@ -107,6 +108,15 @@ export default function PlayerCard({ playerId, anchor, onClose }: PlayerCardProp
           <Badges badges={profile.badges} />
           {profile.bio && <p className={`text-sm whitespace-pre-wrap break-words ${theme.textBody}`}>{profile.bio}</p>}
           <ProfileStats {...profile} />
+          <button
+            className={`self-start px-3 py-2 rounded-md border pressable font-semibold text-sm ${theme.itemBg} ${theme.itemHoverBg} ${theme.itemHoverBorder} ${theme.itemBorder} ${theme.textBody}`}
+            onClick={() => {
+              navigate("history", playerId)
+              onClose()
+            }}
+          >
+            Match history
+          </button>
         </>
       )}
     </div>,

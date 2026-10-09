@@ -1,7 +1,8 @@
-import { chordCell, createEmptyBoard, flagCell, populateBoard, revealCell, type Board } from "../../../shared/board.js"
+import { randomUUID } from "node:crypto"
+import { chordCell, coverAround, createEmptyBoard, flagCell, populateBoard, revealCell, type Board } from "../../../shared/board.js"
 import {
   CELL_FLAGGED, CELL_HIDDEN, CELL_MINE, MINE_COOLDOWN_MS, SECTION_LEVELS, START_COUNTDOWN_MS, mineBlastRadius,
-  type BoardSettings, type GameSummary, type Player, type PlayerOutcome, type PlayerProgress,
+  type BoardSettings, type GameSummary, type Move, type Player, type PlayerOutcome, type PlayerProgress,
 } from "../../../shared/protocol.js"
 
 // A board is cut into at most this many sections along its longer side for showing progress to other players.
@@ -19,7 +20,14 @@ type PlayerGame = {
   outcome: PlayerOutcome
   // how long they had been playing when they stopped without clearing the board
   stoppedMs: number | null
+  // everything they did, in order: the record of their game
+  moves: Move[]
+  // how many of their moves were thrown away for coming faster than a person can click
+  dropped: number
 }
+
+// a game's record stops growing here: far more moves than any real game has
+const MOVES_KEPT_MAX = 20_000
 
 let nextGameId = 1
 
@@ -27,7 +35,16 @@ let nextGameId = 1
 // players are sent what they have uncovered themselves and nothing else
 export type Game = {
   id: number
+  // a name for the game that stays unique after the server restarts, for the records kept of it
+  key: string
   settings: BoardSettings
+  // Uncovering a mine ends that player's game (singleplayer). Otherwise it goes off and they play on
+  mineEnds: boolean
+  // whether the game counts towards ratings
+  rated: boolean
+  // The fewest clicks the board could be cleared in from the opening (its "3BV"). How fast a player got through
+  // those is how their speed is judged
+  bv: number
   sectionSize: number
   // the cell the opening click was made on
   start: { row: number, col: number }
@@ -63,13 +80,60 @@ type StartOptions = {
   random?: () => number
   // when play begins: after the usual countdown, unless the clock was already started some other time
   startedAt?: number
+  // the cell to open the board on: the player's own first click (singleplayer), rather than one picked at random
+  opening?: { row: number, col: number }
+  mineEnds?: boolean
+  rated?: boolean
 }
 
-export function startGame(settings: BoardSettings, playerIds: string[], now: number, { random = Math.random, startedAt = now + START_COUNTDOWN_MS }: StartOptions = {}): Game {
-  // The first click is made for everyone, on a cell picked at random, and the mines are laid around it
-  // exactly as in singleplayer. So every player starts from the same board with the same patch already open
-  const row = Math.floor(random() * settings.rows)
-  const col = Math.floor(random() * settings.cols)
+// The fewest clicks a board can be cleared in, counting only what is still covered: one for every patch of
+// empty cells not yet opened (a click on any of them opens the whole patch and the numbers around it), and one for
+// every covered number that touches no empty cell at all
+function clicksNeeded(board: Board): number {
+  const { rows, cols, grid } = board
+  const isEmpty = (r: number, c: number) => !grid[r][c].hasMine && grid[r][c].neighborCount === 0
+  const around = (r: number, c: number) => {
+    const out: [number, number][] = []
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const nr = r + dr, nc = c + dc
+      if ((dr || dc) && nr >= 0 && nr < rows && nc >= 0 && nc < cols) out.push([nr, nc])
+    }
+    return out
+  }
+
+  let clicks = 0
+  const seen = new Set<number>()
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const cell = grid[r][c]
+    if (cell.hasMine || cell.revealed) continue
+    if (!isEmpty(r, c)) {
+      if (!around(r, c).some(([nr, nc]) => isEmpty(nr, nc))) clicks++
+      continue
+    }
+    if (seen.has(r * cols + c)) continue
+    // a patch of empty cells nobody has opened yet
+    clicks++
+    const queue: [number, number][] = [[r, c]]
+    seen.add(r * cols + c)
+    while (queue.length) {
+      const [cr, cc] = queue.pop()!
+      for (const [nr, nc] of around(cr, cc)) {
+        if (isEmpty(nr, nc) && !seen.has(nr * cols + nc)) {
+          seen.add(nr * cols + nc)
+          queue.push([nr, nc])
+        }
+      }
+    }
+  }
+  return clicks
+}
+
+export function startGame(settings: BoardSettings, playerIds: string[], now: number, { random = Math.random, startedAt = now + START_COUNTDOWN_MS, opening, mineEnds = false, rated = false }: StartOptions = {}): Game {
+  // The first click is made for everyone, on a cell picked at random (or, in singleplayer, where the player
+  // clicked), and the mines are laid around it exactly as they are in the browser.
+  // So every player starts from the same board with the same patch already open
+  const row = opening?.row ?? Math.floor(random() * settings.rows)
+  const col = opening?.col ?? Math.floor(random() * settings.cols)
   const laid = populateBoard(createEmptyBoard(settings.rows, settings.cols), settings.mines, row, col, { excludeAdj: true, random })
   const opened = revealCell(laid, row, col)
   // on a tiny board that one click can already uncover everything
@@ -78,12 +142,16 @@ export function startGame(settings: BoardSettings, playerIds: string[], now: num
 
   return {
     id: nextGameId++,
+    key: randomUUID(),
     settings,
+    mineEnds,
+    rated,
+    bv: clicksNeeded(opened),
     sectionSize: Math.max(SECTION_SIZE_MIN, Math.ceil(Math.max(settings.rows, settings.cols) / SECTIONS_ALONG_LONG_SIDE)),
     start: { row, col },
     startedAt,
     // boards are never changed in place, so everyone can start from the same one
-    players: new Map(playerIds.map(id => [id, { board: opened, blockedUntil: 0, mineHits: 0, finishedMs, outcome, stoppedMs: null }])),
+    players: new Map(playerIds.map(id => [id, { board: opened, blockedUntil: 0, mineHits: 0, finishedMs, outcome, stoppedMs: null, moves: [], dropped: 0 }])),
     openedAtStart: opened.revealedCount,
     deadline: null,
     over: false,
@@ -160,20 +228,6 @@ function actingPlayer(game: Game, playerId: string, row: number, col: number, no
   return player
 }
 
-// A mine going off: everything uncovered within its blast is covered up again.
-// The mine itself stays uncovered, and flags stay where they are
-function coverAround(board: Board, row: number, col: number, radius: number): Board {
-  let revealedCount = board.revealedCount
-  // boards are never changed in place: only the cells that change are made anew
-  const grid = board.grid.map(cells => cells.map((cell) => {
-    const inBlast = (cell.row - row) ** 2 + (cell.col - col) ** 2 <= radius ** 2
-    if (!inBlast || !cell.revealed || cell.hasMine) return cell
-    revealedCount--
-    return { ...cell, revealed: false }
-  }))
-  return { ...board, grid, revealedCount }
-}
-
 // Uncovers a cell, or chords it if it is already uncovered. Returns whether anything changed
 export function reveal(game: Game, playerId: string, row: number, col: number, now: number): boolean {
   const player = actingPlayer(game, playerId, row, col, now)
@@ -182,7 +236,16 @@ export function reveal(game: Game, playerId: string, row: number, col: number, n
   const before = player.board
   let after = before.grid[row][col].revealed ? chordCell(before, row, col) : revealCell(before, row, col)
   if (after === before) return false
+  remember(game, player, 0, row, col, now)
 
+  if (after.status === "lost" && game.mineEnds) {
+    // singleplayer: that was the game
+    player.board = after
+    player.mineHits++
+    player.outcome = "lost"
+    player.stoppedMs = now - game.startedAt
+    return true
+  }
   if (after.status === "lost") {
     // Uncovering a mine doesn't end the game here: it goes off, and the player sits out for a moment.
     // The mine is the cell they clicked, or one beside it if this was a chord over a misplaced flag
@@ -206,8 +269,39 @@ export function flag(game: Game, playerId: string, row: number, col: number, now
 
   const after = flagCell(player.board, row, col)
   if (after === player.board) return false
+  remember(game, player, 1, row, col, now)
   player.board = after
   return true
+}
+
+// Adds a move to the record of a player's game
+function remember(game: Game, player: PlayerGame, kind: 0 | 1, row: number, col: number, now: number) {
+  if (player.moves.length < MOVES_KEPT_MAX) player.moves.push([Math.max(0, now - game.startedAt), kind, row, col])
+}
+
+// A move of this player's was thrown away for coming too fast: it counts against how their game is judged
+export function noteDropped(game: Game, playerId: string) {
+  const player = game.players.get(playerId)
+  if (player) player.dropped++
+}
+
+// Where every mine is, one character per cell, row after row: "1" a mine, "0" not
+export function layoutOf(game: Game): string {
+  const [anyone] = game.players.values()
+  return anyone.board.grid.map(row => row.map(cell => cell.hasMine ? "1" : "0").join("")).join("")
+}
+
+// Everything worth keeping about one player's game once it is over
+export function recordOf(game: Game, playerId: string, now: number) {
+  const player = game.players.get(playerId)
+  if (!player) return null
+  return {
+    outcome: player.outcome,
+    durationMs: player.finishedMs ?? player.stoppedMs ?? Math.max(0, now - game.startedAt),
+    mineHits: player.mineHits,
+    moves: player.moves,
+    dropped: player.dropped,
+  }
 }
 
 // A player's board as it is sent to them (and to whoever is watching them): one character per cell, row after row
@@ -269,6 +363,7 @@ export function summarize(game: Game, players: Player[], now: number): GameSumma
   return {
     id: game.id,
     settings: game.settings,
+    rated: game.rated,
     players,
     over: game.over,
     timeLeftMs: game.deadline === null || game.over ? null : Math.max(0, game.deadline - now),

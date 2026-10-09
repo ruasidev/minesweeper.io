@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
 import { Search } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
-import { getAdminUsers, type AdminUser } from "../../lib/api"
+import { ghostColors } from "../../game/themes"
+import { navigate } from "../../hooks/useRoute"
+import { getAdminUsers, resetRating, setBanned, type AdminUser } from "../../lib/api"
 import { avatarSrc } from "../../lib/avatar"
 import { isAdminRole } from "../../lib/roles"
 import AdminBadge from "./AdminBadge"
@@ -20,6 +22,8 @@ export default function UsersPanel() {
   const [query, setQuery] = useState("")
   const [result, setResult] = useState<{ users: AdminUser[], total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // bumped to load the list again after something about an account was changed
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(search.trim()), 300)
@@ -32,7 +36,20 @@ export default function UsersPanel() {
       .then(loaded => { if (!cancelled) { setResult(loaded); setError(null) } })
       .catch((e: Error) => { if (!cancelled) setError(e.message) })
     return () => { cancelled = true }
-  }, [query])
+  }, [query, reload])
+
+  // Does something to an account once the admin has said yes to it, then shows the list as it now stands
+  function act(question: string, action: () => Promise<unknown>) {
+    if (!window.confirm(question)) return
+    action().then(() => { setError(null); setReload(n => n + 1) }, (e: Error) => setError(e.message))
+  }
+  function ban(account: AdminUser) {
+    const reason = window.prompt(`Ban ${account.name} (${account.email})? They are signed out everywhere and can't sign back in.\n\nReason (they are shown it):`, "")
+    if (reason === null) return
+    setBanned(account.id, true, reason).then(() => { setError(null); setReload(n => n + 1) }, (e: Error) => setError(e.message))
+  }
+  // bare until the pointer is over them: one box per button, in every row, would be a lot of boxes
+  const actionClass = `px-2 py-1 rounded text-xs font-semibold pressable select-none ${ghostColors(theme)}`
 
   const headClass = `px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
   const cellClass = "px-4 py-2 whitespace-nowrap"
@@ -72,7 +89,10 @@ export default function UsersPanel() {
               <th className={headClass}>Email</th>
               <th className={headClass}>Signs in with</th>
               <th className={`${headClass} text-right`}>Games</th>
+              <th className={`${headClass} text-right`}>Rating</th>
               <th className={headClass}>Joined</th>
+              {/* the buttons stay at the right-hand edge however far the table has to scroll sideways */}
+              <th className={`${headClass} sticky right-0 ${theme.itemBg}`} />
             </tr>
           </thead>
           <tbody>
@@ -88,19 +108,39 @@ export default function UsersPanel() {
                     />
                     <span className="font-semibold">{account.name}</span>
                     {isAdminRole(account.role) && <AdminBadge />}
+                    {account.banned && (
+                      <span className="px-1.5 py-0.5 rounded bg-red-500/15 text-red-500 text-[10px] font-bold uppercase tracking-wide" title={account.banReason ?? undefined}>Banned</span>
+                    )}
                   </div>
                 </td>
                 {/* no username until the account's profile has been opened once */}
                 <td className={cellClass}>{account.username ? `@${account.username}` : "–"}</td>
-                <td className={cellClass}>{account.email}</td>
+                <td className={cellClass}>
+                  {account.email}
+                  {!account.emailVerified && <span className="ml-2 text-xs opacity-60" title="This address hasn't been confirmed">unconfirmed</span>}
+                </td>
                 <td className={cellClass}>{account.signInMethods.map(method => SIGN_IN_LABELS[method] ?? method).join(", ") || "–"}</td>
                 <td className={`${cellClass} text-right tabular-nums`}>{account.gamesPlayed}</td>
+                <td className={`${cellClass} text-right tabular-nums`}>{account.elo ?? "–"}</td>
                 <td className={cellClass}>{new Date(account.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</td>
+                <td className={`${cellClass} sticky right-0 ${theme.menuBg}`}>
+                  <div className="flex justify-end gap-2">
+                    <button className={actionClass} onClick={() => navigate("history", account.id)}>Games</button>
+                    {account.elo !== null && (
+                      <button className={actionClass} onClick={() => act(`Put ${account.name}'s rating back to where everyone starts?`, () => resetRating(account.id))}>
+                        Reset rating
+                      </button>
+                    )}
+                    {account.banned
+                      ? <button className={actionClass} onClick={() => act(`Lift the ban on ${account.name}?`, () => setBanned(account.id, false))}>Unban</button>
+                      : !isAdminRole(account.role) && <button className={`${actionClass} text-red-500`} onClick={() => ban(account)}>Ban</button>}
+                  </div>
+                </td>
               </tr>
             ))}
             {result?.users.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 opacity-70 cursor-default">
+                <td colSpan={8} className="px-4 py-6 opacity-70 cursor-default">
                   {query ? `No accounts match "${query}"` : "No accounts yet"}
                 </td>
               </tr>

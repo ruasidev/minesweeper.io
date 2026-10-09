@@ -19,6 +19,8 @@ export default function ProfileView({ onSignedOut }: { onSignedOut: () => void }
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const photoInput = useRef<HTMLInputElement>(null)
+  // the email with the link to confirm their address: asked for again, and how that went
+  const [confirmEmail, setConfirmEmail] = useState<"idle" | "sending" | "sent" | string>("idle")
 
   useEffect(() => {
     refreshProfile().then(() => setError(null), (e: Error) => setError(e.message))
@@ -59,6 +61,12 @@ export default function ProfileView({ onSignedOut }: { onSignedOut: () => void }
 
   async function saveBio(bio: string) {
     setProfile(await updateBio(bio))
+  }
+
+  async function sendConfirmation() {
+    setConfirmEmail("sending")
+    const { error } = await authClient.sendVerificationEmail({ email: account.email, callbackURL: window.location.origin })
+    setConfirmEmail(error ? error.message || "Couldn't send the email" : "sent")
   }
 
   const buttonClass = `px-3 py-2 rounded-md border pressable font-semibold disabled:opacity-50
@@ -107,6 +115,17 @@ export default function ProfileView({ onSignedOut }: { onSignedOut: () => void }
           <EditableField label="Bio" value={profile.bio} emptyText="Nothing here yet" multiline maxLength={BIO_MAX} onSave={saveBio} />
         )}
         {detail("Email", account.email)}
+        {profile?.email === "unconfirmed" && (
+          <div className={`flex flex-col items-start gap-2 p-3 rounded-md border text-sm cursor-default ${theme.itemBg} ${theme.itemBorder} ${theme.textBody}`}>
+            <p>This address hasn't been confirmed yet. Until it is, your games don't count towards ratings. Check your inbox for the link.</p>
+            {confirmEmail === "sent"
+              ? <span className="font-semibold">Sent. It can take a minute to arrive.</span>
+              : <button className={buttonClass} disabled={confirmEmail === "sending"} onClick={sendConfirmation}>{confirmEmail === "sending" ? "Sending…" : "Send the email again"}</button>}
+            {confirmEmail !== "idle" && confirmEmail !== "sending" && confirmEmail !== "sent" && (
+              <p role="alert" className="text-red-500 font-semibold">{confirmEmail}</p>
+            )}
+          </div>
+        )}
         {profile && detail("Joined", new Date(profile.joinedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }))}
         {error && <p role="alert" className="text-sm text-red-500 font-semibold">{error}</p>}
 

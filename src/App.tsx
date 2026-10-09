@@ -16,6 +16,7 @@ import AdminScreen from "./components/admin/AdminScreen"
 import MultiplayerScreen from "./components/multiplayer/MultiplayerScreen"
 import DailyScreen from "./components/scores/DailyScreen"
 import LeaderboardScreen from "./components/scores/LeaderboardScreen"
+import HistoryScreen from "./components/history/HistoryScreen"
 import NavigationBar from "./components/app/NavigationBar"
 import AccountModal from "./components/account/AccountModal"
 import AccountButtons from "./components/menu/AccountButtons"
@@ -29,7 +30,7 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
 const GAME_MARGIN = 96
 
 function App() {
-  const { route, navigate } = useRoute()
+  const { route, params, navigate } = useRoute()
   // Themes and settings open inside the left pane, in place of the navigation
   const [openPanel, setOpenPanel] = useState<Panel | null>(null)
   const [navWidth, setNavWidth] = useLocalStorage<number>("navWidth", NAV_DEFAULT_WIDTH)
@@ -102,6 +103,7 @@ function App() {
                   : route === "multiplayer" ? <MultiplayerScreen joinRoomId={joinRoomId} onJoinHandled={clearJoinRoom} />
                   : route === "daily" ? <DailyScreen onOpenAuth={openAccount} />
                   : route === "leaderboard" ? <LeaderboardScreen />
+                  : route === "history" ? <HistoryScreen userId={params[0] ?? null} gameId={params[1] ? Number(params[1]) : null} onOpenAuth={openAccount} />
                   : <Game />}
               </ViewTransition>
             </MinesweeperGameProvider>

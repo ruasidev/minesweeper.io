@@ -93,8 +93,9 @@ export default function SignInForm({ mode, onModeChange, onSignedIn, autoFocus, 
     }
     const signedIn = await attempt(() => mode === "signIn"
       ? authClient.signIn.email({ email, password })
-      // The account's name becomes the starting username on the profile
-      : authClient.signUp.email({ name: username, email, password }))
+      // The account's name becomes the starting username on the profile. The link in the email that confirms
+      // their address (once the server sends one) brings them back here
+      : authClient.signUp.email({ name: username, email, password, callbackURL: window.location.origin }))
     if (signedIn) onSignedIn()
   }
 

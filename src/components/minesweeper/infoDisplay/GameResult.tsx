@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Bomb, Eye, Trophy } from "lucide-react"
 import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
 import { useTheme } from "../../../context/ThemeContext"
+import { ghostColors } from "../../../game/themes"
 import BoardMap from "./BoardMap"
 import GameResultItem from "./GameResultItem"
 import PlayAgainButton from "./PlayAgainButton"
@@ -89,8 +90,7 @@ export default function GameResult() {
         <div className="flex flex-wrap justify-center gap-3">
           <PlayAgainButton label={won ? "Play again" : "Try again"} />
           <button
-            className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 border rounded-lg pressable font-semibold
-              ${theme.itemBg} ${theme.itemHoverBg} ${theme.itemHoverBorder} ${theme.itemBorder} ${theme.textBody}`}
+            className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg pressable font-semibold ${ghostColors(theme)}`}
             title="Put this away. Reset, on the status bar, starts the next game"
             onClick={() => setPutAway(true)}
           >

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
-import { ArrowLeft, CalendarDays, CircleHelp, Lock, MessageCircle, Paintbrush, Settings, ShieldCheck, Swords, Trophy, User } from "lucide-react"
+import { ArrowLeft, CalendarDays, CircleHelp, History, Lock, MessageCircle, Paintbrush, Settings, ShieldCheck, Swords, Trophy, User } from "lucide-react"
 import { useAccount } from "../../context/AccountContext"
 import { useConnection } from "../../context/ConnectionContext"
 import { useTheme } from "../../context/ThemeContext"
-import { itemColors } from "../../game/themes"
+import { ghostColors } from "../../game/themes"
 import type { MainNavigationProps, Panel } from "../../game/types"
 import { useOpenRooms } from "../../hooks/useOpenRooms"
 import { avatarSrc } from "../../lib/avatar"
@@ -52,9 +52,8 @@ function NavItem({ icon, label, selected, tag, onClick }: NavItemProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 p-3 rounded-md border font-semibold text-left pressable
-        ${itemColors(theme, !!selected)}
-        ${theme.itemBorder}
+      className={`flex items-center gap-3 p-3 rounded-md font-semibold text-left pressable-soft
+        ${ghostColors(theme, selected)}
       `}
     >
       {icon}
@@ -140,11 +139,14 @@ export default function MainNavigation({
         inert={isPanelOpen}
         className={`absolute inset-0 overflow-y-auto p-3 hide-scrollbar transition-transform duration-300 ease-out ${isPanelOpen ? "-translate-x-full" : ""}`}
       >
-        <div className="flex flex-col gap-3 min-h-full">
+        <div className="flex flex-col gap-2 min-h-full">
           <NavItem icon={<User className="w-5 h-5 shrink-0" />} label="Singleplayer" selected={route === "game"} onClick={() => onNavigate("game")} />
           <NavItem icon={<Swords className="w-5 h-5 shrink-0" />} label="Multiplayer" selected={route === "multiplayer"} onClick={() => onNavigate("multiplayer")} />
           <NavItem icon={<CalendarDays className="w-5 h-5 shrink-0" />} label="Daily challenge" selected={route === "daily"} onClick={() => onNavigate("daily")} />
           <NavItem icon={<Trophy className="w-5 h-5 shrink-0" />} label="Leaderboard" selected={route === "leaderboard"} onClick={() => onNavigate("leaderboard")} />
+          {session && (
+            <NavItem icon={<History className="w-5 h-5 shrink-0" />} label="Match history" selected={route === "history"} onClick={() => onNavigate("history")} />
+          )}
           {isAdmin && (
             <NavItem icon={<ShieldCheck className="w-5 h-5 shrink-0" />} label="Admin" selected={route === "admin"} onClick={() => onNavigate("admin")} />
           )}
@@ -208,7 +210,7 @@ export default function MainNavigation({
           )}
 
           {/* pushed to the bottom of the pane */}
-          <div className="mt-auto flex flex-col gap-3">
+          <div className="mt-auto flex flex-col gap-2">
             <NavItem
               icon={<MessageCircle className="w-5 h-5 shrink-0" />}
               label="Global chat"

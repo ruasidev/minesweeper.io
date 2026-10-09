@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { Pencil } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
+import { ghostColors } from "../../game/themes"
 
 type EditableFieldProps = {
   label: string
@@ -77,7 +78,7 @@ export default function EditableField({ label, value, prefix = "", emptyText = "
           )}
           <div className="flex gap-2">
             <button type="submit" className={buttonClass}>Save</button>
-            <button type="button" className={buttonClass} onClick={() => { setDraft(null); setError(null) }}>Cancel</button>
+            <button type="button" className={`px-3 py-2 rounded-md pressable font-semibold ${ghostColors(theme)}`} onClick={() => { setDraft(null); setError(null) }}>Cancel</button>
             {multiline && maxLength && (
               <span className={`ml-auto self-center text-xs opacity-70 tabular-nums cursor-default ${theme.textBody}`}>{draft.length}/{maxLength}</span>
             )}

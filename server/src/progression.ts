@@ -57,8 +57,9 @@ const ELO_K = 32
 
 // A primitive Elo for games of any number of players: a game counts as a match against each of the others
 // (won, lost, or drawn if both placed the same), and the changes those matches would bring are averaged.
-// `places` gives each player's place in the game, 1 being best. Resolves to how far each player's rating moved
-export async function updateElo(places: Map<string, number>): Promise<Map<string, number>> {
+// `places` gives each player's place in the game, 1 being best. `weight` says how much the match between two of
+// them counts, from 1 (fully) down to 0 (not at all). Resolves to how far each player's rating moved
+export async function updateElo(places: Map<string, number>, weight: (a: string, b: string) => number = () => 1): Promise<Map<string, number>> {
   const changes = new Map<string, number>()
   if (places.size < 2) return changes
   const ids = [...places.keys()]
@@ -74,7 +75,7 @@ export async function updateElo(places: Map<string, number>): Promise<Map<string
       if (other === id || theirs === undefined) continue
       const expected = 1 / (1 + 10 ** ((theirs - mine) / 400))
       const actual = places.get(id)! < places.get(other)! ? 1 : places.get(id)! > places.get(other)! ? 0 : 0.5
-      change += actual - expected
+      change += weight(id, other) * (actual - expected)
     }
     const rounded = Math.round(ELO_K * change / (ids.length - 1))
     changes.set(id, rounded)

@@ -87,8 +87,8 @@ How a game goes (`game.ts`, with the room's side of it in `lobby.ts`):
 
 ### Scores, levels and badges
 
-- **Leaderboards** (`#/leaderboard`) list each player's fastest clear of the classic boards. Multiplayer times are
-  checked, because the server runs those games; singleplayer times are whatever the browser reported.
+- **Leaderboards** (`#/leaderboard`) list each player's fastest clear of the classic boards, in multiplayer and in
+  singleplayer. Only games the server ran itself are counted (see "Fair play" below).
 - **The daily challenge** (`#/daily`, `server/src/multiplayer/daily.ts`) is one board a day, the same for everyone,
   run by the server. The board comes from the date mixed with the server's secret, and a player's clock starts
   the first time they start that day's board.
@@ -96,6 +96,42 @@ How a game goes (`game.ts`, with the room's side of it in `lobby.ts`):
   how hard a board is are in `shared/progression.ts`.
 - **Badges** are listed in `shared/badges.ts` and worked out in `server/src/badges.ts` from what a player has done.
   `EARLY_SUPPORTER_UNTIL` there is the date to move when the game leaves beta.
+
+### Fair play
+
+Nothing a browser says about a game is taken on trust.
+
+- **The server runs every game of a signed-in player**, singleplayer included. The first click of a singleplayer
+  game is sent to the server, which lays the mines around it and keeps them to itself; every click after that is
+  sent too (`soloStart` in `shared/protocol.ts`, handled in `lobby.ts`). The server times the game and saves the
+  result. Signed out, or with the connection down, singleplayer is played in the browser and nothing is kept.
+- **Every game is recorded** in the `game_record` table: the board's layout and each move with its time. A game can
+  be played back from that exactly as it went.
+- **Limits** (`server/src/records.ts`, and `allowMove` in `lobby.ts`): moves beyond 15 a second are thrown away, and
+  a board cleared faster than anyone plays (more than 12 of the clicks it needs per second) is kept off the
+  leaderboards and earns nothing. Such games are listed on the admin screen.
+- **Admins** can take a player's results off a leaderboard (a Remove button on each row, for admins), put them back,
+  reset a rating, and ban an account, from the admin screen.
+- **Ratings** only move in games in public rooms; a private room is unrated. Playing the same opponent again
+  within a day counts for half, then a quarter, then nothing. Once the server can send email (below), only
+  accounts with a confirmed email address are rated.
+
+- **Match history** (`#/history`, and `#/history/<player>` for someone else's): those records as a list, each of
+  which can be played back in the browser (`src/lib/replay.ts` replays the moves with the same rules the server
+  played them by, so it lands on the same board). Any signed-in player can watch anyone's games, except a go at
+  today's daily challenge, which would give the board away.
+
+What this doesn't stop: a program that plays at a human pace, or two people sharing what they see. The aim is that
+cheating shows up and can be undone, not that it is impossible.
+
+### Email
+
+The server sends email through [Resend](https://resend.com) once `RESEND_API_KEY` and `EMAIL_FROM` are set
+(`server/.env` here, the variables on Railway when hosted). `EMAIL_FROM` is the sender, such as
+`Minesweeper World <noreply@wooasi.com>`, and has to be on a domain that has been verified in Resend. With both
+set, an account made with an email and password is sent a link to confirm the address, and unconfirmed accounts
+are left out of ratings. Without them no email is sent and nothing depends on it. When it is switched on, add
+Resend to the services listed in the privacy policy (`public/privacy.html`).
 
 ### Changing the database
 
@@ -193,5 +229,5 @@ Pushing to GitHub is all it takes; nothing is done by hand on Railway.
 
 ### Not done yet
 
-- Email verification and password reset (both need a way to send email).
-- Game results are reported by the browser, so stats can be faked. Anything competitive needs the server to run the game.
+- Password reset (the email plumbing for it is there: see "Email").
+- A matchmaking queue. Until there is one, "rated" means a game in a public room.

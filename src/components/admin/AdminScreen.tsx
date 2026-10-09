@@ -2,6 +2,7 @@ import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { NAV_SPACE } from "../app/MainNavigation"
 import AdminBadge from "./AdminBadge"
+import SuspectGamesPanel from "./SuspectGamesPanel"
 import UsersPanel from "./UsersPanel"
 
 // The admin part of the site. It takes the game's place beside the left pane.
@@ -19,7 +20,10 @@ export default function AdminScreen() {
         </div>
 
         {isPending ? null : isAdmin ? (
-          <UsersPanel />
+          <>
+            <UsersPanel />
+            <SuspectGamesPanel />
+          </>
         ) : (
           <p className={`cursor-default ${theme.textBody}`}>This part of the site is for admin accounts only.</p>
         )}

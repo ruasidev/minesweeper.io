@@ -7,6 +7,8 @@ export const PASSCODE_MAX = 32
 
 // The code a connection is closed with when the same account connects again somewhere else
 export const CLOSE_REPLACED = 4000
+// ...and when the account has been banned
+export const CLOSE_BANNED = 4003
 
 export const CHAT_TEXT_MAX = 300
 // A room remembers this many of its latest chat messages, for showing to players who join later
@@ -61,8 +63,29 @@ export const DEFAULT_BOARD_SETTINGS: BoardSettings = BOARD_PRESETS[1].settings
 export const DAILY_BOARD_SETTINGS: BoardSettings = BOARD_PRESETS[1].settings
 
 // How a player's game has gone: still at it, or how it ended for them.
-// "timedOut" is being stopped with the board uncleared: by the time limit, or by the host ending the game
-export type PlayerOutcome = "playing" | "cleared" | "gaveUp" | "timedOut" | "left"
+// "timedOut" is being stopped with the board uncleared: by the time limit, or by the host ending the game.
+// "lost" is uncovering a mine in a game where that ends it: singleplayer
+export type PlayerOutcome = "playing" | "cleared" | "gaveUp" | "timedOut" | "left" | "lost"
+
+// One thing a player did in a game the server ran: how far into the game (in milliseconds), what it was
+// (0 uncovering or chording a cell, 1 flagging or unflagging one), and the cell. Every game is kept as a list of these
+export type Move = [ms: number, kind: 0 | 1, row: number, col: number]
+
+// A singleplayer game the server is running for a signed-in player. The server holds the mines and times the game,
+// which is what lets the result be trusted
+export type SoloState = {
+  // different for every game
+  id: number
+  settings: BoardSettings
+  // how long the game had been going when this was sent: its clock starts with the first click
+  elapsedMs: number
+  outcome: "playing" | "cleared" | "lost"
+  // how long the game lasted, once it is over
+  endedMs: number | null
+  // Where every mine was, one character per cell, row after row ("1" a mine, "0" not).
+  // Only once the game is over: until then nothing about a covered cell leaves the server
+  mines: string | null
+}
 
 // How far along one player is, as everyone in the room sees it
 export type PlayerProgress = {
@@ -103,6 +126,8 @@ export type GameSummary = {
   // different for every game, so one game can be told from the next
   id: number
   settings: BoardSettings
+  // whether the game counts towards ratings (see README: only some rooms' games do)
+  rated: boolean
   // everyone who started the game, in the order they joined the room, including anyone who has left since
   players: Player[]
   // Nobody is playing any more: everyone has cleared the board, given up, left or been stopped.
@@ -190,7 +215,12 @@ export type ClientMessage =
   | { type: "spectate", playerId: string | null }
   // start today's challenge, or pick it back up; not while in a room
   | { type: "startDaily" }
-  // uncover a cell, or chord it if it is already uncovered: in the room's game, or in the daily challenge
+  // Start a singleplayer game with its first click: the mines are laid around that cell, as they would be in the
+  // browser. Not while in a room. Whatever singleplayer game was going before is given up
+  | { type: "soloStart", settings: BoardSettings, row: number, col: number }
+  // give up the singleplayer game (or put away one that is over)
+  | { type: "soloEnd" }
+  // uncover a cell, or chord it if it is already uncovered: in the room's game, the daily challenge, or singleplayer
   | { type: "reveal", row: number, col: number }
   | { type: "flag", row: number, col: number }
 
@@ -209,6 +239,8 @@ export type ServerMessage =
   | { type: "chat", message: ChatMessage }
   // this player's go at today's challenge; sent when they start it and whenever it changes
   | { type: "daily", daily: DailyState | null }
+  // this player's singleplayer game; sent when it starts, when it ends, and when it is put away
+  | { type: "solo", solo: SoloState | null }
   // this player's own board in the game, and how long they still have to sit out;
   // sent when the game starts and whenever their board changes
   | { type: "board", cells: string, cooldownMs: number }

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { API_URL } from "../lib/authClient"
+import { API_URL, authClient } from "../lib/authClient"
 import {
-  CLOSE_REPLACED,
+  CLOSE_BANNED, CLOSE_REPLACED,
   type BoardSettings, type ChatMessage, type ClientMessage, type DailyState, type RoomDetail, type RoomSummary, type RoomVisibility, type ServerMessage,
+  type SoloState,
 } from "../../shared/protocol"
 
 const SOCKET_URL = `${(API_URL || window.location.origin).replace(/^http/, "ws")}/api/ws`
@@ -47,6 +48,11 @@ export function useMultiplayer(userId: string | null) {
   // this player's go at the daily challenge while they are playing it, and when its clock started (this browser's clock)
   const [daily, setDaily] = useState<DailyState | null>(null)
   const [dailyStartedAt, setDailyStartedAt] = useState<number | null>(null)
+  // this player's singleplayer game, which the server runs for anyone signed in, and when its clock started
+  // (this browser's clock)
+  const [solo, setSolo] = useState<SoloState | null>(null)
+  const [soloStartedAt, setSoloStartedAt] = useState<number | null>(null)
+  const soloIdRef = useRef<number | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
   // bumped to connect afresh after being replaced
   const [connectionAttempt, setConnectionAttempt] = useState(0)
@@ -86,6 +92,14 @@ export function useMultiplayer(userId: string | null) {
           setDaily(state)
           setDailyStartedAt(startedAt => state ? startedAt ?? Date.now() - state.elapsedMs : null)
         }
+        if (message.type === "solo") {
+          const state = message.solo
+          // the clock is worked out once per game, from the first message about it
+          if (state?.id !== soloIdRef.current) setSoloStartedAt(state ? Date.now() - state.elapsedMs : null)
+          soloIdRef.current = state?.id ?? null
+          setSolo(state)
+          if (!state) setBoard(null)
+        }
         if (message.type === "chat") setChat(messages => [...messages, message.message])
         if (message.type === "room") {
           const game = message.room?.game ?? null
@@ -116,8 +130,17 @@ export function useMultiplayer(userId: string | null) {
         gameIdRef.current = null
         setDaily(null)
         setDailyStartedAt(null)
+        setSolo(null)
+        setSoloStartedAt(null)
+        soloIdRef.current = null
         if (event.code === CLOSE_REPLACED) {
           setStatus("replaced")
+          return
+        }
+        // The account has been banned: its sessions are gone on the server, so it is signed out here too.
+        // Signing in again says why
+        if (event.code === CLOSE_BANNED) {
+          authClient.signOut().catch(() => {})
           return
         }
         // dropped (or the server restarted): keep trying, a little slower each time
@@ -144,6 +167,9 @@ export function useMultiplayer(userId: string | null) {
       gameIdRef.current = null
       setDaily(null)
       setDailyStartedAt(null)
+      setSolo(null)
+      setSoloStartedAt(null)
+      soloIdRef.current = null
       setNotice(null)
       setError(null)
     }
@@ -175,12 +201,18 @@ export function useMultiplayer(userId: string | null) {
       send({ type: "spectate", playerId })
     },
     startDaily: () => send({ type: "startDaily" }),
+    // start a singleplayer game with its first click, and give one up (or put away one that is over)
+    soloStart: (settings: BoardSettings, row: number, col: number) => send({ type: "soloStart", settings, row, col }),
+    soloEnd: () => send({ type: "soloEnd" }),
     reveal: (row: number, col: number) => send({ type: "reveal", row, col }),
     flag: (row: number, col: number) => send({ type: "flag", row, col }),
     reconnect: () => setConnectionAttempt(attempt => attempt + 1),
   }), [send])
 
-  return { status, rooms, room, error, notice, board, watching, chat, globalChat, gameStartedAt, gameDeadlineAt, daily, dailyStartedAt, ...actions }
+  return {
+    status, rooms, room, error, notice, board, watching, chat, globalChat, gameStartedAt, gameDeadlineAt, daily, dailyStartedAt, solo, soloStartedAt,
+    ...actions,
+  }
 }
 
 export type Multiplayer = ReturnType<typeof useMultiplayer>

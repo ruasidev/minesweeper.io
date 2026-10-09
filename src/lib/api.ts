@@ -1,6 +1,6 @@
 import { API_URL } from "./authClient"
 import type { BadgeId } from "../../shared/badges"
-import type { BoardSettings, RoomSummary } from "../../shared/protocol"
+import type { BoardSettings, Move, RoomSummary } from "../../shared/protocol"
 
 export type BestTime = {
   rows: number
@@ -24,15 +24,9 @@ export type Profile = {
     wins: number
     bestTimes: BestTime[]
   }
-}
-
-// A singleplayer game that was started, and how it ended: "abandoned" is a game reset part-way through
-export type GameResult = {
-  rows: number
-  cols: number
-  mines: number
-  outcome: "won" | "lost" | "abandoned"
-  durationSeconds: number
+  // Whether their email address is confirmed. "off" while the site sends no email at all, and nothing depends on it.
+  // Until it is confirmed their games don't count towards ratings
+  email: "off" | "confirmed" | "unconfirmed"
 }
 
 // A player's profile as any other player sees it
@@ -63,9 +57,36 @@ export type AdminUser = {
   image: string | null
   role: string | null
   createdAt: string
+  emailVerified: boolean
+  banned: boolean
+  banReason: string | null
+  // null until the account's profile has been opened once
+  elo: number | null
   gamesPlayed: number
   signInMethods: string[]
 }
+
+// A game that was too fast to have been a person playing, as an admin sees it
+export type SuspectGame = {
+  id: number
+  userId: string
+  username: string
+  kind: "singleplayer" | "multiplayer" | "daily"
+  rows: number
+  cols: number
+  mines: number
+  durationMs: number
+  // the fewest clicks the board could be cleared in
+  clicksNeeded: number
+  moves: number
+  reason: string | null
+  at: string
+}
+
+// Whose results, on which board, to take off the leaderboards or put back
+export type ScoreSelection =
+  | { kind: "singleplayer" | "multiplayer", userId: string, rows: number, cols: number, mines: number }
+  | { kind: "daily", userId: string, date: string }
 
 // Calls the API as the signed-in player. Throws an Error carrying the server's message when it refuses.
 // A file is sent as it is, anything else as JSON
@@ -88,10 +109,52 @@ export const updateUsername = (username: string) => request<Profile>("/profile",
 export const updateBio = (bio: string) => request<Profile>("/profile", { method: "PATCH", body: { bio } })
 // resolves to where the new photo can be loaded from
 export const uploadAvatar = (image: Blob) => request<{ image: string }>("/profile/avatar", { method: "PUT", body: image })
-export const recordGame = (result: GameResult) => request<{ ok: true }>("/games", { method: "POST", body: result })
 // Admins only. At most the newest 100 matches come back; `total` is how many there are altogether
 export const getAdminUsers = (search: string) =>
   request<{ users: AdminUser[], total: number }>(`/admin/users?search=${encodeURIComponent(search)}`)
+export const resetRating = (userId: string) =>
+  request<{ ok: true }>(`/admin/users/${encodeURIComponent(userId)}/reset-rating`, { method: "POST", body: {} })
+export const setBanned = (userId: string, banned: boolean, reason?: string) =>
+  request<{ ok: true }>(`/admin/users/${encodeURIComponent(userId)}/ban`, { method: "POST", body: { banned, reason } })
+export const setScoresHidden = (scores: ScoreSelection, hidden: boolean) =>
+  request<{ ok: true }>("/admin/scores/visibility", { method: "POST", body: { ...scores, hidden } })
+export const getSuspectGames = () => request<{ games: SuspectGame[] }>("/admin/suspect-games")
+// One game in someone's match history
+export type HistoryGame = {
+  id: number
+  kind: "singleplayer" | "multiplayer" | "daily"
+  // whether it counted towards ratings
+  rated: boolean
+  rows: number
+  cols: number
+  mines: number
+  // how it ended for the player: a PlayerOutcome, or "abandoned" for a singleplayer game thrown away
+  outcome: string
+  durationMs: number
+  mineHits: number
+  // how many moves they made
+  moves: number
+  at: string
+}
+
+// A recorded game in full, for playing back: the board it was played on and every move
+export type RecordedGame = Omit<HistoryGame, "moves"> & {
+  userId: string
+  username: string
+  image: string | null
+  // where the mines were: one character per cell, row after row, "1" for a mine
+  layout: string
+  // the cell the board was opened on
+  openRow: number
+  openCol: number
+  moves: Move[]
+}
+
+// A page of a player's match history, newest first. `before` is the id of the last game already shown
+export const getHistory = (userId: string, before?: number) =>
+  request<{ player: { id: string, username: string, image: string | null }, games: HistoryGame[], more: boolean }>(
+    `/history/${encodeURIComponent(userId)}${before ? `?before=${before}` : ""}`)
+export const getRecordedGame = (id: number) => request<RecordedGame>(`/replays/${id}`)
 // The rooms that are open right now. Anyone can ask, signed in or not
 export const getOpenRooms = () => request<{ rooms: RoomSummary[] }>("/rooms")
 

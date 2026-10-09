@@ -76,7 +76,7 @@ export default function RoomList({ multiplayer }: { multiplayer: Multiplayer }) 
                 onChange={e => setPasscode(e.target.value)}
               />
               <button type="submit" className={styles.button}>Join</button>
-              <button type="button" className={styles.button} onClick={() => setUnlockingId(null)}>Cancel</button>
+              <button type="button" className={styles.ghost} onClick={() => setUnlockingId(null)}>Cancel</button>
             </form>
           )}
           {error && attemptedId === room.id && <p role="alert" className="text-sm text-red-500 font-semibold">{error}</p>}

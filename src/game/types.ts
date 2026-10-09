@@ -43,7 +43,7 @@ export type BoardGridProps = {
 }
 
 // The pages of the site
-export type Route = "game" | "multiplayer" | "daily" | "leaderboard" | "admin"
+export type Route = "game" | "multiplayer" | "daily" | "leaderboard" | "history" | "admin"
 
 // What the left pane can show in place of the navigation
 export type Panel = "themes" | "settings" | "help" | "chat"

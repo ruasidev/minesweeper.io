@@ -51,8 +51,7 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
   }
 
   // the small buttons the host gets beside each other player
-  const hostButtonClass = `px-2 py-1 rounded border text-xs font-semibold pressable
-    ${theme.itemBg} ${theme.itemHoverBg} ${theme.itemHoverBorder} ${theme.itemBorder} ${theme.textBody}`
+  const hostButtonClass = styles.ghostSmall
 
   // One of the modes to pick from. Only the host can pick; everyone else just sees which one is chosen
   const modeButton = (id: string, label: string, detail: string, onPick: () => void) => (
@@ -77,8 +76,8 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
           {room.visibility}
         </span>
         <div className="ml-auto flex gap-2">
-          {onViewResults && <button className={styles.button} onClick={onViewResults}>{gameOn ? "Results so far" : "Last game's results"}</button>}
-          <button className={styles.button} onClick={multiplayer.leaveRoom}>Leave room</button>
+          {onViewResults && <button className={styles.ghost} onClick={onViewResults}>{gameOn ? "Results so far" : "Last game's results"}</button>}
+          <button className={styles.ghost} onClick={multiplayer.leaveRoom}>Leave room</button>
         </div>
       </section>
 

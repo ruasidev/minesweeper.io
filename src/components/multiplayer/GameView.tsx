@@ -91,15 +91,15 @@ export default function GameView({ room, game, multiplayer }: { room: RoomDetail
             <>
               <span className="font-semibold">Give up?</span>
               <button className={`${styles.button} text-red-500`} onClick={multiplayer.giveUp}>Yes, give up</button>
-              <button className={styles.button} onClick={() => setConfirmingGiveUp(false)}>Keep playing</button>
+              <button className={styles.ghost} onClick={() => setConfirmingGiveUp(false)}>Keep playing</button>
             </>
           ) : (
-            <button className={styles.button} onClick={() => setConfirmingGiveUp(true)}>Give up</button>
+            <button className={styles.ghost} onClick={() => setConfirmingGiveUp(true)}>Give up</button>
           ))}
           {room.hostId === myId && !confirmingGiveUp && (
-            <button className={styles.button} title="Stop the game for everyone" onClick={multiplayer.endGame}>End game</button>
+            <button className={styles.ghost} title="Stop the game for everyone" onClick={multiplayer.endGame}>End game</button>
           )}
-          {!confirmingGiveUp && <button className={styles.button} onClick={multiplayer.leaveRoom}>Leave room</button>}
+          {!confirmingGiveUp && <button className={styles.ghost} onClick={multiplayer.leaveRoom}>Leave room</button>}
         </div>
       </section>
 

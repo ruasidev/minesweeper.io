@@ -1,6 +1,6 @@
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 import { useTheme } from "../../context/ThemeContext"
-import { itemColors } from "../../game/themes"
+import { ghostColors } from "../../game/themes"
 import { MIN_BOARD_SIZE } from "../../game/board"
 import { BOARD_PRESETS } from "../../../shared/protocol"
 import { SlidersHorizontal } from "lucide-react"
@@ -23,9 +23,9 @@ export default function GameControls() {
               key={id}
               aria-pressed={chosen}
               title={`${settings.rows} × ${settings.cols}, ${settings.mines} mines`}
-              className={`px-2 py-1 rounded-md border text-sm font-semibold pressable
-                ${itemColors(theme, chosen)} ${theme.itemHoverBorder} ${theme.itemBorder}
-                ${chosen ? "" : "opacity-60"}
+              className={`px-2 py-1 rounded-md text-sm font-semibold pressable
+                ${ghostColors(theme, chosen)}
+                ${chosen ? "" : "opacity-70"}
               `}
               onClick={() => {
                 setRows(settings.rows)

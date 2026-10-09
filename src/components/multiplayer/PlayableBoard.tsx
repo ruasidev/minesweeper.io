@@ -53,7 +53,7 @@ function useBlast(cells: string, cols: number): Blast | null {
 }
 
 // The ring that spreads out from a mine as it goes off, as far as its blast reaches
-function BlastRing({ blast, radius }: { blast: Blast, radius: number }) {
+export function BlastRing({ blast, radius }: { blast: Blast, radius: number }) {
   const { settings } = useSettings()
   const step = settings.cellSize + settings.cellGap
   const size = (2 * radius + 1) * step

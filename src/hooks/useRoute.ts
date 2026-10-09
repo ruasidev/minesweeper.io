@@ -8,25 +8,34 @@ const HASHES: Record<Route, string> = {
   multiplayer: "#/multiplayer",
   daily: "#/daily",
   leaderboard: "#/leaderboard",
+  history: "#/history",
   admin: "#/admin",
 }
 // in the order they come in the navigation
 export const ROUTES = Object.keys(HASHES) as Route[]
 
-const currentRoute = (): Route => ROUTES.find(route => HASHES[route] === window.location.hash) ?? "game"
+// Where a page's address is followed by more, that is what the page is to show: "#/history/<player>/<game>"
+function current(): { route: Route, params: string[] } {
+  const [page = "", ...rest] = window.location.hash.replace(/^#\/?/, "").split("/")
+  return {
+    route: ROUTES.find(route => HASHES[route] === `#/${page}`) ?? "game",
+    params: rest.filter(Boolean).map(decodeURIComponent),
+  }
+}
 
 export function useRoute() {
-  const [route, setRoute] = useState<Route>(currentRoute)
+  const [{ route, params }, setCurrent] = useState(current)
 
   useEffect(() => {
-    const handleChange = () => setRoute(currentRoute())
+    const handleChange = () => setCurrent(current())
     window.addEventListener("hashchange", handleChange)
     return () => window.removeEventListener("hashchange", handleChange)
   }, [])
 
-  const navigate = (to: Route) => {
-    window.location.hash = HASHES[to]
-  }
+  return { route, params, navigate }
+}
 
-  return { route, navigate }
+// Goes to a page, and to something within it if more is given
+export function navigate(to: Route, ...params: (string | number)[]) {
+  window.location.hash = HASHES[to].replace(/\/$/, "") + (to === "game" && params.length === 0 ? "/" : "") + params.map(param => `/${encodeURIComponent(param)}`).join("")
 }

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { Activity } from "lucide-react"
+import { useAccount } from "../../../context/AccountContext"
 import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
 import { useSettings } from "../../../context/SettingsContext"
 import { useTheme } from "../../../context/ThemeContext"
@@ -32,7 +33,8 @@ const STATES: Record<GameStatus, { word: string, dot: string }> = {
 export default function GameStatusBar() {
   const { theme } = useTheme()
   const { settings } = useSettings()
-  const { rows, cols, mines, board, progress, timeSeconds, timeMinutes } = useMinesweeperGameContext()
+  const { session } = useAccount()
+  const { rows, cols, mines, board, progress, timeSeconds, timeMinutes, saved } = useMinesweeperGameContext()
   const formattedTime = `${timeMinutes.toString().padStart(2, "0")}:${timeSeconds.toString().padStart(2, "0")}`
 
   // Standing beside the board, on either side, the items are stacked instead of laid out in a row
@@ -65,6 +67,15 @@ export default function GameStatusBar() {
           <span className={`text-sm font-bold leading-5 tabular-nums ${theme.textHead}`}>{content[item.id]}</span>
         </BarField>
       ))}
+      {/* Someone signed in expects their games to count. This one won't: the server isn't running it */}
+      {session && !saved && (
+        <span
+          className="px-2 py-1 rounded-md bg-amber-500/15 text-amber-500 text-xs font-semibold"
+          title="The connection to the server is down, so this game is played in your browser alone and isn't kept"
+        >
+          Offline: not saved
+        </span>
+      )}
       {/* The board's settings are hidden during a game, so this is the way back to them */}
       {board.status !== "uninitialized" && <ResetGameButton />}
     </GameBar>

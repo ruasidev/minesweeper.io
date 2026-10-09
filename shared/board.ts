@@ -206,3 +206,36 @@ export function flagCell(board: Board, row: number, col: number): Board {
 function copyGrid(grid: Cell[][]): Cell[][] {
   return grid.map(row => row.map(cell => ({ ...cell })))
 }
+
+// A mine going off in a game where that doesn't end it (multiplayer, the daily challenge): everything uncovered
+// within its blast is covered up again. The mine itself stays uncovered, and flags stay where they are
+export function coverAround(board: Board, row: number, col: number, radius: number): Board {
+  let revealedCount = board.revealedCount
+  // boards are never changed in place: only the cells that change are made anew
+  const grid = board.grid.map(cells => cells.map((cell) => {
+    const inBlast = (cell.row - row) ** 2 + (cell.col - col) ** 2 <= radius ** 2
+    if (!inBlast || !cell.revealed || cell.hasMine) return cell
+    revealedCount--
+    return { ...cell, revealed: false }
+  }))
+  return { ...board, grid, revealedCount }
+}
+
+// A board with its mines where a record of a game says they were: `layout` has one character per cell, row after
+// row, "1" for a mine. Nothing is uncovered yet. It is where playing a recorded game back starts from
+export function boardFromLayout(rows: number, cols: number, layout: string): Board {
+  const board = createEmptyBoard(rows, cols)
+  let mines = 0
+  for (const row of board.grid) {
+    for (const cell of row) {
+      cell.hasMine = layout[cell.row * cols + cell.col] === "1"
+      if (cell.hasMine) mines++
+    }
+  }
+  for (const row of board.grid) {
+    for (const cell of row) {
+      if (!cell.hasMine) cell.neighborCount = countNeighbors(board.grid, cell.row, cell.col)
+    }
+  }
+  return { ...board, mines, status: "playing" }
+}

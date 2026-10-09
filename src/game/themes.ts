@@ -512,3 +512,9 @@ export const themes: ThemeProps[] = [
 // come down to the order they happen to be in the stylesheet
 export const itemColors = (theme: ThemeProps, selected: boolean): string =>
   selected ? theme.itemSelected : `${theme.itemBg} ${theme.itemHoverBg} ${theme.textBody}`
+
+// The same for something drawn without a background of its own: nothing behind it until the pointer is over it,
+// and filled with the theme's highlight when it is the one chosen. For buttons that sit among others in a list,
+// a toolbar or a table, where a box around every one of them is more than is needed to see they are buttons
+export const ghostColors = (theme: ThemeProps, selected = false): string =>
+  selected ? theme.itemSelected : `${theme.itemHoverBg} ${theme.textBody}`

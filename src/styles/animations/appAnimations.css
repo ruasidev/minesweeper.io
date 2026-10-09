@@ -14,6 +14,15 @@
   .pressable:active {
     @apply transition-none cursor-pointer;
   }
+
+  /* The same, toned down: for the big buttons of the left pane, where the full effect is a lot of movement */
+  .pressable-soft {
+    @apply transform transition-transform duration-150 hover:scale-[1.01] active:scale-[0.98] cursor-pointer;
+  }
+
+  .pressable-soft:active {
+    @apply transition-none cursor-pointer;
+  }
 }
 
 @keyframes spin-slow {
@@ -154,7 +163,8 @@
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
 }
-.reduce-motion .pressable {
+.reduce-motion .pressable,
+.reduce-motion .pressable-soft {
   scale: none !important;
 }
 .reduce-motion .scale-hover-105,

@@ -70,8 +70,8 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
   const stillPlaying = rows.filter(row => row.progress.outcome === "playing")
   // the standings are of the players whose game is over; the rest are shown with their boards underneath
   const done = rows.filter(row => row.progress.outcome !== "playing")
-  // ratings only move when there was somebody to be measured against
-  const rated = game.players.length > 1
+  // ratings only move in a game that counts, and when there was somebody to be measured against
+  const rated = game.rated && game.players.length > 1
 
   const headClass = `px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
   const cellClass = "px-4 py-2.5 whitespace-nowrap"
@@ -86,10 +86,10 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {room.hostId === myId && !game.over && (
-            <button className={styles.button} title="Stop the game for everyone still playing" onClick={multiplayer.endGame}>End game</button>
+            <button className={styles.ghost} title="Stop the game for everyone still playing" onClick={multiplayer.endGame}>End game</button>
           )}
           <button className={styles.button} onClick={onBackToRoom}>Back to room</button>
-          <button className={styles.button} onClick={multiplayer.leaveRoom}>Leave room</button>
+          <button className={styles.ghost} onClick={multiplayer.leaveRoom}>Leave room</button>
         </div>
       </section>
 
@@ -135,8 +135,7 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
                   </td>
                   <td className={`${cellClass} text-right`}>
                     <button
-                      className={`px-2 py-1 rounded border text-xs font-semibold pressable
-                        ${theme.itemBg} ${theme.itemHoverBg} ${theme.itemHoverBorder} ${theme.itemBorder} ${theme.textBody}`}
+                      className={styles.ghostSmall}
                       title="Look at the board as they left it"
                       onClick={() => onWatch(player.id)}
                     >
@@ -149,8 +148,12 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
           </table>
         </div>
 
-        {!game.over && rated && (
-          <p className={`px-4 py-3 text-xs opacity-70 border-t ${theme.itemBorder}`}>Ratings move once the game is over.</p>
+        {(!game.over || !game.rated) && game.players.length > 1 && (
+          <p className={`px-4 py-3 text-xs opacity-70 border-t ${theme.itemBorder}`}>
+            {game.rated
+              ? "Ratings move once the game is over. Playing the same opponent again the same day counts for less each time."
+              : "This game is unrated: only games in public rooms count towards ratings."}
+          </p>
         )}
       </section>
 

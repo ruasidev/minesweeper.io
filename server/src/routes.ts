@@ -1,18 +1,18 @@
-import { and, asc, count, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm"
+import { and, asc, count, desc, eq, ilike, isNotNull, lt, or, sql } from "drizzle-orm"
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import { createMiddleware } from "hono/factory"
 import { auth } from "./auth.js"
 import { badgesOf } from "./badges.js"
 import { db } from "./db/index.js"
-import { account, avatar, dailyAttempt, gameResult, multiplayerResult, profile, user } from "./db/schema.js"
+import { account, avatar, dailyAttempt, gameRecord, gameResult, multiplayerResult, profile, user } from "./db/schema.js"
+import { env } from "./env.js"
 import { BIO_MAX, USERNAME_PATTERN } from "../../shared/profile.js"
-import { boardDifficulty } from "../../shared/progression.js"
+import { STARTING_ELO } from "../../shared/progression.js"
 import { BOARD_PRESETS, DAILY_BOARD_SETTINGS } from "../../shared/protocol.js"
 import { dailyDate } from "./multiplayer/daily.js"
-import { openRooms } from "./multiplayer/lobby.js"
+import { dropPlayer, openRooms } from "./multiplayer/lobby.js"
 import { getJoinDate, getOrCreateProfile, getStats, isUsernameTaken } from "./profile.js"
-import { addProgress, singleplayerXp } from "./progression.js"
 
 type SessionUser = typeof auth.$Infer.Session.user
 
@@ -34,9 +34,9 @@ const LEADERBOARD_SIZE = 50
 export const publicRoutes = new Hono()
   .get("/rooms", (c) => c.json({ rooms: openRooms() }))
 
-  // The fastest clears of one of the classic boards: every player's best time, quickest first.
-  // ?mode=multiplayer (the default) counts games the server ran itself. ?mode=singleplayer counts wins as the
-  // player's own browser reported them, which can't be checked: those boards are kept apart for that reason
+  // The fastest clears of one of the classic boards: every player's best time, quickest first, in multiplayer
+  // (the default) or with ?mode=singleplayer. Either way only games the server ran itself are counted, and not
+  // the ones kept off the boards (too fast to have been a person, or removed by an admin)
   .get("/leaderboard/:board", async (c) => {
     const preset = BOARD_PRESETS.find(candidate => candidate.id === c.req.param("board"))
     if (!preset) return c.json({ error: "There's no leaderboard for that board" }, 404)
@@ -49,18 +49,17 @@ export const publicRoutes = new Hono()
         userId: gameResult.userId,
         username,
         image: user.image,
-        durationMs: sql<number>`${gameResult.durationSeconds} * 1000`.mapWith(Number),
+        durationMs: sql<number>`${gameResult.durationMs}`.mapWith(Number),
         mineHits: sql<number>`0`.mapWith(Number),
         at: gameResult.createdAt,
       }).from(gameResult)
         .innerJoin(user, eq(user.id, gameResult.userId))
         .leftJoin(profile, eq(profile.userId, user.id))
-        // a win faster than the board could possibly allow isn't listed
         .where(and(
           eq(gameResult.rows, rows), eq(gameResult.cols, cols), eq(gameResult.mines, mines),
-          eq(gameResult.won, true), sql`${gameResult.durationSeconds} >= ${Math.ceil(boardDifficulty(preset.settings))}`,
+          eq(gameResult.won, true), eq(gameResult.verified, true), eq(gameResult.hidden, false), isNotNull(gameResult.durationMs),
         ))
-        .orderBy(gameResult.userId, asc(gameResult.durationSeconds))
+        .orderBy(gameResult.userId, asc(gameResult.durationMs))
       : await db.selectDistinctOn([multiplayerResult.userId], {
         userId: multiplayerResult.userId,
         username,
@@ -71,7 +70,10 @@ export const publicRoutes = new Hono()
       }).from(multiplayerResult)
         .innerJoin(user, eq(user.id, multiplayerResult.userId))
         .leftJoin(profile, eq(profile.userId, user.id))
-        .where(and(eq(multiplayerResult.rows, rows), eq(multiplayerResult.cols, cols), eq(multiplayerResult.mines, mines)))
+        .where(and(
+          eq(multiplayerResult.rows, rows), eq(multiplayerResult.cols, cols), eq(multiplayerResult.mines, mines),
+          eq(multiplayerResult.hidden, false),
+        ))
         .orderBy(multiplayerResult.userId, asc(multiplayerResult.durationMs))
 
     return c.json({ entries: best.sort((a, b) => a.durationMs - b.durationMs).slice(0, LEADERBOARD_SIZE) })
@@ -90,7 +92,7 @@ export const publicRoutes = new Hono()
     }).from(dailyAttempt)
       .innerJoin(user, eq(user.id, dailyAttempt.userId))
       .leftJoin(profile, eq(profile.userId, user.id))
-      .where(and(eq(dailyAttempt.date, date), isNotNull(dailyAttempt.durationMs)))
+      .where(and(eq(dailyAttempt.date, date), isNotNull(dailyAttempt.durationMs), eq(dailyAttempt.hidden, false)))
       .orderBy(asc(dailyAttempt.durationMs))
       .limit(LEADERBOARD_SIZE)
 
@@ -139,6 +141,9 @@ async function profileResponse(account: SessionUser) {
     badges: await badgesOf({ id: account.id, createdAt: joinedAt, role: account.role }),
     joinedAt: joinedAt.toISOString(),
     stats: await getStats(account.id),
+    // Whether their email address is confirmed: "off" while the site sends no email, so nothing depends on it.
+    // Until it is confirmed their games don't count towards ratings
+    email: !env.emailEnabled ? "off" as const : account.emailVerified ? "confirmed" as const : "unconfirmed" as const,
   }
 }
 
@@ -148,9 +153,6 @@ const ADMIN_USER_LIMIT = 100
 // A role is a comma-separated list, so an account can hold more than one
 const isAdmin = (account: { role?: string | null }) => account.role?.split(",").includes("admin") ?? false
 
-// When each account last reported a singleplayer game, to notice games that claim to overlap. Kept in memory only
-const lastSingleplayerReport = new Map<string, number>()
-
 // Postgres error code for breaking a unique index; drizzle wraps the driver's error in `cause`
 function isUniqueViolation(error: unknown): boolean {
   const code = (e: unknown) => (e as { code?: string } | null)?.code
@@ -159,6 +161,15 @@ function isUniqueViolation(error: unknown): boolean {
 
 const isIntBetween = (value: unknown, low: number, high: number): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= low && value <= high
+
+// How many games a page of someone's match history holds
+const HISTORY_PAGE = 30
+
+// A player sees all of their own games, and an admin all of anyone's
+const seesEverything = (viewer: SessionUser, ownerId: string) => viewer.id === ownerId || isAdmin(viewer)
+
+// Leaves out a go at today's daily challenge (the day being the server's, in UTC)
+const notTodaysChallenge = () => sql`not (${gameRecord.kind} = 'daily' and ${gameRecord.createdAt} >= ${dailyDate(Date.now())}::date)`
 
 export const routes = new Hono<{ Variables: { user: SessionUser } }>()
   .use(requireUser)
@@ -243,40 +254,78 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
     },
   )
 
-  // Record a singleplayer game that was started: won, lost, or abandoned part-way. All of it is whatever the
-  // browser reports. That's fine for personal stats, and it is why singleplayer earns so little experience
-  .post("/games", async (c) => {
-    const account = c.get("user")
-    const body = await c.req.json().catch(() => null)
-    const { rows, cols, mines, outcome, durationSeconds } = body ?? {}
-    const valid =
-      isIntBetween(rows, 4, 99) &&
-      isIntBetween(cols, 4, 99) &&
-      isIntBetween(mines, 1, rows * cols - 9) &&
-      (outcome === "won" || outcome === "lost" || outcome === "abandoned") &&
-      isIntBetween(durationSeconds, 0, 24 * 60 * 60)
-    if (!valid) return c.json({ error: "Invalid game result" }, 400)
+  // A player's match history: the games the server has run for them, newest first, a page at a time. Any signed-in
+  // player may look at anyone's. The one thing kept back is someone else's go at today's daily challenge, whose
+  // replay would show the board to a player who hasn't played it yet
+  .get("/history/:userId", async (c) => {
+    const viewer = c.get("user")
+    const ownerId = c.req.param("userId")
+    const [owner] = await db.select({ id: user.id, username: sql<string>`coalesce(${profile.username}, ${user.name})`, image: user.image })
+      .from(user).leftJoin(profile, eq(profile.userId, user.id)).where(eq(user.id, ownerId))
+    if (!owner) return c.json({ error: "That player doesn't exist" }, 404)
 
-    await getOrCreateProfile(account)
-    // an abandoned game counts as started and as time played, but isn't a result
-    if (outcome !== "abandoned") {
-      await db.insert(gameResult).values({ userId: account.id, rows, cols, mines, won: outcome === "won", durationSeconds })
-    }
+    const before = Number(c.req.query("before"))
+    const games = await db.select({
+      id: gameRecord.id,
+      kind: gameRecord.kind,
+      rated: gameRecord.rated,
+      rows: gameRecord.rows,
+      cols: gameRecord.cols,
+      mines: gameRecord.mines,
+      outcome: gameRecord.outcome,
+      durationMs: gameRecord.durationMs,
+      mineHits: gameRecord.mineHits,
+      moves: sql<number>`jsonb_array_length(${gameRecord.moves})`.mapWith(Number),
+      at: gameRecord.createdAt,
+    }).from(gameRecord)
+      .where(and(
+        eq(gameRecord.userId, ownerId),
+        Number.isInteger(before) && before > 0 ? lt(gameRecord.id, before) : undefined,
+        seesEverything(viewer, ownerId) ? undefined : notTodaysChallenge(),
+      ))
+      .orderBy(desc(gameRecord.id))
+      .limit(HISTORY_PAGE + 1)
 
-    // A win only earns experience if it could have happened: it took at least a little while for a board that
-    // hard, and it didn't start before the previous game reported had ended
-    const now = Date.now()
-    const settings = { rows, cols, mines }
-    const believable = durationSeconds >= boardDifficulty(settings)
-      && now - (lastSingleplayerReport.get(account.id) ?? 0) >= durationSeconds * 1000
-    lastSingleplayerReport.set(account.id, now)
-    await addProgress(account.id, {
-      xp: outcome === "won" && believable ? singleplayerXp(settings) : 0,
-      playSeconds: durationSeconds,
-      gamesStarted: 1,
-    })
-    return c.json({ ok: true }, 201)
+    return c.json({ player: owner, games: games.slice(0, HISTORY_PAGE), more: games.length > HISTORY_PAGE })
   })
+
+  // One recorded game in full: the board it was played on and every move, for playing it back
+  .get("/replays/:id", async (c) => {
+    const viewer = c.get("user")
+    const id = Number(c.req.param("id"))
+    if (!Number.isInteger(id)) return c.json({ error: "That game doesn't exist" }, 404)
+    const [game] = await db.select({
+      id: gameRecord.id,
+      userId: gameRecord.userId,
+      username: sql<string>`coalesce(${profile.username}, ${user.name})`,
+      image: user.image,
+      kind: gameRecord.kind,
+      rated: gameRecord.rated,
+      rows: gameRecord.rows,
+      cols: gameRecord.cols,
+      mines: gameRecord.mines,
+      layout: gameRecord.layout,
+      openRow: gameRecord.openRow,
+      openCol: gameRecord.openCol,
+      outcome: gameRecord.outcome,
+      durationMs: gameRecord.durationMs,
+      mineHits: gameRecord.mineHits,
+      moves: gameRecord.moves,
+      at: gameRecord.createdAt,
+    }).from(gameRecord)
+      .innerJoin(user, eq(user.id, gameRecord.userId))
+      .leftJoin(profile, eq(profile.userId, user.id))
+      .where(eq(gameRecord.id, id))
+    if (!game) return c.json({ error: "That game doesn't exist" }, 404)
+    if (!seesEverything(viewer, game.userId) && game.kind === "daily" && dailyDate(game.at.getTime()) === dailyDate(Date.now())) {
+      return c.json({ error: "Replays of today's challenge can be watched once the day is over" }, 403)
+    }
+    return c.json(game)
+  })
+
+  // Singleplayer results used to be reported here by the browser, which could report anything. The server runs
+  // those games itself now (over the WebSocket, like multiplayer), so this only tells an old copy of the site so
+  .post("/games", (c) => c.json({ error: "This version of the game is out of date. Reload the page." }, 410))
 
   // Admins only from here on
   .use("/admin/*", async (c, next) => {
@@ -301,6 +350,10 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
       image: user.image,
       role: user.role,
       createdAt: user.createdAt,
+      emailVerified: user.emailVerified,
+      banned: sql<boolean>`coalesce(${user.banned}, false)`,
+      banReason: user.banReason,
+      elo: profile.elo,
       gamesPlayed: sql<number>`(select count(*) from ${gameResult} where ${gameResult.userId} = ${user.id})`.mapWith(Number),
       // "credential" is an email and password, anything else names the service signed in with
       signInMethods: sql<string[]>`coalesce((select array_agg(${account.providerId} order by ${account.providerId}) from ${account} where ${account.userId} = ${user.id}), '{}')`,
@@ -315,4 +368,78 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
       .where(matches)
 
     return c.json({ users, total })
+  })
+
+  // Puts an account's rating back to where everyone starts
+  .post("/admin/users/:userId/reset-rating", async (c) => {
+    const changed = await db.update(profile).set({ elo: STARTING_ELO }).where(eq(profile.userId, c.req.param("userId"))).returning({ userId: profile.userId })
+    return changed.length ? c.json({ ok: true }) : c.json({ error: "That account has no profile yet" }, 404)
+  })
+
+  // Bans an account, or lifts the ban. A banned account is signed out everywhere, cut off from any game it is in,
+  // and can't sign back in
+  .post("/admin/users/:userId/ban", async (c) => {
+    const userId = c.req.param("userId")
+    const body = await c.req.json().catch(() => null)
+    if (userId === c.get("user").id) return c.json({ error: "You can't ban yourself" }, 400)
+    try {
+      if (body?.banned === false) {
+        await auth.api.unbanUser({ body: { userId }, headers: c.req.raw.headers })
+      } else {
+        const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 200) : ""
+        await auth.api.banUser({ body: { userId, banReason: reason || "Banned by an admin" }, headers: c.req.raw.headers })
+        dropPlayer(userId)
+      }
+    } catch (error) {
+      return c.json({ error: error instanceof Error ? error.message : "That couldn't be done" }, 400)
+    }
+    return c.json({ ok: true })
+  })
+
+  // Takes one player's results on one board off the leaderboards, or puts them back: every result of theirs on
+  // that board in that kind of game (or, for the daily challenge, their go on that day), since taking away only
+  // their best would just show the next best in its place
+  .post("/admin/scores/visibility", async (c) => {
+    const body = await c.req.json().catch(() => null)
+    const { kind, userId, rows, cols, mines, date } = body ?? {}
+    const hidden = body?.hidden !== false
+    const reason = hidden ? (typeof body?.reason === "string" && body.reason.trim() ? body.reason.trim().slice(0, 200) : "Removed by an admin") : null
+    if (typeof userId !== "string") return c.json({ error: "Whose results?" }, 400)
+
+    if (kind === "daily") {
+      if (typeof date !== "string") return c.json({ error: "Which day?" }, 400)
+      await db.update(dailyAttempt).set({ hidden, hiddenReason: reason }).where(and(eq(dailyAttempt.userId, userId), eq(dailyAttempt.date, date)))
+    } else if (kind === "singleplayer" || kind === "multiplayer") {
+      if (![rows, cols, mines].every(value => isIntBetween(value, 1, 9999))) return c.json({ error: "Which board?" }, 400)
+      const table = kind === "singleplayer" ? gameResult : multiplayerResult
+      await db.update(table).set({ hidden, hiddenReason: reason })
+        .where(and(eq(table.userId, userId), eq(table.rows, rows), eq(table.cols, cols), eq(table.mines, mines)))
+    } else {
+      return c.json({ error: "Which kind of game?" }, 400)
+    }
+    return c.json({ ok: true })
+  })
+
+  // The latest games that were too fast to have been a person playing, for an admin to look into
+  .get("/admin/suspect-games", async (c) => {
+    const games = await db.select({
+      id: gameRecord.id,
+      userId: gameRecord.userId,
+      username: sql<string>`coalesce(${profile.username}, ${user.name})`,
+      kind: gameRecord.kind,
+      rows: gameRecord.rows,
+      cols: gameRecord.cols,
+      mines: gameRecord.mines,
+      durationMs: gameRecord.durationMs,
+      clicksNeeded: gameRecord.bv,
+      moves: sql<number>`jsonb_array_length(${gameRecord.moves})`.mapWith(Number),
+      reason: gameRecord.suspectReason,
+      at: gameRecord.createdAt,
+    }).from(gameRecord)
+      .innerJoin(user, eq(user.id, gameRecord.userId))
+      .leftJoin(profile, eq(profile.userId, user.id))
+      .where(eq(gameRecord.suspect, true))
+      .orderBy(desc(gameRecord.createdAt))
+      .limit(50)
+    return c.json({ games })
   })

@@ -17,4 +17,11 @@ export const env = {
   // Google sign-in is only switched on when both are set
   googleClientId: process.env.GOOGLE_CLIENT_ID || undefined,
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || undefined,
+  // Sending email (through Resend) is only switched on when both are set: an API key, and the address the
+  // emails come from, which has to be on a domain Resend has been shown to be yours
+  resendApiKey: process.env.RESEND_API_KEY || undefined,
+  emailFrom: process.env.EMAIL_FROM || undefined,
+  get emailEnabled(): boolean {
+    return Boolean(this.resendApiKey && this.emailFrom)
+  },
 }

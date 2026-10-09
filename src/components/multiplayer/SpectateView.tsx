@@ -46,7 +46,7 @@ export default function SpectateView({ game, playerId, multiplayer, onBack, onWa
             {progress.mineHits > 0 && ` · ${progress.mineHits} ${progress.mineHits === 1 ? "mine" : "mines"} hit`}
           </span>
         )}
-        <button className={`${styles.button} ml-auto`} onClick={onBack}>Back to results</button>
+        <button className={`${styles.ghost} ml-auto`} onClick={onBack}>Back to results</button>
       </section>
 
       {watched

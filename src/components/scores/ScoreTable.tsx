@@ -1,4 +1,5 @@
 import { useTheme } from "../../context/ThemeContext"
+import { ghostColors } from "../../game/themes"
 import type { ScoreEntry } from "../../lib/api"
 import { avatarSrc } from "../../lib/avatar"
 import { formatScore } from "../../lib/time"
@@ -14,10 +15,12 @@ type ScoreTableProps = {
   showDate?: boolean
   // leave out how many mines were hit (in singleplayer a mine ends the game, so it's always none)
   hideMineHits?: boolean
+  // For admins: takes that player's results off this leaderboard. Each row gets a button for it when this is given
+  onRemove?: (entry: ScoreEntry) => void
 }
 
 // A leaderboard: who cleared a board, quickest first
-export default function ScoreTable({ entries, emptyText, highlightUserId, showDate, hideMineHits }: ScoreTableProps) {
+export default function ScoreTable({ entries, emptyText, highlightUserId, showDate, hideMineHits, onRemove }: ScoreTableProps) {
   const { theme } = useTheme()
   if (entries.length === 0) return <p className={`px-4 pb-4 opacity-70 cursor-default ${theme.textBody}`}>{emptyText}</p>
 
@@ -34,6 +37,7 @@ export default function ScoreTable({ entries, emptyText, highlightUserId, showDa
             <th className={`${headClass} text-right`}>Time</th>
             {!hideMineHits && <th className={`${headClass} text-right`}>Mines hit</th>}
             {showDate && <th className={headClass}>Set on</th>}
+            {onRemove && <th className={headClass} />}
           </tr>
         </thead>
         <tbody>
@@ -54,6 +58,17 @@ export default function ScoreTable({ entries, emptyText, highlightUserId, showDa
               <td className={`${cellClass} text-right font-semibold tabular-nums`}>{formatScore(entry.durationMs)}</td>
               {!hideMineHits && <td className={`${cellClass} text-right tabular-nums`}>{entry.mineHits}</td>}
               {showDate && <td className={cellClass}>{new Date(entry.at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</td>}
+              {onRemove && (
+                <td className={`${cellClass} text-right`}>
+                  <button
+                    className={`px-2 py-1 rounded text-xs font-semibold pressable ${ghostColors(theme)}`}
+                    title="Admins: take this player's results off this leaderboard"
+                    onClick={() => onRemove(entry)}
+                  >
+                    Remove
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
