@@ -3,6 +3,7 @@ import { ArrowLeft, CalendarDays, CircleHelp, Lock, MessageCircle, Paintbrush, S
 import { useAccount } from "../../context/AccountContext"
 import { useConnection } from "../../context/ConnectionContext"
 import { useTheme } from "../../context/ThemeContext"
+import { itemColors } from "../../game/themes"
 import type { MainNavigationProps, Panel } from "../../game/types"
 import { useOpenRooms } from "../../hooks/useOpenRooms"
 import { avatarSrc } from "../../lib/avatar"
@@ -52,11 +53,8 @@ function NavItem({ icon, label, selected, tag, onClick }: NavItemProps) {
     <button
       onClick={onClick}
       className={`flex items-center gap-3 p-3 rounded-md border font-semibold text-left pressable
-        ${theme.itemBg}
+        ${itemColors(theme, !!selected)}
         ${theme.itemBorder}
-        ${theme.itemHoverBg}
-        ${theme.textBody}
-        ${selected ? `ring-2 ${theme.itemSelectedBorder}` : ""}
       `}
     >
       {icon}

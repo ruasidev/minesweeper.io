@@ -12,7 +12,7 @@ export type MultiplayerStatus = "connecting" | "connected" | "replaced"
 
 export type MultiplayerError = { action: ClientMessage["type"], message: string }
 
-// This player's own board in the game being played, as the server last sent it
+// A player's board in the game being played, as the server last sent it: this player's own, or one they are watching
 export type OwnBoard = {
   // one character per cell, row after row (see shared/protocol.ts)
   cells: string
@@ -38,6 +38,12 @@ export function useMultiplayer(userId: string | null) {
   const [globalChat, setGlobalChat] = useState<ChatMessage[]>([])
   // when play begins in the game being played, by this browser's clock: a few seconds ahead while it counts down
   const [gameStartedAt, setGameStartedAt] = useState<number | null>(null)
+  // when the players still going in that game are stopped, by this browser's clock; null until that clock starts
+  const [gameDeadlineAt, setGameDeadlineAt] = useState<number | null>(null)
+  // the board of another player this one is watching, once their own game is over
+  const [watching, setWatching] = useState<{ playerId: string, board: OwnBoard } | null>(null)
+  // which game the times above belong to
+  const gameIdRef = useRef<number | null>(null)
   // this player's go at the daily challenge while they are playing it, and when its clock started (this browser's clock)
   const [daily, setDaily] = useState<DailyState | null>(null)
   const [dailyStartedAt, setDailyStartedAt] = useState<number | null>(null)
@@ -69,6 +75,9 @@ export function useMultiplayer(userId: string | null) {
         if (message.type === "error") setError({ action: message.action, message: message.message })
         if (message.type === "kicked") setNotice(`The host removed you from "${message.roomName}".`)
         if (message.type === "board") setBoard({ cells: message.cells, cooldownUntil: Date.now() + message.cooldownMs })
+        if (message.type === "watching") {
+          setWatching({ playerId: message.playerId, board: { cells: message.cells, cooldownUntil: Date.now() + message.cooldownMs } })
+        }
         if (message.type === "chatHistory") setChat(message.messages)
         if (message.type === "globalChatHistory") setGlobalChat(message.messages)
         if (message.type === "globalChat") setGlobalChat(messages => [...messages, message.message])
@@ -79,10 +88,18 @@ export function useMultiplayer(userId: string | null) {
         }
         if (message.type === "chat") setChat(messages => [...messages, message.message])
         if (message.type === "room") {
-          const game = message.room?.game
+          const game = message.room?.game ?? null
+          // one game can follow straight on from another, so the times kept for it have to be started afresh
+          const newGame = game?.id !== gameIdRef.current
+          gameIdRef.current = game?.id ?? null
+          const now = Date.now()
           setRoom(message.room)
-          setGameStartedAt(startedAt => game ? startedAt ?? Date.now() - game.elapsedMs : null)
+          // each time is worked out once, from the first message that has it, so it doesn't wobble with every message after
+          setGameStartedAt(startedAt => !game ? null : newGame || startedAt === null ? now - game.elapsedMs : startedAt)
+          setGameDeadlineAt(deadlineAt => !game || game.timeLeftMs === null ? null
+            : newGame || deadlineAt === null ? now + game.timeLeftMs : deadlineAt)
           if (!game) setBoard(null)
+          if (!game || newGame) setWatching(null)
           if (!message.room) setChat([])
         }
       }
@@ -94,6 +111,9 @@ export function useMultiplayer(userId: string | null) {
         setBoard(null)
         setChat([])
         setGameStartedAt(null)
+        setGameDeadlineAt(null)
+        setWatching(null)
+        gameIdRef.current = null
         setDaily(null)
         setDailyStartedAt(null)
         if (event.code === CLOSE_REPLACED) {
@@ -119,6 +139,9 @@ export function useMultiplayer(userId: string | null) {
       setChat([])
       setGlobalChat([])
       setGameStartedAt(null)
+      setGameDeadlineAt(null)
+      setWatching(null)
+      gameIdRef.current = null
       setDaily(null)
       setDailyStartedAt(null)
       setNotice(null)
@@ -145,13 +168,19 @@ export function useMultiplayer(userId: string | null) {
     setSettings: (settings: BoardSettings) => send({ type: "setSettings", settings }),
     startGame: () => send({ type: "startGame" }),
     endGame: () => send({ type: "endGame" }),
+    giveUp: () => send({ type: "giveUp" }),
+    // watch a player's board, or stop watching (null)
+    spectate: (playerId: string | null) => {
+      if (playerId === null) setWatching(null)
+      send({ type: "spectate", playerId })
+    },
     startDaily: () => send({ type: "startDaily" }),
     reveal: (row: number, col: number) => send({ type: "reveal", row, col }),
     flag: (row: number, col: number) => send({ type: "flag", row, col }),
     reconnect: () => setConnectionAttempt(attempt => attempt + 1),
   }), [send])
 
-  return { status, rooms, room, error, notice, board, chat, globalChat, gameStartedAt, daily, dailyStartedAt, ...actions }
+  return { status, rooms, room, error, notice, board, watching, chat, globalChat, gameStartedAt, gameDeadlineAt, daily, dailyStartedAt, ...actions }
 }
 
 export type Multiplayer = ReturnType<typeof useMultiplayer>

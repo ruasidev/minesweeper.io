@@ -13,13 +13,26 @@ import SidebarSectionHeader from "../menu/SidebarSectionHeader"
 
 const describe = ({ rows, cols, mines }: BoardSettings) => `${rows} × ${cols} · ${mines} ${mines === 1 ? "mine" : "mines"}`
 
-// The room this player is in, between games: the room itself across the top, then the game being set up
-// (the host's to choose, everyone else's to see) beside the list of who is here
-export default function RoomView({ room, multiplayer }: { room: RoomDetail, multiplayer: Multiplayer }) {
+type RoomViewProps = {
+  room: RoomDetail
+  multiplayer: Multiplayer
+  // back to the results of the room's game, for a player who took part in it
+  onViewResults?: () => void
+}
+
+// The room this player is in: the room itself across the top, then the game being set up (the host's to choose,
+// everyone else's to see) beside the list of who is here. A player whose own game is over can come back here
+// while the others are still playing; nothing can be set up or started until they are done
+export default function RoomView({ room, multiplayer, onViewResults }: RoomViewProps) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { session } = useAccount()
   const isHost = room.hostId === session?.user.id
+  const game = room.game
+  const gameOn = game !== null && !game.over
+  const stillPlaying = game ? Object.values(game.progress).filter(progress => progress.outcome === "playing").length : 0
+  // the host sets up the next game, once the last one is over
+  const canSetUp = isHost && !gameOn
   const { rows, cols, mines } = room.settings
   const maxMines = Math.min(MINES_MAX, getMaxMines(rows, cols))
 
@@ -28,7 +41,7 @@ export default function RoomView({ room, multiplayer }: { room: RoomDetail, mult
   const [customChosen, setCustomChosen] = useState(false)
   const matchingPreset = BOARD_PRESETS.find(preset =>
     preset.settings.rows === rows && preset.settings.cols === cols && preset.settings.mines === mines)
-  const mode = isHost && customChosen ? "custom" : matchingPreset?.id ?? "custom"
+  const mode = canSetUp && customChosen ? "custom" : matchingPreset?.id ?? "custom"
 
   function changeSettings(change: Partial<BoardSettings>) {
     const next = { ...room.settings, ...change }
@@ -46,8 +59,8 @@ export default function RoomView({ room, multiplayer }: { room: RoomDetail, mult
     <button
       key={id}
       aria-pressed={mode === id}
-      disabled={!isHost}
-      className={`${styles.option(mode === id)} flex flex-col items-center gap-0.5 ${isHost ? "" : "pointer-events-none"}`}
+      disabled={!canSetUp}
+      className={`${styles.option(mode === id)} flex flex-col items-center gap-0.5 ${canSetUp ? "" : "pointer-events-none"}`}
       onClick={onPick}
     >
       <span>{label}</span>
@@ -63,7 +76,10 @@ export default function RoomView({ room, multiplayer }: { room: RoomDetail, mult
           {room.visibility === "private" && <Lock className="w-3 h-3" />}
           {room.visibility}
         </span>
-        <button className={`${styles.button} ml-auto`} onClick={multiplayer.leaveRoom}>Leave room</button>
+        <div className="ml-auto flex gap-2">
+          {onViewResults && <button className={styles.button} onClick={onViewResults}>{gameOn ? "Results so far" : "Last game's results"}</button>}
+          <button className={styles.button} onClick={multiplayer.leaveRoom}>Leave room</button>
+        </div>
       </section>
 
       <div className="flex flex-wrap items-start gap-4">
@@ -81,7 +97,7 @@ export default function RoomView({ room, multiplayer }: { room: RoomDetail, mult
             </div>
           </div>
 
-          {isHost && mode === "custom" && (
+          {canSetUp && mode === "custom" && (
             <div className="grid grid-cols-3 gap-4">
               <NumberInput label="rows" value={rows} min={MIN_BOARD_SIZE} max={BOARD_SIZE_MAX} onChange={rows => changeSettings({ rows })} />
               <NumberInput label="cols" value={cols} min={MIN_BOARD_SIZE} max={BOARD_SIZE_MAX} onChange={cols => changeSettings({ cols })} />
@@ -91,26 +107,35 @@ export default function RoomView({ room, multiplayer }: { room: RoomDetail, mult
 
           <div className={`flex items-center gap-4 pt-4 border-t ${theme.menuBorder}`}>
             <span className={`cursor-default ${theme.textBody}`}>
-              {isHost ? "Everyone plays the same board." : "Waiting for the host to start the game."}
+              {gameOn ? `A game is being played: ${stillPlaying} still playing. The next one can start when they are done.`
+                : isHost ? "Everyone plays the same board."
+                : "Waiting for the host to start the game."}
             </span>
-            {isHost && <button className={`${styles.button} ml-auto px-6`} onClick={multiplayer.startGame}>Start game</button>}
+            {isHost && <button className={`${styles.button} ml-auto px-6`} disabled={gameOn} onClick={multiplayer.startGame}>Start game</button>}
           </div>
         </section>
 
-        <section className={`${styles.card} flex flex-col gap-4 p-4 w-full max-w-xs`}>
+        <section className={`${styles.card} flex flex-col gap-4 p-4 w-full max-w-sm`}>
           <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>Players ({room.players.length})</h2>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {room.players.map(player => (
-              <div key={player.id} className={`flex items-center gap-3 ${theme.textBody}`}>
+              // the host's buttons drop onto a line of their own when the name and its labels leave no room for them
+              <div key={player.id} className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 ${theme.textBody}`}>
                 <img
                   src={avatarSrc(player.image)}
                   alt=""
                   referrerPolicy="no-referrer"
                   className={`w-8 h-8 rounded-full object-cover border ${theme.itemBg} ${theme.itemBorder}`}
                 />
-                <PlayerName playerId={player.id} username={player.username} className="min-w-0 truncate" />
+                <PlayerName playerId={player.id} username={player.username} className="min-w-0 max-w-40 truncate" />
                 {player.id === room.hostId && <span className={styles.tag}>Host</span>}
                 {player.id === session?.user.id && <span className={styles.tag}>You</span>}
+                {gameOn && game.progress[player.id]?.outcome === "playing" && (
+                  <span className={`${styles.tag} inline-flex items-center gap-1`} title="Still playing the game">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    Playing
+                  </span>
+                )}
                 {isHost && player.id !== room.hostId && (
                   <div className="ml-auto shrink-0 flex gap-2">
                     <button className={hostButtonClass} onClick={() => multiplayer.makeHost(player.id)}>Make host</button>

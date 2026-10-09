@@ -76,7 +76,7 @@ function DailyGame({ info, onChanged }: { info: DailyInfo, onChanged: () => void
       <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>Today's board: {describe(info.settings)}</h2>
       <p className="cursor-default">
         Everyone gets the same board today. Your clock starts when you press Start and doesn't stop until the board
-        is cleared, even if you leave and come back. Hitting a mine costs you three seconds.
+        is cleared, even if you leave and come back. Hitting a mine covers back up what you had uncovered around it.
       </p>
       {info.mine && <p className="font-semibold cursor-default">Your clock is already running.</p>}
       <button className={`${styles.button} px-6`} disabled={multiplayer.status !== "connected"} onClick={multiplayer.startDaily}>

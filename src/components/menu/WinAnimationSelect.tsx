@@ -15,15 +15,14 @@ export default function WinAnimationSelect() {
                     <button
                         key={anim.id}
                         className={`group border rounded p-2 flex flex-col items-center gap-2 pressable font-semibold
-                            ${ winAnimationId === anim.id ? `ring-2 ${theme.itemSelectedBorder}` : "" }
+                            ${ winAnimationId === anim.id ? theme.itemSelected : `${theme.background} ${theme.textBody}` }
                             ${ theme.itemBorder }
                             ${ theme.itemHoverBorder }
-                            ${ theme.background }
                         `}
                         onClick={() => setWinAnimationId(anim.id)}
                     >
                         <AnimationPreview animation={anim.id} />
-                        <span className={`text-sm ${theme.textBody}`}>{anim.label}</span>
+                        <span className="text-sm">{anim.label}</span>
                     </button>
                 ))}
             </div>

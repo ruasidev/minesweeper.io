@@ -18,8 +18,19 @@ export const MINES_MAX = 99
 // How long players get to look at the board, and where it opens, before a game lets them play
 export const START_COUNTDOWN_MS = 3000
 
-// How long a player sits out after uncovering a mine
-export const MINE_COOLDOWN_MS = 3000
+// A mine going off doesn't end a game the server runs. It covers back up everything the player had uncovered
+// within this many cells of it (a smaller blast on a small board), and they sit out while it plays out
+export const mineBlastRadius = ({ rows, cols }: { rows: number, cols: number }): number =>
+  Math.max(2, Math.min(3, Math.round(Math.min(rows, cols) / 5))) + 0.5
+export const MINE_COOLDOWN_MS = 800
+
+// Once at least half of the players have cleared the board, the rest get this long to finish before they are
+// stopped: a bigger board gives more time. (About 55 seconds for Beginner, 1:45 for Intermediate, 2:55 for Expert.)
+const FINISH_TIME_BASE_MS = 30_000
+const FINISH_TIME_PER_CELL_MS = 300
+const FINISH_TIME_MAX_MS = 10 * 60_000
+export const finishTimeMs = ({ rows, cols }: { rows: number, cols: number }): number =>
+  Math.min(FINISH_TIME_MAX_MS, FINISH_TIME_BASE_MS + rows * cols * FINISH_TIME_PER_CELL_MS)
 
 // How finished one section of a player's board is goes from 0 to this
 export const SECTION_LEVELS = 10
@@ -49,6 +60,10 @@ export const DEFAULT_BOARD_SETTINGS: BoardSettings = BOARD_PRESETS[1].settings
 // the board every day's challenge is played on: Intermediate
 export const DAILY_BOARD_SETTINGS: BoardSettings = BOARD_PRESETS[1].settings
 
+// How a player's game has gone: still at it, or how it ended for them.
+// "timedOut" is being stopped with the board uncleared: by the time limit, or by the host ending the game
+export type PlayerOutcome = "playing" | "cleared" | "gaveUp" | "timedOut" | "left"
+
 // How far along one player is, as everyone in the room sees it
 export type PlayerProgress = {
   // How finished each section of their board is (0 to SECTION_LEVELS), row after row.
@@ -59,6 +74,13 @@ export type PlayerProgress = {
   mineHits: number
   // how long they took, once they have uncovered everything
   finishedMs: number | null
+  outcome: PlayerOutcome
+  // 1 for whoever is doing best; equal results share a place. Settled once a player has cleared the board.
+  // For anyone who hasn't, it can still change until the game is over
+  place: number
+  // How far the game moved their rating, once it is over and that has been worked out.
+  // Null until then, and for a game that didn't count (nobody to be measured against)
+  ratingChange: number | null
 }
 
 // A player's go at today's challenge, while they are playing it
@@ -76,9 +98,19 @@ export type DailyState = {
   finishedMs: number | null
 }
 
-// The game being played in a room, as everyone in the room sees it
+// The game being played in a room, or the last one played there, as everyone in the room sees it
 export type GameSummary = {
+  // different for every game, so one game can be told from the next
+  id: number
   settings: BoardSettings
+  // everyone who started the game, in the order they joined the room, including anyone who has left since
+  players: Player[]
+  // Nobody is playing any more: everyone has cleared the board, given up, left or been stopped.
+  // The game stays with the room, for its results, until the next one starts
+  over: boolean
+  // How long the players still going have left before they are stopped. Null until that clock starts:
+  // when at least half of the players who haven't given up or left have cleared the board
+  timeLeftMs: number | null
   // how many sections the board is divided into each way
   sectionRows: number
   sectionCols: number
@@ -87,7 +119,7 @@ export type GameSummary = {
   // How long the game had been going when this was sent.
   // Negative during the countdown before it starts: play begins when this reaches 0
   elapsedMs: number
-  // by player id
+  // by player id, for everyone in `players`
   progress: Record<string, PlayerProgress>
 }
 
@@ -116,7 +148,7 @@ export type RoomSummary = {
   visibility: RoomVisibility
   hostUsername: string
   playerCount: number
-  // a room can't be joined while it is in the middle of a game
+  // a room can't be joined while a game is being played in it
   inGame: boolean
 }
 
@@ -149,8 +181,13 @@ export type ClientMessage =
   // host only, between games
   | { type: "setSettings", settings: BoardSettings }
   | { type: "startGame" }
-  // host only: stop the game and go back to the room
+  // host only: stop the game for everyone still playing it
   | { type: "endGame" }
+  // stop playing the room's game without clearing the board
+  | { type: "giveUp" }
+  // Watch another player's board in the room's game, or stop watching (null).
+  // Only for someone whose own game is over: everyone plays the same board
+  | { type: "spectate", playerId: string | null }
   // start today's challenge, or pick it back up; not while in a room
   | { type: "startDaily" }
   // uncover a cell, or chord it if it is already uncovered: in the room's game, or in the daily challenge
@@ -175,6 +212,8 @@ export type ServerMessage =
   // this player's own board in the game, and how long they still have to sit out;
   // sent when the game starts and whenever their board changes
   | { type: "board", cells: string, cooldownMs: number }
+  // the board of the player being watched; sent on starting to watch and whenever that board changes
+  | { type: "watching", playerId: string, cells: string, cooldownMs: number }
   // this player was removed from their room by its host
   | { type: "kicked", roomName: string }
   // something this player asked for couldn't be done

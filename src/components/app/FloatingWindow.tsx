@@ -4,7 +4,8 @@ import { useTheme } from "../../context/ThemeContext"
 import ScreenDim from "../minesweeper/infoDisplay/ScreenDim"
 
 type FloatingWindowProps = {
-  title: string
+  // Left out by a window that lays itself out: it gets no title bar and no padding, only the X in its corner
+  title?: string
   // shown beside the title
   badge?: ReactNode
   onClose: () => void
@@ -33,10 +34,25 @@ export default function FloatingWindow({ title, badge, onClose, className, child
     return () => document.removeEventListener("keydown", handleKey)
   }, [onClose])
 
+  const closeButton = (
+    <button
+      onClick={onClose}
+      title="Close"
+      className={`
+        p-2 rounded transition-colors cursor-pointer
+        ${title === undefined ? "absolute top-3 right-3 z-10" : ""}
+        ${theme.textHead} ${theme.itemHoverBg}
+        hover:opacity-80 active:opacity-60
+      `}
+    >
+      <X className="w-5 h-5 pressable" />
+    </button>
+  )
+
   return (
     <ScreenDim visible={visible} onDismiss={onClose} soft>
       <div
-        className={`flex flex-col rounded-xl shadow-2xl border-2 overflow-hidden
+        className={`relative flex flex-col rounded-xl shadow-2xl border-2 overflow-hidden
           transform transition-transform duration-200 ease-out
           ${visible ? "scale-100" : "scale-90"}
           ${className}
@@ -44,24 +60,17 @@ export default function FloatingWindow({ title, badge, onClose, className, child
           ${theme.menuBorder}
         `}
       >
-        <div className="flex justify-between items-center px-8 pt-6">
-          <div className="flex items-center gap-3">
-            <h2 className={`text-2xl font-semibold cursor-default ${theme.textHead}`}>{title}</h2>
-            {badge}
+        {title === undefined ? closeButton : (
+          <div className="flex justify-between items-center px-8 pt-6">
+            <div className="flex items-center gap-3">
+              <h2 className={`text-2xl font-semibold cursor-default ${theme.textHead}`}>{title}</h2>
+              {badge}
+            </div>
+            {closeButton}
           </div>
-          <button
-            onClick={onClose}
-            className={`
-              p-2 rounded transition-colors cursor-pointer
-              ${theme.textHead} ${theme.itemHoverBg}
-              hover:opacity-80 active:opacity-60
-            `}
-          >
-            <X className="w-5 h-5 pressable" />
-          </button>
-        </div>
+        )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-8 py-6">
+        <div className={`flex-1 min-h-0 overflow-y-auto hide-scrollbar ${title === undefined ? "" : "px-8 py-6"}`}>
           {children}
         </div>
       </div>

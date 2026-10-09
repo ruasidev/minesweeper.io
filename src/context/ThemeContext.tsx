@@ -12,7 +12,8 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeId, setThemeId] = useLocalStorage<ThemeChoices>("themeId", "classic");
-  const theme = themes.find((t) => t.id === themeId) ?? themes[0];
+  // a theme that has since been removed may still be the one saved: Classic stands in for it
+  const theme = themes.find((t) => t.id === themeId) ?? themes.find((t) => t.id === "classic")!;
 
   return (
     <ThemeContext.Provider value={{ themeId, theme, setThemeId }}>

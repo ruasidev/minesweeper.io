@@ -1,48 +1,72 @@
 import type { ReactNode } from "react"
+import { Activity } from "lucide-react"
 import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
 import { useSettings } from "../../../context/SettingsContext"
 import { useTheme } from "../../../context/ThemeContext"
 import { statusBarItems, type StatusBarItem } from "../../../game/settings"
+import type { GameStatus } from "../../../game/types"
+import GameBar, { BarField } from "../GameBar"
 import MiniClock from "./MiniClock"
 import ResetGameButton from "./ResetGameButton"
 
+// what each item is captioned with on the bar: shorter than its name in the settings
+const CAPTIONS: Record<StatusBarItem, string> = {
+  mines: "Mines",
+  status: "Status",
+  flags: "Flags left",
+  revealed: "Revealed",
+  progress: "Progress",
+  time: "Time",
+}
+
+// how the state of the game is put, and the colour of the dot beside it
+const STATES: Record<GameStatus, { word: string, dot: string }> = {
+  uninitialized: { word: "Ready", dot: "bg-current opacity-40" },
+  playing: { word: "Playing", dot: "bg-green-500" },
+  won: { word: "Won", dot: "bg-yellow-400" },
+  lost: { word: "Lost", dot: "bg-red-500" },
+}
+
+// How the game stands: figures to read, nothing to set. It is made of the same bar as the board's settings
+// (GameControls), which is the one with things to press
 export default function GameStatusBar() {
   const { theme } = useTheme()
   const { settings } = useSettings()
   const { rows, cols, mines, board, progress, timeSeconds, timeMinutes } = useMinesweeperGameContext()
   const formattedTime = `${timeMinutes.toString().padStart(2, "0")}:${timeSeconds.toString().padStart(2, "0")}`
 
-  // On the left side of the screen the items are stacked instead of laid out in a row
-  const isVertical = settings.statusBarPosition === "left"
+  // Standing beside the board, on either side, the items are stacked instead of laid out in a row
+  const isVertical = settings.statusBarPosition === "left" || settings.statusBarPosition === "right"
+  const state = STATES[board.status]
 
   const content: Record<StatusBarItem, ReactNode> = {
-    mines: <>Mines: {mines}</>,
-    status: <>Status: {board.status}</>,
-    flags: <>Flags Remaining: {mines - board.flaggedCount}</>,
-    revealed: <>Revealed: {board.revealedCount}/{rows * cols - mines}</>,
-    progress: <>Progress: {progress}%</>,
+    mines: mines,
+    status: (
+      <span className="inline-flex items-center gap-1.5">
+        <span className={`w-2 h-2 rounded-full ${state.dot}`} />
+        {state.word}
+      </span>
+    ),
+    flags: mines - board.flaggedCount,
+    revealed: <>{board.revealedCount}/{rows * cols - mines}</>,
+    progress: <>{progress}%</>,
     time: (
-      <div className="flex items-center gap-2">
+      <span className="inline-flex items-center gap-1.5">
         <MiniClock />
-        <span className="tabular-nums w-[3.5rem]">{formattedTime}</span>
-      </div>
+        {formattedTime}
+      </span>
     ),
   }
 
   return (
-    <div
-      className={`border rounded-sm flex px-4 py-2 text-sm
-        shadow-lg shadow-black/40 ring-1 ring-white/10 cursor-default
-        ${isVertical ? "flex-col gap-3 max-w-48" : "gap-8"}
-        ${theme.menuBg}
-        ${theme.textHead}
-      `}
-    >
+    <GameBar icon={<Activity className="w-4 h-4" />} label="Game" vertical={isVertical}>
       {statusBarItems.filter(item => settings.statusBarItems[item.id]).map(item => (
-        <div key={item.id} className="font-semibold">{content[item.id]}</div>
+        <BarField key={item.id} label={CAPTIONS[item.id]} vertical={isVertical}>
+          <span className={`text-sm font-bold leading-5 tabular-nums ${theme.textHead}`}>{content[item.id]}</span>
+        </BarField>
       ))}
-      {/* The board controls are hidden during a game, so this is the way back to them */}
+      {/* The board's settings are hidden during a game, so this is the way back to them */}
       {board.status !== "uninitialized" && <ResetGameButton />}
-    </div>
+    </GameBar>
   )
 }

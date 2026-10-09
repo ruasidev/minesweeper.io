@@ -6,7 +6,10 @@ import { useSettings } from "../../context/SettingsContext"
 
 // Draws a board and reports clicks on its cells. Whose board it is, and what a click does, is up to whoever uses it:
 // singleplayer plays it right here in the browser, multiplayer asks the server
-export default function BoardGrid({ board, lastClicked, chordHint, resetKey, onCellClick, onCellRightClick }: BoardGridProps) {
+// how much later the blast of a mine reaches a cell for every cell it is away
+const BLAST_MS_PER_CELL = 45
+
+export default function BoardGrid({ board, lastClicked, chordHint, blast, resetKey, onCellClick, onCellRightClick }: BoardGridProps) {
   const { settings } = useSettings()
   const { lossAnimation, winAnimation } = useGameAnimations()
 
@@ -69,6 +72,9 @@ export default function BoardGrid({ board, lastClicked, chordHint, resetKey, onC
               animationClass={animationClass}
               animationDelay={animationDelay}
               chordHintKey={isChordHinted ? chordHint.id : undefined}
+              blast={blast?.covered.has(`${r},${c}`)
+                ? { id: blast.id, delayMs: Math.round(Math.hypot(r - blast.row, c - blast.col) * BLAST_MS_PER_CELL) }
+                : undefined}
               resetKey={resetKey}
               onClick={onCellClick}
               onRightClick={onCellRightClick}

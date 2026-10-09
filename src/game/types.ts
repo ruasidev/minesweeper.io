@@ -12,10 +12,22 @@ export type CellProps = {
   animationClass?: string
   animationDelay?: string
   chordHintKey?: number
+  // set on a cell that a mine going off has just covered back up, with how long the blast takes to reach it
+  blast?: { id: number, delayMs: number }
   // changes when a new game starts
   resetKey: number
   onClick: (row: number, col: number) => void
   onRightClick: (row: number, col: number) => void
+}
+
+// A mine going off in a game where that doesn't end it: where the mine is, and the cells its blast covered back up
+export type Blast = {
+  // different for every blast, so one going off right where the last did still plays
+  id: number
+  row: number
+  col: number
+  // "row,col" of each cell covered back up
+  covered: Set<string>
 }
 
 export type BoardGridProps = {
@@ -23,6 +35,7 @@ export type BoardGridProps = {
   // where the win and loss animations spread out from
   lastClicked: { row: number, col: number } | null
   chordHint: ChordHint | null
+  blast?: Blast | null
   // changes when a new game starts
   resetKey: number
   onCellClick: (row: number, col: number) => void
@@ -65,6 +78,8 @@ export type NumberInputProps = {
     min?: number
     max?: number
     unit?: string
+    // for a bar: a small caption with the figure beside it, over a short slider
+    compact?: boolean
     onChange: (n: number) => void
 }
 

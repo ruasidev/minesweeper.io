@@ -15,6 +15,9 @@ import { NAV_SPACE } from "../app/MainNavigation"
 // Empty space kept to the right of the board, so its end is obvious when scrolled all the way over
 const RIGHT_SPACE = "3rem"
 
+// The room a status bar standing beside the board takes up: the bar itself (12rem) and the gaps either side of it
+const SIDE_BAR_SPACE = "13rem"
+
 export default function Game() {
   const { theme } = useTheme()
   const { board, showResult } = useMinesweeperGameContext()
@@ -37,9 +40,10 @@ export default function Game() {
   const statusBarPosition = showStatusBar ? settings.statusBarPosition : null
 
   // While a game is being played the app is told how wide it is, so the left pane can make way in a narrow window.
-  // A vertical status bar beside the board (at most 13rem with its gap) counts towards that
+  // A status bar standing beside the board, on either side, counts towards that
+  const barBeside = statusBarPosition === "left" || statusBarPosition === "right"
   const boardWidth = board.cols * settings.cellSize + (board.cols - 1) * settings.cellGap
-  useReportGameWidth(board.status === "playing" ? boardWidth + (statusBarPosition === "left" ? 13 * 16 : 0) : null)
+  useReportGameWidth(board.status === "playing" ? boardWidth + (barBeside ? 13 * 16 : 0) : null)
 
   return (
     // At the bottom the status bar itself is the space below the board, so less padding is needed there
@@ -61,6 +65,15 @@ export default function Game() {
           </div>
         )}
 
+        {statusBarPosition === "right" && (
+          // the same again, hung off the right-hand edge of the screen
+          <div className="sticky top-1/2 z-10 h-0 -mb-6 self-end">
+            <div className="absolute right-2 -translate-y-1/2 w-max">
+              <GameStatusBar />
+            </div>
+          </div>
+        )}
+
         {/* CONTROLS */}
         {/* Hidden once the game starts. They keep their space so the board doesn't jump under the cursor on the first click */}
         <div className={`w-full transition-opacity duration-300 ${gameStarted ? "opacity-0" : ""}`} inert={gameStarted} style={{ paddingLeft: NAV_SPACE, paddingRight: RIGHT_SPACE }}>
@@ -74,9 +87,10 @@ export default function Game() {
           className="relative z-0 w-full min-w-0 overflow-x-auto hide-scrollbar px-3 -mx-1"
           style={{
             // The board starts beside the navigation and slides underneath it when scrolled sideways.
-            // On the left the vertical status bar (at most 12rem wide) needs room beside the navigation too
-            paddingLeft: statusBarPosition === "left" ? `calc(${NAV_SPACE} + 13rem)` : NAV_SPACE,
-            paddingRight: RIGHT_SPACE,
+            // A status bar standing on the left needs room beside the navigation too, and one on the right
+            // takes the place of the empty space there
+            paddingLeft: statusBarPosition === "left" ? `calc(${NAV_SPACE} + ${SIDE_BAR_SPACE})` : NAV_SPACE,
+            paddingRight: statusBarPosition === "right" ? `calc(${SIDE_BAR_SPACE} + 0.5rem)` : RIGHT_SPACE,
           }}
         >
           <div className="w-max mx-auto">

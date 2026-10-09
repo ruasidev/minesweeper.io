@@ -57,9 +57,10 @@ const ELO_K = 32
 
 // A primitive Elo for games of any number of players: a game counts as a match against each of the others
 // (won, lost, or drawn if both placed the same), and the changes those matches would bring are averaged.
-// `places` gives each player's place in the game, 1 being best
-export async function updateElo(places: Map<string, number>) {
-  if (places.size < 2) return
+// `places` gives each player's place in the game, 1 being best. Resolves to how far each player's rating moved
+export async function updateElo(places: Map<string, number>): Promise<Map<string, number>> {
+  const changes = new Map<string, number>()
+  if (places.size < 2) return changes
   const ids = [...places.keys()]
   const ratings = new Map((await db.select({ userId: profile.userId, elo: profile.elo }).from(profile).where(inArray(profile.userId, ids)))
     .map(row => [row.userId, row.elo]))
@@ -76,6 +77,8 @@ export async function updateElo(places: Map<string, number>) {
       change += actual - expected
     }
     const rounded = Math.round(ELO_K * change / (ids.length - 1))
+    changes.set(id, rounded)
     if (rounded !== 0) await db.update(profile).set({ elo: sql`${profile.elo} + ${rounded}` }).where(eq(profile.userId, id))
   }
+  return changes
 }

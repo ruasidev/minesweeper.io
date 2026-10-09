@@ -1,4 +1,5 @@
 import { useTheme } from "../context/ThemeContext"
+import { itemColors } from "../game/themes"
 
 // The themed look of the pieces forms and panels are made of
 export function useFormStyles() {
@@ -9,10 +10,10 @@ export function useFormStyles() {
       ${theme.itemBg} ${theme.itemBorder} ${theme.textBody} ${theme.itemSelectedBorder}`,
     button: `px-3 py-2 rounded-md border pressable font-semibold disabled:opacity-50
       ${theme.itemBg} ${theme.itemHoverBg} ${theme.itemHoverBorder} ${theme.itemBorder} ${theme.textBody}`,
-    // one of a set of choices: a ring marks the chosen one
+    // one of a set of choices: the chosen one is filled with the theme's highlight, the others stand back a little
     option: (selected: boolean) => `p-2 rounded-md border pressable font-semibold text-sm
-      ${theme.itemBg} ${theme.itemHoverBg} ${theme.itemHoverBorder} ${theme.itemBorder} ${theme.textBody}
-      ${selected ? `ring-2 ${theme.itemSelectedBorder}` : "opacity-60"}`,
+      ${itemColors(theme, selected)} ${theme.itemHoverBorder} ${theme.itemBorder}
+      ${selected ? "" : "opacity-60"}`,
     // a small label attached to something, like "Host"
     tag: `px-1.5 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wide leading-none cursor-default
       ${theme.itemBg} ${theme.itemBorder} ${theme.textBody}`,

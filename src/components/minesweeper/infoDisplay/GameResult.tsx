@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react"
+import { Bomb, Eye, Trophy } from "lucide-react"
 import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
 import { useTheme } from "../../../context/ThemeContext"
-import PlayAgainButton from "./PlayAgainButton"
+import BoardMap from "./BoardMap"
 import GameResultItem from "./GameResultItem"
+import PlayAgainButton from "./PlayAgainButton"
 import ScreenDim from "./ScreenDim"
 
+// What comes up over the board when a singleplayer game ends. A win says how long it took. A loss says how far the
+// player had got and shows the whole board in miniature: where the mines were, the one that ended it, and which
+// flags were right. Either can be put away to look at the board itself
 export default function GameResult() {
   const [visible, setVisible] = useState(false)
+  // put away to look at the board; the status bar's Reset starts the next game from there
+  const [putAway, setPutAway] = useState(false)
   const { theme } = useTheme()
   const { rows, cols, mines, board, timeMinutes, timeSeconds } = useMinesweeperGameContext()
 
@@ -19,40 +26,78 @@ export default function GameResult() {
     }
   }, [board.status])
 
-  if (board.status !== "won" && board.status !== "lost") return null
+  if ((board.status !== "won" && board.status !== "lost") || putAway) return null
 
-  const header = board.status === "won" ? "Board Cleared!" : "Game Over"
-  const message = board.status === "won" ? "Well done :)" : "Maybe next time..."
+  const won = board.status === "won"
   const formattedTime = `${timeMinutes.toString().padStart(2, "0")}:${timeSeconds.toString().padStart(2, "0")}`
+  const safeCells = rows * cols - mines
+  const safeLeft = safeCells - board.revealedCount
+  // worked out here from the board as it ended, whatever the game's own running figure says once it has stopped
+  const progress = Math.floor(100 * board.revealedCount / safeCells)
+  const flags = board.grid.flat().filter(cell => cell.flagged)
+  const rightFlags = flags.filter(cell => cell.hasMine).length
+
+  const detail = won ? `Cleared in ${formattedTime}.`
+    // a near miss deserves saying so
+    : safeLeft <= Math.max(3, safeCells * 0.05) ? `So close: only ${safeLeft} safe ${safeLeft === 1 ? "cell was" : "cells were"} left.`
+    : `You hit a mine with ${progress}% of the board cleared.`
 
   return (
     <ScreenDim visible={visible}>
       <div
-        className={`p-10 rounded-xl text-center space-y-8 shadow-2xl border-2 max-w-lg w-full mx-4
+        className={`flex flex-col items-center gap-6 p-8 rounded-2xl text-center shadow-2xl border-2 max-w-lg w-full mx-4 max-h-[92vh] overflow-y-auto hide-scrollbar
           transform transition-transform duration-500 ease-out
           ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}
           ${theme.menuBg}
           ${theme.menuBorder}
         `}
       >
-        {/* Title */}
-        <h2 className={`text-4xl font-extrabold ${theme.textHead}`}>{header}</h2>
-        <p className={`${theme.textBody} text-lg`}>{message}</p>
-
-        {/* Stats */}
-        <div className={`grid grid-cols-2 gap-4 text-base ${theme.textBody}`}>
-          <GameResultItem value={`Board: ${rows} × ${cols}`}/>
-          <GameResultItem value={`Mines: ${mines}`}/>
-          <GameResultItem value={`Revealed: ${board.revealedCount}`}/>
-          <GameResultItem value={`Flags: ${board.flaggedCount}`}/>
-
-          <div className={`col-span-2 p-3 ${theme.itemBg} rounded ${theme.itemBorder} border font-extrabold cursor-default scale-hover-108`}>
-            Time: {formattedTime}
-          </div>
+        <div className="flex flex-col items-center gap-3 cursor-default">
+          <span className={`flex items-center justify-center w-16 h-16 rounded-full text-white ring-8 ${won ? "bg-green-500 ring-green-500/20" : "bg-red-500 ring-red-500/20"}`}>
+            {won ? <Trophy className="w-8 h-8" /> : <Bomb className="w-8 h-8" />}
+          </span>
+          <h2 className={`text-4xl font-extrabold ${won ? "text-green-500" : "text-red-500"}`}>{won ? "Board cleared!" : "Game over"}</h2>
+          <p className={`text-lg ${theme.textBody}`}>{detail}</p>
         </div>
 
-        {/* CTA */}
-        <PlayAgainButton />
+        {!won && (
+          <>
+            {/* how far they got */}
+            <div className="w-full flex flex-col gap-1.5 cursor-default">
+              <div className={`h-2.5 rounded-full overflow-hidden ${theme.itemBg}`}>
+                <div className="h-full rounded-full bg-green-500" style={{ width: `${progress}%` }} />
+              </div>
+              <div className={`flex justify-between text-xs font-semibold tabular-nums ${theme.textBody}`}>
+                <span>{board.revealedCount} of {safeCells} safe cells uncovered</span>
+                <span>{progress}%</span>
+              </div>
+            </div>
+
+            <BoardMap board={board} />
+          </>
+        )}
+
+        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+          <GameResultItem label="Time">{formattedTime}</GameResultItem>
+          <GameResultItem label="Board">{rows} × {cols}</GameResultItem>
+          <GameResultItem label="Mines">{mines}</GameResultItem>
+          {won
+            ? <GameResultItem label="Flags placed">{flags.length}</GameResultItem>
+            : <GameResultItem label="Flags right">{rightFlags} of {flags.length}</GameResultItem>}
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-3">
+          <PlayAgainButton label={won ? "Play again" : "Try again"} />
+          <button
+            className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 border rounded-lg pressable font-semibold
+              ${theme.itemBg} ${theme.itemHoverBg} ${theme.itemHoverBorder} ${theme.itemBorder} ${theme.textBody}`}
+            title="Put this away. Reset, on the status bar, starts the next game"
+            onClick={() => setPutAway(true)}
+          >
+            <Eye className="w-4 h-4" />
+            Look at the board
+          </button>
+        </div>
       </div>
     </ScreenDim>
   )

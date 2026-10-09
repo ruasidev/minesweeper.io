@@ -52,12 +52,14 @@ export default function SignedOutMultiplayer() {
         )}
       </div>
 
-      <section className={`${styles.card} flex flex-col gap-4 p-4 w-full max-w-sm`}>
-        <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>
-          {authMode === "signUp" ? "Create an account to play" : "Log in to play"}
-        </h2>
+      <section className={`${styles.card} p-6 w-full max-w-sm`}>
         {/* signing in changes who is signed in, which swaps this whole page for the rooms */}
-        <SignInForm mode={authMode} onModeChange={setAuthMode} onSignedIn={() => {}} />
+        <SignInForm
+          mode={authMode}
+          onModeChange={setAuthMode}
+          onSignedIn={() => {}}
+          titles={{ signUp: "Create an account to play", signIn: "Log in to play" }}
+        />
       </section>
     </div>
   )

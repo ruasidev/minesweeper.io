@@ -1,6 +1,7 @@
 import { statusBarItems, statusBarPositions } from "../../game/settings"
 import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
+import { itemColors } from "../../game/themes"
 import NumberInput from "../app/NumberInput"
 import SidebarSectionHeader from "./SidebarSectionHeader"
 
@@ -9,14 +10,12 @@ export default function SettingsMenu() {
   const { theme } = useTheme()
   const { settings, updateSettings } = useSettings()
 
-  // Same look as the items in the themes menu: a ring marks what is selected
+  // Same look as the items in the themes menu: what is selected is filled with the theme's highlight
   const optionClass = (selected: boolean) => `p-2 rounded-md border pressable font-semibold text-sm
-    ${theme.itemBg}
-    ${theme.itemHoverBg}
+    ${itemColors(theme, selected)}
     ${theme.itemHoverBorder}
     ${theme.itemBorder}
-    ${theme.textBody}
-    ${selected ? `ring-2 ${theme.itemSelectedBorder}` : "opacity-60"}
+    ${selected ? "" : "opacity-60"}
   `
 
   return (
@@ -42,7 +41,7 @@ export default function SettingsMenu() {
 
       <div>
         <SidebarSectionHeader text="Status Bar Position" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {statusBarPositions.map(position => (
             <button
               key={position.id}

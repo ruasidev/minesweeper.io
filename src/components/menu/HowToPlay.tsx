@@ -33,8 +33,10 @@ export default function HowToPlay() {
       ])}
       {section("Multiplayer", [
         "Everyone in the room plays the same board, starting from the same opening.",
-        "Uncovering a mine doesn't end your game: you sit out for three seconds.",
+        "Uncovering a mine doesn't end your game: it goes off, and covers back up what you had uncovered around it.",
         "The boxes above your board show how far the other players have got.",
+        "Once half the players have cleared the board, the rest have a limited time to finish. A bigger board gives more.",
+        "You can give up. Once your own game is over you can watch the others play.",
       ])}
       {section("Daily challenge", [
         "One board a day, the same for everyone.",

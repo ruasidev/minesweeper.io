@@ -1,21 +1,20 @@
 import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
 import { useTheme } from "../../context/ThemeContext"
+import { itemColors } from "../../game/themes"
 import { MIN_BOARD_SIZE } from "../../game/board"
 import { BOARD_PRESETS } from "../../../shared/protocol"
+import { SlidersHorizontal } from "lucide-react"
 import NumberInput from "../app/NumberInput"
+import GameBar, { BarField } from "./GameBar"
 
-// Holds the classic boards to pick from, and the sliders for making the board any other size
+// The board's settings: the classic boards to pick from, and the sliders for making the board any other size.
+// It is made of the same bar as the status bar (GameStatusBar), which is the one with only figures to read
 export default function GameControls() {
   const { theme } = useTheme()
   const { rows, cols, mines, maxMines, setRows, setCols, setMines } = useMinesweeperGameContext()
   return (
-    <div
-      className={`border rounded-md flex flex-wrap items-center gap-4 p-2
-        shadow-lg shadow-black/40 ring-1 ring-white/10 cursor-default
-        ${theme.menuBg}
-        ${theme.menuBorder}
-      `}
-    >
+    <GameBar icon={<SlidersHorizontal className="w-4 h-4" />} label="Board">
+      <BarField label="Preset">
       <div className="flex gap-2">
         {BOARD_PRESETS.map(({ id, label, settings }) => {
           const chosen = settings.rows === rows && settings.cols === cols && settings.mines === mines
@@ -25,8 +24,8 @@ export default function GameControls() {
               aria-pressed={chosen}
               title={`${settings.rows} × ${settings.cols}, ${settings.mines} mines`}
               className={`px-2 py-1 rounded-md border text-sm font-semibold pressable
-                ${theme.itemBg} ${theme.itemHoverBg} ${theme.itemHoverBorder} ${theme.itemBorder} ${theme.textBody}
-                ${chosen ? `ring-2 ${theme.itemSelectedBorder}` : "opacity-60"}
+                ${itemColors(theme, chosen)} ${theme.itemHoverBorder} ${theme.itemBorder}
+                ${chosen ? "" : "opacity-60"}
               `}
               onClick={() => {
                 setRows(settings.rows)
@@ -39,9 +38,10 @@ export default function GameControls() {
           )
         })}
       </div>
-      <NumberInput label="rows" value={rows} min={MIN_BOARD_SIZE} onChange={setRows} />
-      <NumberInput label="cols" value={cols} min={MIN_BOARD_SIZE} onChange={setCols} />
-      <NumberInput label="mines" value={mines} max={Math.min(99, maxMines)} onChange={setMines} />
-    </div>
+      </BarField>
+      <NumberInput compact label="Rows" value={rows} min={MIN_BOARD_SIZE} onChange={setRows} />
+      <NumberInput compact label="Cols" value={cols} min={MIN_BOARD_SIZE} onChange={setCols} />
+      <NumberInput compact label="Mines" value={mines} max={Math.min(99, maxMines)} onChange={setMines} />
+    </GameBar>
   )
 }

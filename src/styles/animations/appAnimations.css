@@ -63,6 +63,38 @@
   animation: chordHint 450ms ease-out forwards;
 }
 
+/* A mine going off in a game where that doesn't end it (multiplayer, the daily challenge).
+   Each cell it covers back up keeps the look of an uncovered cell until the blast reaches it, flashes,
+   and that look shrinks away; a ring spreads out from the mine over the lot */
+@keyframes blastCover {
+  0%   { opacity: 1; transform: scale(1); }
+  40%  { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(0.35); }
+}
+.animate-blastCover {
+  animation: blastCover 380ms ease-in both;
+}
+@keyframes blastFlash {
+  0%   { opacity: 0; }
+  40%  { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+.animate-blastFlash {
+  background: radial-gradient(circle, #fff7d6 0%, #fbbf24 35%, #f97316 70%, #dc2626 100%);
+  animation: blastFlash 380ms ease-out both;
+}
+@keyframes blastRing {
+  0%   { transform: scale(0.08); opacity: 1; }
+  70%  { opacity: 0.6; }
+  100% { transform: scale(1); opacity: 0; }
+}
+.animate-blastRing {
+  border: 3px solid #fb923c;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, rgba(249, 115, 22, 0.12) 55%, transparent 72%);
+  box-shadow: 0 0 26px 6px rgba(251, 146, 60, 0.55), inset 0 0 26px 6px rgba(251, 191, 36, 0.35);
+  animation: blastRing 540ms ease-out both;
+}
+
 /* The left pane's width. Registered as a length so a change to it can be animated, which moves
    everything laid out from it (the pane, the board beside it, the bars over the board) together */
 @property --nav-w {

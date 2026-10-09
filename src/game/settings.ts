@@ -9,6 +9,7 @@ export type StatusBarItem =
 export type StatusBarPosition =
     | "top"
     | "left"
+    | "right"
     | "bottom"
 
 export type Settings = {
@@ -36,6 +37,7 @@ export const statusBarItems: { id: StatusBarItem, label: string }[] = [
 export const statusBarPositions: { id: StatusBarPosition, label: string }[] = [
     { id: "top", label: "Top" },
     { id: "left", label: "Left" },
+    { id: "right", label: "Right" },
     { id: "bottom", label: "Bottom" },
 ]
 

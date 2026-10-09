@@ -6,14 +6,15 @@ import { useChordHint } from "../../hooks/useChordHint"
 import type { OwnBoard } from "../../hooks/useMultiplayer"
 import { boardFromCells } from "../../lib/multiplayerBoard"
 import { playSound } from "../../lib/sounds"
+import type { Blast } from "../../game/types"
 import { knownMinesAround } from "../../../shared/board"
-import type { BoardSettings } from "../../../shared/protocol"
+import { CELL_FLAGGED, CELL_HIDDEN, CELL_MINE, mineBlastRadius, type BoardSettings } from "../../../shared/protocol"
 import BoardGrid from "../minesweeper/BoardGrid"
 
 // The board is only redrawn when the board itself changes, not for everything else going on around it
 const Grid = memo(BoardGrid)
 
-// Covers the board while this player sits out after uncovering a mine
+// Lies over the board for the moment a player sits out after a mine goes off: a faint red, and nothing can be clicked
 function MineCooldown({ until }: { until: number }) {
   const [left, setLeft] = useState(() => until - Date.now())
   useEffect(() => {
@@ -24,10 +25,48 @@ function MineCooldown({ until }: { until: number }) {
   }, [until])
 
   if (left <= 0) return null
+  return <div className="absolute inset-0 z-10 rounded bg-red-500/10 cursor-not-allowed" />
+}
+
+let nextBlastId = 1
+
+// What a mine going off has just done to a board, worked out from how the board the server sent differs from the
+// one before it: a mine uncovered that wasn't, and the cells around it that are covered again. Null when the
+// latest change wasn't a mine going off
+function useBlast(cells: string, cols: number): Blast | null {
+  const [seen, setSeen] = useState<{ cells: string, blast: Blast | null }>({ cells, blast: null })
+  // worked out while drawing, not after, so the blast is on screen in the same frame as the board it happened to
+  if (cells !== seen.cells) {
+    const before = seen.cells
+    let blast: Blast | null = null
+    const mineAt = before.length === cells.length ? [...cells].findIndex((char, at) => char === CELL_MINE && before[at] !== CELL_MINE) : -1
+    if (mineAt >= 0) {
+      const covered = new Set<string>()
+      for (let at = 0; at < cells.length; at++) {
+        if (cells[at] === CELL_HIDDEN && before[at] !== CELL_HIDDEN && before[at] !== CELL_FLAGGED) covered.add(`${Math.floor(at / cols)},${at % cols}`)
+      }
+      blast = { id: nextBlastId++, row: Math.floor(mineAt / cols), col: mineAt % cols, covered }
+    }
+    setSeen({ cells, blast })
+  }
+  return seen.blast
+}
+
+// The ring that spreads out from a mine as it goes off, as far as its blast reaches
+function BlastRing({ blast, radius }: { blast: Blast, radius: number }) {
+  const { settings } = useSettings()
+  const step = settings.cellSize + settings.cellGap
+  const size = (2 * radius + 1) * step
   return (
-    <div className="absolute inset-0 z-10 grid place-items-center rounded bg-black/60 text-white text-2xl font-bold cursor-not-allowed">
-      Mine! Back in {Math.ceil(left / 1000)}
-    </div>
+    <div
+      className="absolute z-10 rounded-full pointer-events-none game-motion animate-blastRing"
+      style={{
+        left: blast.col * step + settings.cellSize / 2 - size / 2,
+        top: blast.row * step + settings.cellSize / 2 - size / 2,
+        width: size,
+        height: size,
+      }}
+    />
   )
 }
 
@@ -104,17 +143,20 @@ type PlayableBoardProps = {
   // the cell the opening click was made on
   start: { row: number, col: number }
   finished: boolean
+  // in the middle of the space it has, as the singleplayer board is, rather than against its left-hand edge
+  centered?: boolean
   onReveal: (row: number, col: number) => void
   onFlag: (row: number, col: number) => void
 }
 
 // A board in a game the server is running: a multiplayer game, or the daily challenge.
 // The server decides what a click does, because it is the only one that knows where the mines are
-export default function PlayableBoard({ settings, ownBoard, startsAt, start, finished, onReveal, onFlag }: PlayableBoardProps) {
+export default function PlayableBoard({ settings, ownBoard, startsAt, start, finished, centered, onReveal, onFlag }: PlayableBoardProps) {
   const { settings: display } = useSettings()
   const [chordHint, flashChordHint] = useChordHint()
   // where the win animation spreads out from
   const [lastClicked, setLastClicked] = useState<{ row: number, col: number } | null>(null)
+  const blast = useBlast(ownBoard.cells, settings.cols)
 
   const board = useMemo(
     () => boardFromCells(settings, ownBoard.cells, finished),
@@ -147,17 +189,45 @@ export default function PlayableBoard({ settings, ownBoard, startsAt, start, fin
 
   return (
     <div className="overflow-x-auto hide-scrollbar pb-20">
-      <div className="relative w-max">
+      {/* centred while it fits; a board wider than its space starts at the left and scrolls */}
+      <div className={`relative w-max ${centered ? "mx-auto" : ""}`}>
         <Grid
           board={board}
           lastClicked={lastClicked}
           chordHint={chordHint}
+          blast={blast}
           resetKey={0}
           onCellClick={handleClick}
           onCellRightClick={handleRightClick}
         />
         <MineCooldown until={ownBoard.cooldownUntil} />
+        {blast && <BlastRing key={blast.id} blast={blast} radius={mineBlastRadius(settings)} />}
         {startsAt !== null && <StartCountdown startsAt={startsAt} start={start} />}
+      </div>
+    </div>
+  )
+}
+
+const nothing = () => {}
+
+// Another player's board, watched by someone whose own game is over: the same board, but only to look at
+export function SpectatedBoard({ settings, board: watched }: { settings: BoardSettings, board: OwnBoard }) {
+  const { settings: display } = useSettings()
+  const blast = useBlast(watched.cells, settings.cols)
+  const board = useMemo(
+    // never drawn as won: a board that is already finished shouldn't play its win all over again for whoever looks in
+    () => boardFromCells(settings, watched.cells, false),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [watched, settings.rows, settings.cols, settings.mines],
+  )
+  useReportGameWidth(settings.cols * display.cellSize + (settings.cols - 1) * display.cellGap)
+
+  return (
+    <div className="overflow-x-auto hide-scrollbar pb-20">
+      <div className="relative w-max mx-auto pointer-events-none">
+        <Grid board={board} lastClicked={null} chordHint={null} blast={blast} resetKey={0} onCellClick={nothing} onCellRightClick={nothing} />
+        <MineCooldown until={watched.cooldownUntil} />
+        {blast && <BlastRing key={blast.id} blast={blast} radius={mineBlastRadius(settings)} />}
       </div>
     </div>
   )

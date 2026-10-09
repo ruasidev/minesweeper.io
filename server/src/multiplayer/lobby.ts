@@ -2,13 +2,17 @@ import { randomBytes, timingSafeEqual } from "node:crypto"
 import { getMaxMines, MIN_BOARD_SIZE } from "../../../shared/board.js"
 import {
   BOARD_SIZE_MAX, CHAT_HISTORY_MAX, CHAT_TEXT_MAX, CLOSE_REPLACED, DEFAULT_BOARD_SETTINGS, MINES_MAX, PASSCODE_MAX, PASSCODE_MIN, ROOM_NAME_MAX,
+  finishTimeMs,
   type BoardSettings, type ChatMessage, type ClientMessage, type DailyState, type Player, type RoomDetail, type RoomSummary, type RoomVisibility, type ServerMessage,
 } from "../../../shared/protocol.js"
 import { db } from "../db/index.js"
 import { multiplayerResult } from "../db/schema.js"
 import { openDailyGame, saveDailyResult } from "./daily.js"
 import { addProgress, DAILY_XP, multiplayerXp, updateElo } from "../progression.js"
-import { boardView, flag, leaveGame, progressFor, reveal, standings, startGame, summarize, type Game } from "./game.js"
+import {
+  boardView, flag, giveUp, isPlaying, leaveGame, progressFor, reveal, standings, startGame, stillPlaying, stopEveryone, summarize, timeLimitDue,
+  type Game,
+} from "./game.js"
 
 // One player's live connection
 export type Connection = {
@@ -18,6 +22,8 @@ export type Connection = {
   room: Room | null
   // their go at the daily challenge, while they are playing it (never at the same time as being in a room)
   daily: { date: string, game: Game, firstStart: boolean } | null
+  // the player whose board they are watching in their room's game, if they are watching one
+  watching: string | null
   // when they last said something in chat
   lastChatAt: number
 }
@@ -33,8 +39,12 @@ type Room = {
   members: Connection[]
   // the board the next game will be played on
   settings: BoardSettings
-  // the game being played, if one is
+  // the game being played, or the last one played, kept for its results until the next one starts
   game: Game | null
+  // everyone who started that game, in the order they joined the room
+  roster: Player[]
+  // stops whoever is still playing when their time runs out
+  deadlineTimer: ReturnType<typeof setTimeout> | null
   // the latest messages, oldest first
   chat: ChatMessage[]
   // the accounts the host has removed, which can't join again
@@ -56,7 +66,7 @@ const summary = (room: Room): RoomSummary => ({
   visibility: room.visibility,
   hostUsername: room.host.player.username,
   playerCount: room.members.length,
-  inGame: room.game !== null,
+  inGame: room.game !== null && !room.game.over,
 })
 
 const detail = (room: Room): RoomDetail => ({
@@ -66,7 +76,7 @@ const detail = (room: Room): RoomDetail => ({
   hostId: room.host.player.id,
   players: room.members.map(member => member.player),
   settings: room.settings,
-  game: room.game && summarize(room.game, Date.now()),
+  game: room.game && summarize(room.game, room.roster, Date.now()),
 })
 
 // Every room there is, as the list of rooms shows them
@@ -112,9 +122,27 @@ function sendDaily(connection: Connection) {
 // Saving a result must never get in the way of the game it came from
 const inBackground = (saving: Promise<unknown>) => { saving.catch(error => console.error("Could not save a result:", error)) }
 
-// A multiplayer game is over (its host ended it, or everyone left): everyone who took part gets their
+// The board of the player someone is watching
+function sendWatched(connection: Connection) {
+  const game = connection.room?.game
+  const view = game && connection.watching !== null && boardView(game, connection.watching, Date.now())
+  if (view) connection.send({ type: "watching", playerId: connection.watching!, ...view })
+}
+
+// A player's board has changed: whoever is watching it sees that too
+function sendToWatchers(room: Room, playerId: string) {
+  for (const member of room.members) {
+    if (member.watching === playerId) sendWatched(member)
+  }
+}
+
+// A multiplayer game is over, because nobody is playing it any more: everyone who took part gets their
 // experience and their time played, and ratings move if there was anyone to be measured against
-function settleGame(game: Game) {
+function finishGame(room: Room, game: Game) {
+  game.over = true
+  if (room.deadlineTimer) clearTimeout(room.deadlineTimer)
+  room.deadlineTimer = null
+
   const results = standings(game, Date.now())
   inBackground((async () => {
     for (const result of results) {
@@ -123,8 +151,35 @@ function settleGame(game: Game) {
         playSeconds: result.elapsedMs / 1000,
       })
     }
-    await updateElo(new Map(results.map(result => [result.playerId, result.place])))
+    game.ratingChanges = await updateElo(new Map(results.map(result => [result.playerId, result.place])))
+    // the results everyone is looking at can now say how far each rating moved
+    if (rooms.get(room.id) === room && room.game === game) sendRoomToMembers(room)
   })())
+}
+
+// Moves a room's game along after anything that changes who is still playing it: starts the clock on the players
+// still going once enough of the others have finished, and ends the game once nobody is playing.
+// Returns whether the game ended just now. Telling the room is left to whoever called
+function advanceGame(room: Room): boolean {
+  const game = room.game
+  if (!game || game.over) return false
+  if (stillPlaying(game) === 0) {
+    finishGame(room, game)
+    return true
+  }
+  if (timeLimitDue(game)) {
+    const allowed = finishTimeMs(game.settings)
+    game.deadline = Date.now() + allowed
+    room.deadlineTimer = setTimeout(() => {
+      // the room, or this game in it, may be gone by now
+      if (rooms.get(room.id) !== room || room.game !== game || game.over) return
+      stopEveryone(game, Date.now())
+      finishGame(room, game)
+      sendRoomToMembers(room)
+      broadcastRooms()
+    }, allowed)
+  }
+  return false
 }
 
 // What has been said lately in the chat everyone shares, oldest first
@@ -156,7 +211,7 @@ export function connect(player: Player, transport: Pick<Connection, "send" | "cl
     previous.close(CLOSE_REPLACED, "Opened somewhere else")
   }
 
-  const connection: Connection = { player, ...transport, room: null, daily: null, lastChatAt: 0 }
+  const connection: Connection = { player, ...transport, room: null, daily: null, watching: null, lastChatAt: 0 }
   connections.set(player.id, connection)
   connection.send(roomList())
   connection.send({ type: "globalChatHistory", messages: globalChat })
@@ -188,17 +243,21 @@ function leaveRoom(connection: Connection) {
   const room = connection.room
   if (!room) return
   connection.room = null
+  connection.watching = null
   room.members = room.members.filter(member => member !== connection)
-  if (room.game) leaveGame(room.game, connection.player.id, Date.now())
+  // walking out of a game that is still being played is one way of not finishing it
+  if (room.game && !room.game.over) leaveGame(room.game, connection.player.id, Date.now())
   connection.send({ type: "room", room: null })
 
   if (room.members.length === 0) {
     // a game nobody is left in is over
-    if (room.game) settleGame(room.game)
+    if (room.game && !room.game.over) finishGame(room, room.game)
     rooms.delete(room.id)
   } else {
     // the longest-standing member takes over a room its host has left
     if (room.host === connection) room.host = room.members[0]
+    // they may have been the last one still playing, or the one the others were waiting for
+    advanceGame(room)
     sendRoomToMembers(room)
   }
   broadcastRooms()
@@ -240,6 +299,8 @@ export function handleMessage(connection: Connection, raw: string) {
         members: [],
         settings: DEFAULT_BOARD_SETTINGS,
         game: null,
+        roster: [],
+        deadlineTimer: null,
         chat: [],
         kicked: new Set(),
       }
@@ -253,7 +314,7 @@ export function handleMessage(connection: Connection, raw: string) {
       if (!room) return fail("joinRoom", "That room is gone")
       if (connection.room === room) return connection.send({ type: "room", room: detail(room) })
       if (room.kicked.has(connection.player.id)) return fail("joinRoom", "The host removed you from that room")
-      if (room.game) return fail("joinRoom", "That room is in the middle of a game")
+      if (room.game && !room.game.over) return fail("joinRoom", "That room is in the middle of a game")
       if (room.passcode !== null && !(typeof message.passcode === "string" && sameText(message.passcode, room.passcode))) {
         return fail("joinRoom", "Wrong passcode")
       }
@@ -318,7 +379,7 @@ export function handleMessage(connection: Connection, raw: string) {
 
     case "setSettings": {
       const room = connection.room
-      if (!room || room.host !== connection || room.game) return
+      if (!room || room.host !== connection || (room.game && !room.game.over)) return
       const settings = validSettings(message.settings)
       if (!settings) return fail("setSettings", "That board isn't possible")
       room.settings = settings
@@ -328,9 +389,17 @@ export function handleMessage(connection: Connection, raw: string) {
 
     case "startGame": {
       const room = connection.room
-      if (!room || room.host !== connection || room.game) return
-      room.game = startGame(room.settings, room.members.map(member => member.player.id), Date.now())
-      for (const member of room.members) inBackground(addProgress(member.player.id, { gamesStarted: 1 }))
+      // a game that is over makes way for the next one
+      if (!room || room.host !== connection || (room.game && !room.game.over)) return
+      room.roster = room.members.map(member => member.player)
+      room.game = startGame(room.settings, room.roster.map(player => player.id), Date.now())
+      for (const member of room.members) {
+        // whatever they were watching was in the last game
+        member.watching = null
+        inBackground(addProgress(member.player.id, { gamesStarted: 1 }))
+      }
+      // a board so small that the opening click cleared it is over before it began
+      advanceGame(room)
       sendRoomToMembers(room)
       for (const member of room.members) sendBoard(member)
       broadcastRooms()
@@ -339,11 +408,35 @@ export function handleMessage(connection: Connection, raw: string) {
 
     case "endGame": {
       const room = connection.room
-      if (!room || room.host !== connection || !room.game) return
-      settleGame(room.game)
-      room.game = null
+      if (!room || room.host !== connection || !room.game || room.game.over) return
+      stopEveryone(room.game, Date.now())
+      finishGame(room, room.game)
       sendRoomToMembers(room)
       broadcastRooms()
+      return
+    }
+
+    case "giveUp": {
+      const room = connection.room
+      if (!room?.game || !giveUp(room.game, connection.player.id, Date.now())) return
+      const ended = advanceGame(room)
+      sendRoomToMembers(room)
+      if (ended) broadcastRooms()
+      return
+    }
+
+    case "spectate": {
+      const game = connection.room?.game
+      if (!game) return
+      if (message.playerId === null) {
+        connection.watching = null
+        return
+      }
+      // Everyone plays the same board, so another player's would show where it is safe:
+      // watching is only for someone whose own game is over (or who wasn't in it)
+      if (typeof message.playerId !== "string" || !game.players.has(message.playerId) || isPlaying(game, connection.player.id)) return
+      connection.watching = message.playerId
+      sendWatched(connection)
       return
     }
 
@@ -375,8 +468,12 @@ export function handleMessage(connection: Connection, raw: string) {
       const progress = progressFor(game, id)
       const finishedMs = wasFinished ? null : progress?.finishedMs ?? null
       if (connection.room) {
+        // clearing the board may start the clock on the others, or end the game
+        const ended = advanceGame(connection.room)
         // everyone in the room sees the progress
         sendRoomToMembers(connection.room)
+        sendToWatchers(connection.room, id)
+        if (ended) broadcastRooms()
         if (finishedMs !== null) {
           inBackground(db.insert(multiplayerResult).values({ userId: id, ...game.settings, durationMs: finishedMs, mineHits: progress!.mineHits }))
         }
@@ -393,8 +490,9 @@ export function handleMessage(connection: Connection, raw: string) {
     case "flag": {
       const game = gameOf(connection)
       if (!game || !flag(game, connection.player.id, message.row as number, message.col as number, Date.now())) return
-      // flags are a player's own notes: nobody else's view changes
+      // flags are a player's own notes: only they, and anyone watching their board, see them
       sendBoard(connection)
+      if (connection.room) sendToWatchers(connection.room, connection.player.id)
       return
     }
   }

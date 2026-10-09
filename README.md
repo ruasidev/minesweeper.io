@@ -73,6 +73,18 @@ The server runs the games (`server/src/multiplayer/game.ts`). It lays the mines,
 everyone, and applies every click a player sends. The mines never leave the server: a player is sent only what they
 have uncovered themselves, and of the other players only how finished each section of their board is.
 
+How a game goes (`game.ts`, with the room's side of it in `lobby.ts`):
+
+- Uncovering a mine doesn't end a player's game. The mine goes off: everything they had uncovered within a few
+  cells of it is covered again (`mineBlastRadius`), and they sit out for a moment (`MINE_COOLDOWN_MS`).
+- A player's game ends when they clear the board, give up, leave the room, or are stopped. Once at least half of
+  the players who haven't given up or left have cleared the board, the rest get a time limit that grows with the
+  size of the board (`finishTimeMs`), and are stopped when it runs out. The host can also stop everyone.
+- The game is over once nobody is playing. Experience and ratings are settled then, and the rating changes are
+  sent out with the results. The finished game stays with the room, for its results, until the next one starts.
+- A player whose own game is over sees the results, can go back to the room while the others play on, and can
+  watch any player's board. Someone still playing can't: everyone has the same board.
+
 ### Scores, levels and badges
 
 - **Leaderboards** (`#/leaderboard`) list each player's fastest clear of the classic boards. Multiplayer times are

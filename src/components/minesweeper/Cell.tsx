@@ -4,7 +4,7 @@ import type { CellProps } from "../../game/types"
 import { useTheme } from "../../context/ThemeContext"
 import { useSettings } from "../../context/SettingsContext"
 
-export default function Cell({ cell, animationClass, animationDelay, chordHintKey, resetKey, onClick, onRightClick }: CellProps) {
+export default function Cell({ cell, animationClass, animationDelay, chordHintKey, blast, resetKey, onClick, onRightClick }: CellProps) {
   const [hideValue, setHideValue] = useState(false)
   const { theme } = useTheme()
   const { settings } = useSettings()
@@ -63,7 +63,7 @@ export default function Cell({ cell, animationClass, animationDelay, chordHintKe
         ${themeClasses}
         ${textColor}
         ${animationClass ? `animate-${animationClass}` : ""}
-        ${chordHintKey !== undefined ? "relative" : ""}
+        ${chordHintKey !== undefined || blast ? "relative" : ""}
       `}
       onAnimationStart={() => {
         if (animationClass) setHideValue(true)
@@ -73,6 +73,22 @@ export default function Cell({ cell, animationClass, animationDelay, chordHintKe
       {/* keyed so a repeated chord attempt restarts the flash */}
       {chordHintKey !== undefined && (
         <span key={chordHintKey} className="absolute inset-0 rounded-[inherit] animate-chordHint" />
+      )}
+      {/* Covered back up by a mine going off. The cell still looks uncovered for the moment the blast takes to reach
+          it, then flashes, and that look shrinks away to show the covered cell it now is */}
+      {blast && (
+        <>
+          <span
+            key={`cover-${blast.id}`}
+            className={`absolute inset-0 rounded-[inherit] pointer-events-none animate-blastCover ${theme.cellVisible}`}
+            style={{ animationDelay: `${blast.delayMs}ms` }}
+          />
+          <span
+            key={`flash-${blast.id}`}
+            className="absolute inset-0 rounded-[inherit] pointer-events-none animate-blastFlash"
+            style={{ animationDelay: `${blast.delayMs}ms` }}
+          />
+        </>
       )}
     </button>
   )
