@@ -1,4 +1,5 @@
 import bombClick from "../../ui-sounds/bomb-click.mp3"
+import buttonClickSelect from "../../ui-sounds/button-click-select.mp3"
 import cellClickPop from "../../ui-sounds/cell-click-pop.mp3"
 import dullExplosion from "../../ui-sounds/dull-explosion.mp3"
 import errorSound from "../../ui-sounds/error-sound.mp3"
@@ -23,7 +24,7 @@ type Sound = {
 
 // Every sound effect: what it is for and the file it plays.
 // ui-sounds/game-found.mp3 isn't here yet: it is waiting for the matchmaking queue.
-// (game-start.mp3 and button-click-select.mp3 are in the folder too, and not used any more.)
+// (game-start.mp3 is in the folder too, and not used.)
 const SOUNDS = {
   // the screen changing: another page, themes or settings opening or closing, the account window opening
   transition: { file: uiClickSound, volume: 0.5 },
@@ -42,6 +43,8 @@ const SOUNDS = {
   win: { file: itemRewardSound, volume: 1 },
   // multiplayer: someone coming into the room, yourself included
   roomJoin: { file: roomJoin, volume: 0.8 },
+  // a recorded game being opened to watch back
+  replayOpen: { file: buttonClickSelect, volume: 0.4 },
   // each number of the countdown before a game starts, and the moment it does
   countdown: { file: gameStartCountdown, volume: 0.8 },
   go: { file: startGameGo, volume: 1 },

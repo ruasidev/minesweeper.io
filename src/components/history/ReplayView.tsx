@@ -1,5 +1,5 @@
-import { memo, useEffect, useMemo, useState } from "react"
-import { Eye, EyeOff, Pause, Play, SkipBack, StepBack, StepForward } from "lucide-react"
+import { memo, useEffect, useMemo, useRef, useState } from "react"
+import { Check, Eye, EyeOff, Link, Pause, Play, SkipBack, StepBack, StepForward } from "lucide-react"
 import { useReportGameWidth } from "../../context/GameWidthContext"
 import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
@@ -9,6 +9,7 @@ import { getRecordedGame, type RecordedGame } from "../../lib/api"
 import { avatarSrc } from "../../lib/avatar"
 import { describeBoard, describeOutcome } from "../../lib/gameResults"
 import { makeReplay, movesMadeBy, type Replay } from "../../lib/replay"
+import { playSound } from "../../lib/sounds"
 import { formatScore } from "../../lib/time"
 import type { Board } from "../../../shared/board"
 import { mineBlastRadius } from "../../../shared/protocol"
@@ -73,6 +74,53 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
     return () => cancelAnimationFrame(frame)
   }, [playing, speed, replay.lengthMs])
 
+  // The link to this replay, put on the clipboard. Where the browser won't allow that, it is shown to be copied by hand
+  const [copied, setCopied] = useState(false)
+  function copyLink() {
+    const link = window.location.href
+    const done = () => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+    if (navigator.clipboard) navigator.clipboard.writeText(link).then(done, () => window.prompt("Copy this link to the replay:", link))
+    else window.prompt("Copy this link to the replay:", link)
+  }
+
+  // a sound for the game being opened (once, however many times the effect is run while developing)
+  const announced = useRef(false)
+  useEffect(() => {
+    if (announced.current) return
+    announced.current = true
+    playSound("replayOpen")
+  }, [])
+
+  // The game's own sounds, as the moves are made: while it is playing, and when stepping on a move by hand.
+  // Not when going back or jumping somewhere else, where they would be noise. Several moves can pass in one frame
+  // at high speed; they make one sound between them, the most telling one
+  const heardUpTo = useRef(0)
+  useEffect(() => {
+    const before = heardUpTo.current
+    heardUpTo.current = moveCount
+    const made = moveCount - before
+    if (made < 1 || (made > 1 && !playing)) return
+
+    if (replay.mineHitsAfter(moveCount) > replay.mineHitsAfter(before)) {
+      // in singleplayer that mine ended the game; anywhere else it went off and the game carried on
+      if (game.kind === "singleplayer") {
+        playSound("mineClick")
+        playSound("boardExplodes")
+      } else {
+        playSound("mineHit")
+      }
+    } else if (moveCount === replay.moves.length && game.outcome === "cleared") {
+      playSound("win")
+    } else if (replay.moves.slice(before, moveCount).some(move => move[1] === 0)) {
+      playSound("reveal")
+    } else {
+      playSound("flag")
+    }
+  }, [moveCount, playing, replay, game.kind, game.outcome])
+
   // it stops by itself at the end
   useEffect(() => {
     if (atEnd) setPlaying(false)
@@ -119,11 +167,46 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
             </div>
           </div>
         </div>
-        <button className={`${styles.ghost} ml-auto`} onClick={onBack}>Back to the history</button>
+        <div className="ml-auto flex items-center gap-2">
+          {/* the page's own address is the link to this game: it names the player and the game */}
+          <button className={`${styles.ghost} inline-flex items-center gap-2`} title="Copy a link to this replay" onClick={copyLink}>
+            {copied ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
+            {copied ? "Link copied" : "Share"}
+          </button>
+          <button className={styles.ghost} onClick={onBack}>Back to the history</button>
+        </div>
       </section>
 
-      {/* stays in view while a tall board is scrolled */}
-      <section className={`${styles.card} sticky top-0 z-20 flex flex-col gap-3 p-4 cursor-default ${theme.textBody}`}>
+      <div className="overflow-x-auto hide-scrollbar pb-4">
+        <div className="relative w-max mx-auto pointer-events-none">
+          <Grid board={board} lastClicked={null} chordHint={null} blast={shown.blast} resetKey={0} onCellClick={nothing} onCellRightClick={nothing} />
+          {/* where the mines are: the player never saw this */}
+          {showMines && board.grid.flat().filter(cell => cell.hasMine && !cell.revealed).map(cell => (
+            <span
+              key={`${cell.row}-${cell.col}`}
+              className="absolute rounded-full bg-red-500 ring-2 ring-black/40"
+              style={{
+                top: cell.row * step + display.cellSize / 2 - display.cellSize * 0.14,
+                left: cell.col * step + display.cellSize / 2 - display.cellSize * 0.14,
+                width: display.cellSize * 0.28,
+                height: display.cellSize * 0.28,
+              }}
+            />
+          ))}
+          {/* the cell the latest move was made on: red where it set a mine off, amber for a flag */}
+          {lastMove && (
+            <span
+              className={`absolute rounded ring-[3px] ${lastHitMine ? "ring-red-500" : lastMove[1] === 1 ? "ring-amber-400" : "ring-white"} shadow-[0_0_8px_2px_rgba(0,0,0,0.5)]`}
+              style={{ top: lastMove[2] * step, left: lastMove[3] * step, width: display.cellSize, height: display.cellSize }}
+            />
+          )}
+          {shown.blast && <BlastRing key={shown.blast.id} blast={shown.blast} radius={mineBlastRadius(game)} />}
+        </div>
+      </div>
+
+      {/* The controls run along the bottom, as on a video. They stay there while a tall board is scrolled,
+          and sit at the foot of the screen under a short one */}
+      <section className={`${styles.card} sticky bottom-2 z-20 mt-auto flex flex-col gap-3 p-4 cursor-default ${theme.textBody}`}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-1">
             <button className={iconButton} title="Back to the start" onClick={() => goToMove(0)}><SkipBack className="w-4 h-4" /></button>
@@ -168,33 +251,6 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
           <span className="w-16 text-right text-sm tabular-nums opacity-70">{formatScore(replay.startMs + replay.lengthMs)}</span>
         </div>
       </section>
-
-      <div className="overflow-x-auto hide-scrollbar pb-20">
-        <div className="relative w-max mx-auto pointer-events-none">
-          <Grid board={board} lastClicked={null} chordHint={null} blast={shown.blast} resetKey={0} onCellClick={nothing} onCellRightClick={nothing} />
-          {/* where the mines are: the player never saw this */}
-          {showMines && board.grid.flat().filter(cell => cell.hasMine && !cell.revealed).map(cell => (
-            <span
-              key={`${cell.row}-${cell.col}`}
-              className="absolute rounded-full bg-red-500 ring-2 ring-black/40"
-              style={{
-                top: cell.row * step + display.cellSize / 2 - display.cellSize * 0.14,
-                left: cell.col * step + display.cellSize / 2 - display.cellSize * 0.14,
-                width: display.cellSize * 0.28,
-                height: display.cellSize * 0.28,
-              }}
-            />
-          ))}
-          {/* the cell the latest move was made on: red where it set a mine off, amber for a flag */}
-          {lastMove && (
-            <span
-              className={`absolute rounded ring-[3px] ${lastHitMine ? "ring-red-500" : lastMove[1] === 1 ? "ring-amber-400" : "ring-white"} shadow-[0_0_8px_2px_rgba(0,0,0,0.5)]`}
-              style={{ top: lastMove[2] * step, left: lastMove[3] * step, width: display.cellSize, height: display.cellSize }}
-            />
-          )}
-          {shown.blast && <BlastRing key={shown.blast.id} blast={shown.blast} radius={mineBlastRadius(game)} />}
-        </div>
-      </div>
     </>
   )
 }

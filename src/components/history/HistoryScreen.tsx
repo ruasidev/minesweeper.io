@@ -122,11 +122,15 @@ export default function HistoryScreen({ userId, gameId, onOpenAuth }: HistoryScr
 
   return (
     <div className={`h-full overflow-y-auto hide-scrollbar ${theme.background}`} style={{ paddingLeft: NAV_SPACE }}>
-      <div className="flex flex-col gap-4 py-4 pl-2 pr-4">
+      <div className="flex flex-col gap-4 min-h-full py-4 pl-2 pr-4">
         <h1 className={`text-2xl font-semibold cursor-default ${theme.textHead}`}>Match history</h1>
         {isPending ? null : !session || !ownerId ? (
           <div className={`${styles.card} flex flex-col items-start gap-3 p-4 max-w-md cursor-default ${theme.textBody}`}>
-            <p>Games you play while signed in are kept here, and you can watch any of them back, move by move.</p>
+            <p>
+              {gameId !== null ? "This is a link to a replay of someone's game. Log in to watch it."
+                : userId ? "This is a player's match history. Log in to see their games and watch them back."
+                : "Games you play while signed in are kept here, and you can watch any of them back, move by move."}
+            </p>
             <button className={styles.button} onClick={() => onOpenAuth("signIn")}>Log in</button>
           </div>
         ) : gameId !== null ? (
