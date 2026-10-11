@@ -22,9 +22,8 @@ import MultiplayerScreen from "./components/multiplayer/MultiplayerScreen"
 import DailyScreen from "./components/scores/DailyScreen"
 import LeaderboardScreen from "./components/scores/LeaderboardScreen"
 import HistoryScreen from "./components/history/HistoryScreen"
-import NavigationBar from "./components/app/NavigationBar"
 import AccountModal from "./components/account/AccountModal"
-import AccountButtons from "./components/menu/AccountButtons"
+import AccountBar from "./components/account/AccountBar"
 import ViewTransition from "./components/app/ViewTransition"
 import MainNavigation, { NavContent, NAV_DEFAULT_WIDTH, NAV_MIN_WIDTH, NAV_PANEL_MIN_WIDTH } from "./components/app/MainNavigation"
 import MoreSheet from "./components/app/MoreSheet"
@@ -41,14 +40,12 @@ const RAIL_WIDTH = 88
 
 function App() {
   const { route, params, navigate } = useRoute()
-  // How the app is laid out: the pane on the left of a desktop, a rail of tabs on a tablet, tabs along the
-  // bottom of a phone. The pages are the same in all three
+  // How the app is laid out: the pane down the left of a desktop, a rail of tabs on a tablet, tabs along the
+  // bottom of a phone. The pages are the same in all three. Nothing goes across the top: the game's name and the
+  // player's own corner are at the head and the foot of the navigation, whichever shape that takes
   const layout = useLayout()
   const desktop = layout.mode === "desktop"
   const phone = layout.mode === "phone"
-  // The header is across the top of every layout but one: a phone on its side has no height to give it, so there
-  // the rail carries the logo and the account instead
-  const header = !(layout.mode === "rail" && layout.short)
   useVisibleHeight()
   const typing = useTyping()
 
@@ -77,7 +74,7 @@ function App() {
   // how many multiplayer rooms are open right now, to say so beside the way to them
   const openRooms = useOpenRooms()?.length ?? 0
 
-  // The account window floats over everything. "Log in" and "Sign up" in the header open it on their own form
+  // The account window floats over everything. "Log in" and "Sign up" open it on their own form
   const [accountOpen, setAccountOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>("signIn")
   const openAccount = (mode?: AuthMode) => {
@@ -117,11 +114,17 @@ function App() {
     moreBadge: chatMentions > 0,
     openRooms,
   }
-  // what is the signed-in player's own, wherever the way to it is put: the header, or the foot of a rail without one
+  // What is the player's own, wherever the way to it is put: the foot of the pane, the foot of the rail, or behind
+  // "More" on a phone
   const account = {
     onOpenAuth: openAccount,
     onOpenProfile: () => openAccount(),
     onOpenHistory: () => goTo("history"),
+    // themes and settings open in the navigation, which has to be brought up first where it is behind "More"
+    onOpenPanel: (panel: Panel) => {
+      setOpenPanel(panel)
+      if (!desktop || collapsed) setMoreOpen(true)
+    },
   }
 
   // The interface makes a sound when the screen changes: going to another page, themes or settings opening
@@ -141,17 +144,16 @@ function App() {
     if (color) document.querySelector('meta[name="theme-color"]')?.setAttribute("content", color)
   }, [theme])
 
-  // How the app is laid out, in one place. The page fills the whole screen, and the app's own pieces (the header,
-  // the navigation) are panes that float over it, a gap in from the edges and from each other. These say how much
+  // How the app is laid out, in one place. The page fills the whole screen, and the app's own pieces (the
+  // navigation, in whichever shape) are panes that float over it, a gap in from the edges. These say how much
   // of each edge the panes take up, and every page starts its contents clear of them: what a page scrolls passes
   // underneath the panes rather than stopping short of them
   const spaces = {
     // between a pane and the edge of the screen, and between one pane and the next
     "--gap": "0.5rem",
-    "--header-h": phone ? "3rem" : "3.5rem",
     "--rail-w": `${RAIL_WIDTH}px`,
-    // down to the bottom edge of the header
-    "--top-space": header ? "calc(var(--gap) + var(--header-h) + env(safe-area-inset-top))" : "env(safe-area-inset-top)",
+    // in from the top edge: nothing of the app's is up there, only whatever the device keeps for itself
+    "--top-space": "env(safe-area-inset-top)",
     // up to the top edge of the tabs along the bottom of a phone, which are out of the way while its keyboard is up
     "--bottom-space": phone && !typing ? "calc(max(var(--gap), env(safe-area-inset-bottom)) + 3.5rem)" : "env(safe-area-inset-bottom)",
     // In to the right-hand edge of whatever the navigation is on the left. On a desktop that is the pane, with the
@@ -194,17 +196,13 @@ function App() {
             </GameWidthContext.Provider>
           </main>
 
-          {header && (
-            <NavigationBar>
-              <AccountButtons {...account} />
-            </NavigationBar>
-          )}
-          {rail && <NavRail {...tabs} {...account} standalone={!header} />}
+          {rail && <NavRail {...tabs} {...account} />}
           {/* out of the way while the keyboard is up: there is little enough room as it is */}
           {phone && !typing && <TabBar {...tabs} />}
           {(!desktop || collapsed) && (
             <MoreSheet open={moreOpen} beside={rail} onClose={closeMore}>
-              <NavContent {...navigation} compact onClose={closeMore} />
+              {/* beside a rail the account is at the rail's own foot; on a phone this is where it lives */}
+              <NavContent {...navigation} compact onClose={closeMore} account={rail ? undefined : <AccountBar {...account} />} />
             </MoreSheet>
           )}
 
@@ -212,6 +210,7 @@ function App() {
           {desktop && (
             <MainNavigation
               {...navigation}
+              account={<AccountBar {...account} />}
               width={paneWidth}
               minWidth={paneMinWidth}
               onWidthChange={setNavWidth}

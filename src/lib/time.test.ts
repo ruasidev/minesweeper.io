@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatDuration, formatScore, formatTimeLeft } from "./time"
+import { formatCountdown, formatDuration, formatScore, formatTimeLeft, msUntilNextUtcDay } from "./time"
 
 describe("formatDuration", () => {
   it("shows minutes and seconds, each two digits", () => {
@@ -36,5 +36,28 @@ describe("formatTimeLeft", () => {
     expect(formatTimeLeft(1000)).toBe("00:01")
     expect(formatTimeLeft(1001)).toBe("00:02")
     expect(formatTimeLeft(0)).toBe("00:00")
+  })
+})
+
+describe("msUntilNextUtcDay", () => {
+  it("is what is left of the day by the server's clock", () => {
+    expect(msUntilNextUtcDay(Date.parse("2026-10-11T23:00:00Z"))).toBe(60 * 60 * 1000)
+    expect(msUntilNextUtcDay(Date.parse("2026-10-11T00:00:00Z"))).toBe(24 * 60 * 60 * 1000)
+    expect(msUntilNextUtcDay(Date.parse("2026-10-11T12:30:15.500Z"))).toBe(Date.parse("2026-10-12T00:00:00Z") - Date.parse("2026-10-11T12:30:15.500Z"))
+  })
+})
+
+describe("formatCountdown", () => {
+  it("says how long is left, to the minute", () => {
+    expect(formatCountdown(82_740_000)).toBe("22h 59m")
+    expect(formatCountdown(2_400_000)).toBe("40m")
+    expect(formatCountdown(60 * 60 * 1000)).toBe("1h 0m")
+    expect(formatCountdown(61_000)).toBe("2m")
+  })
+
+  it("doesn't count down the last minute, or below nothing", () => {
+    expect(formatCountdown(59_000)).toBe("under a minute")
+    expect(formatCountdown(0)).toBe("under a minute")
+    expect(formatCountdown(-5000)).toBe("under a minute")
   })
 })

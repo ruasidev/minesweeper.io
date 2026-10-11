@@ -187,16 +187,27 @@ puts a file right.
 One design on every screen size. The page fills the whole screen, and the app's own pieces are **panes** that float
 over it a gap in from the edges, with the page scrolling underneath them.
 
-| | Header | Navigation | A board being played |
+| | Navigation | The player's own corner | A board being played |
 | --- | --- | --- | --- |
-| **Desktop** (wide, with a mouse) | across the top | the full pane on the left, which folds down to the rail while a board needs the room | the page scrolls; status bar above, dock along the bottom |
-| **Tablet**, or a narrow window | across the top | a rail of tabs on the left | the board pans in its own space between a status strip and a dock |
-| **Phone** | across the top, slimmer | tabs along the bottom | the same |
-| **Phone on its side** | none (the rail carries the logo and the account) | the rail | status and dock go down the right-hand side |
+| **Desktop** (wide, with a mouse) | the full pane down the left, which folds down to the rail while a board needs the room | the foot of the pane | the page scrolls; status bar above, dock along the bottom |
+| **Tablet**, or a narrow window | a rail of tabs on the left | their picture, at the foot of the rail | the board pans in its own space between a status strip and a dock |
+| **Phone** | tabs along the bottom | behind "More" | the same |
+| **Phone on its side** | the rail | the foot of the rail | status and dock go down the right-hand side |
 
-On a phone or tablet, "More" brings up everything the desktop pane holds besides the main pages: global chat, how
-to play, themes and settings. What is the signed-in player's own (their profile, their match history, signing out)
-is in one place on every layout: the menu behind their picture in the header.
+Nothing goes across the top of the screen: it is all the page's. The game's name (and, while it is early days, its
+version) is at the head of the navigation, and the player's own corner is at its foot: who is signed in, or the
+ways in. That corner opens one menu, the same on every layout, with what is theirs (their profile, their match
+history), how the app looks and behaves for them (themes, settings) and signing out. Themes and settings are in
+it for someone who isn't signed in as well. The small print (privacy, terms) is at the foot of the settings, and
+on the form to sign up with.
+
+On a phone or tablet, "More" brings up the rest of what the desktop pane holds besides the main pages: global chat
+and how to play.
+
+**Chat.** A player is mentioned by their name with an @ before it, in a room's chat or the global one. Typing the
+@ offers the names it could be (whoever is in the room first), and whoever is named sees that message picked out.
+The global chat only raises a count when the player is mentioned in it: everything else said there is left to be
+read when they look.
 
 On a touch screen a tap uncovers and holding flags (how long is a setting), the Dig / Flag switch under the board
 swaps those two, a board bigger than the screen is dragged about, and two fingers zoom it.
@@ -204,7 +215,7 @@ swaps those two, a board bigger than the screen is dragged about, and two finger
 Where to change it:
 
 - `src/hooks/useLayout.ts`: which of the layouts a screen gets, and the widths they change at.
-- `src/App.tsx` (`spaces`): the gap around the panes, the height of the header, the width of the rail.
+- `src/App.tsx` (`spaces`): the gap around the panes, the width of the rail.
 - `src/hooks/useFormStyles.ts`: what a pane, a card and each kind of button look like.
 - `src/components/app/Page.tsx`: the margins and width of every page but the singleplayer one.
 - `src/components/minesweeper/BoardViewport.tsx`: how big boards are drawn, and when one is shrunk to fit.

@@ -86,7 +86,7 @@ export default function GameResult() {
           <GameResultItem label="Board">{rows} × {cols}</GameResultItem>
           <GameResultItem label="Mines">{mines}</GameResultItem>
           {won
-            ? <GameResultItem label="Flags placed">{flags.length}</GameResultItem>
+            ? <GameResultItem label="Flags">{flags.length}</GameResultItem>
             : <GameResultItem label="Flags right">{rightFlags} of {flags.length}</GameResultItem>}
         </div>
 

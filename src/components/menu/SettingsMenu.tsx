@@ -3,7 +3,9 @@ import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
 import { ghostColors } from "../../game/themes"
 import { useLayout } from "../../hooks/useLayout"
+import { APP_VERSION } from "../../lib/app"
 import NumberInput from "../app/NumberInput"
+import GithubButton from "./GithubButton"
 import SidebarSectionHeader from "./SidebarSectionHeader"
 
 // What the left pane shows for "Settings"
@@ -123,6 +125,18 @@ export default function SettingsMenu() {
         <p className={`mt-2 text-sm opacity-70 cursor-default ${theme.textBody}`}>
           Screens and panes switch instantly, and nothing grows or bounces under the pointer. Win and loss animations still play.
         </p>
+      </div>
+
+      {/* The small print. It is here, at the end of the last place anyone looks, and on the form to sign up
+          with, which is where it matters */}
+      <div>
+        <SidebarSectionHeader text="About" />
+        <div className={`flex items-center gap-4 text-sm ${theme.textBody}`}>
+          <a className="underline opacity-80 hover:opacity-100" href="/privacy.html" target="_blank" rel="noopener">Privacy</a>
+          <a className="underline opacity-80 hover:opacity-100" href="/terms.html" target="_blank" rel="noopener">Terms</a>
+          <span className="ml-auto opacity-60 cursor-default">{APP_VERSION}</span>
+          <GithubButton />
+        </div>
       </div>
     </>
   )

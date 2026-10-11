@@ -3,9 +3,11 @@ import { Menu, UserRound } from "lucide-react"
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
-import type { AuthMode, Route } from "../../game/types"
+import type { Route } from "../../game/types"
+import { useLayout } from "../../hooks/useLayout"
+import { APP_NAME } from "../../lib/app"
 import { avatarSrc } from "../../lib/avatar"
-import AccountMenu from "../account/AccountMenu"
+import AccountMenu, { type AccountActions } from "../account/AccountMenu"
 import { MAIN_PAGES } from "./navItems"
 
 type NavTabsProps = {
@@ -104,25 +106,20 @@ export function TabBar(props: NavTabsProps) {
   )
 }
 
-type NavRailProps = NavTabsProps & {
-  // There is no header over it (a phone on its side): the rail carries the logo at its head and the account at its
-  // foot, which are otherwise the header's to show
-  standalone: boolean
-  onOpenAuth: (mode: AuthMode) => void
-  onOpenProfile: () => void
-  onOpenHistory: () => void
-}
+type NavRailProps = NavTabsProps & AccountActions
 
 // The same tabs down the left of a tablet, or of a phone on its side: a pane in the place the left pane has on a
-// desktop, cut down to its icons
-export function NavRail({ standalone, onOpenAuth, onOpenProfile, onOpenHistory, ...tabsProps }: NavRailProps) {
+// desktop, cut down to its icons. Like that pane it has the game's logo at its head and the player's own corner at
+// its foot: their picture, which opens the menu of what is theirs
+export function NavRail({ onOpenAuth, onOpenProfile, onOpenHistory, onOpenPanel, ...tabsProps }: NavRailProps) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { session, isPending } = useAccount()
   // the picture at the foot of the rail while its menu is open: the menu hangs off it
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
-  // each tab's height: closer together where the rail has the logo and the account to fit in as well
-  const rows = standalone ? "auto-rows-[3.25rem]" : "auto-rows-[4rem]"
+  // each tab's height: closer together on a phone held sideways, where there is little height to fit them all in
+  const tight = useLayout().short
+  const rows = tight ? "auto-rows-[3.25rem]" : "auto-rows-[4rem]"
   return (
     <nav
       aria-label="Main"
@@ -133,26 +130,25 @@ export function NavRail({ standalone, onOpenAuth, onOpenProfile, onOpenHistory, 
         bottom: "max(var(--gap), env(safe-area-inset-bottom))",
       }}
     >
-      {standalone && (
-        <button className="shrink-0 flex justify-center pt-2 cursor-pointer" title="Minesweeper World" onClick={() => tabsProps.onNavigate("game")}>
-          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Minesweeper World" className="w-8 h-8" />
-        </button>
-      )}
+      <button className={`shrink-0 flex justify-center cursor-pointer ${tight ? "pt-2" : "pt-3 pb-1"}`} title={APP_NAME} onClick={() => tabsProps.onNavigate("game")}>
+        <img src={`${import.meta.env.BASE_URL}logo.png`} alt={APP_NAME} className="w-8 h-8" />
+      </button>
 
       {/* The pages at the head of the rail and "More" at its foot, as the left pane of a desktop has its links and
           its tools. Where the screen is too short to keep them apart they close up, and scroll rather than squash */}
       <div className="flex-1 min-h-0 flex flex-col justify-between py-2 overflow-y-auto hide-scrollbar">
-        <div className={`shrink-0 grid ${rows}`}><PageTabs {...tabsProps} tight={standalone} /></div>
-        <div className={`shrink-0 grid ${rows}`}><MoreTab {...tabsProps} tight={standalone} /></div>
+        <div className={`shrink-0 grid ${rows}`}><PageTabs {...tabsProps} tight={tight} /></div>
+        <div className={`shrink-0 grid ${rows}`}><MoreTab {...tabsProps} tight={tight} /></div>
       </div>
 
-      {standalone && !isPending && (
+      {!isPending && (
         <button
-          className={`shrink-0 flex justify-center pb-2 cursor-pointer ${theme.textBody}`}
-          title={session ? "Account" : "Log in or sign up"}
-          aria-label={session ? "Account" : "Log in or sign up"}
+          className={`shrink-0 flex justify-center cursor-pointer ${tight ? "pb-2" : "pb-3"} ${theme.textBody}`}
+          title={session ? "Account" : "Log in, sign up, themes and settings"}
+          aria-label={session ? "Account" : "Log in, sign up, themes and settings"}
+          aria-haspopup="menu"
+          aria-expanded={menuAnchor !== null}
           onClick={(e) => {
-            if (!session) return onOpenAuth("signUp")
             const pressed = e.currentTarget
             setMenuAnchor(open => open ? null : pressed)
           }}
@@ -162,7 +158,9 @@ export function NavRail({ standalone, onOpenAuth, onOpenProfile, onOpenHistory, 
             : <span className={`flex items-center justify-center w-9 h-9 rounded-full border ${theme.itemBg} ${theme.itemBorder}`}><UserRound className="w-5 h-5" /></span>}
         </button>
       )}
-      {menuAnchor && <AccountMenu anchor={menuAnchor} onClose={() => setMenuAnchor(null)} onOpenProfile={onOpenProfile} onOpenHistory={onOpenHistory} />}
+      {menuAnchor && (
+        <AccountMenu anchor={menuAnchor} onClose={() => setMenuAnchor(null)} onOpenAuth={onOpenAuth} onOpenProfile={onOpenProfile} onOpenHistory={onOpenHistory} onOpenPanel={onOpenPanel} />
+      )}
     </nav>
   )
 }

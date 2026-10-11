@@ -38,7 +38,8 @@ export default function Page({ title, aside, maxWidth = "max-w-6xl", footer, fil
       ) : (
         <div
           className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden hide-scrollbar"
-          // padding on what scrolls, not around it: the contents start below the header and pass under it as they go
+          // padding on what scrolls, not around it: the contents start clear of the top of the screen (and of
+          // whatever a device keeps there for itself) and pass up to it as they go
           style={{ paddingTop: TOP_SPACE, paddingBottom: footer ? undefined : BOTTOM_SPACE }}
         >
           <div className={`flex flex-col min-h-full mx-auto ${mode === "phone" ? "gap-3" : "gap-4"} ${maxWidth}`} style={{ padding: gutter }}>

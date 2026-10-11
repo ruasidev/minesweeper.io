@@ -1,17 +1,17 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
-import { ArrowLeft, CircleHelp, MessageCircle, Paintbrush, Settings, ShieldCheck, X } from "lucide-react"
+import { ArrowLeft, CircleHelp, MessageCircle, ShieldCheck, X } from "lucide-react"
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { ghostColors } from "../../game/themes"
 import { paneLook } from "../../hooks/useFormStyles"
 import type { Panel, Route } from "../../game/types"
+import { APP_NAME, APP_VERSION } from "../../lib/app"
 import { plural } from "../../lib/text"
 import GlobalChat from "../menu/GlobalChat"
 import HowToPlay from "../menu/HowToPlay"
 import SettingsMenu from "../menu/SettingsMenu"
 import SidebarMenu from "../menu/SidebarMenu"
 import { MAIN_PAGES } from "./navItems"
-import { APP_VERSION } from "./NavigationBar"
 
 // What the navigation shows and does, wherever it is put
 export type NavContentProps = {
@@ -26,6 +26,9 @@ export type NavContentProps = {
   openRooms: number
   // on a phone or a tablet: the main pages are tabs there, so they are left out here
   compact?: boolean
+  // The player's own corner (who is signed in, or the ways in), kept at the foot. Left out where the navigation
+  // beside this has it already: the rail carries it itself
+  account?: ReactNode
   // given where the navigation is something brought up and put away again: it gets an X that does this
   onClose?: () => void
 }
@@ -50,7 +53,7 @@ export const NAV_PANEL_MIN_WIDTH = 320
 // where the pane is laid out (App.tsx), and is nothing at all on the layouts that have no pane
 export const NAV_SPACE = "var(--nav-space, 0px)"
 
-// What replaces the navigation when one of the entries at its foot is opened.
+// What replaces the navigation when chat or help is opened from its foot, or themes or settings from the account's menu.
 // `fills` is for a view that takes up the pane's whole height and scrolls inside itself, rather than with the pane
 const panels: Record<Panel, { title: string, content: ReactNode, fills?: boolean }> = {
   chat: { title: "Global chat", content: <GlobalChat />, fills: true },
@@ -88,11 +91,11 @@ function NavItem({ icon, label, selected, tag, fresh, onClick }: NavItemProps) {
   )
 }
 
-// What the pane holds: the places to go, the tools at its foot, and whichever of chat, themes, settings or help has
-// been opened from those, which slides in over the rest. It fills whatever it is put in: the pane floating on the
-// left of a desktop, or what "More" brings up where the navigation is tabs. There the main pages are the tabs, so
-// `compact` leaves them out. (What is the signed-in player's own is not here: it is behind their picture, in the header)
-export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onClosePanel, chatMentions, openRooms, compact, onClose }: NavContentProps) {
+// What the pane holds, from the top: the game's name, the places to go, the tools, and at its foot the player's own
+// corner. Whichever of chat, themes, settings or help has been opened slides in over all of it. It fills whatever
+// it is put in: the pane down the left of a desktop, or what "More" brings up where the navigation is tabs. There
+// the main pages are the tabs, so `compact` leaves them out, and the name with them
+export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onClosePanel, chatMentions, openRooms, compact, account, onClose }: NavContentProps) {
   const { theme } = useTheme()
   const { isAdmin } = useAccount()
 
@@ -138,18 +141,19 @@ export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onCloseP
         onClick={() => onOpenPanel("chat")}
       />
       <NavItem icon={<CircleHelp className="w-5 h-5 shrink-0" />} label="How to play" onClick={() => onOpenPanel("help")} />
-      <NavItem icon={<Paintbrush className="w-5 h-5 shrink-0" />} label="Themes" onClick={() => onOpenPanel("themes")} />
-      <NavItem icon={<Settings className="w-5 h-5 shrink-0" />} label="Settings" onClick={() => onOpenPanel("settings")} />
     </>
   )
 
-  const links = (
-    <div className={`flex justify-center gap-4 text-xs opacity-60 ${theme.textBody}`}>
-      <a className="hover:underline" href="/privacy.html" target="_blank" rel="noopener">Privacy</a>
-      <a className="hover:underline" href="/terms.html" target="_blank" rel="noopener">Terms</a>
-      {/* the header that carries the version elsewhere isn't there on every small screen */}
-      {compact && <span className="cursor-default">{APP_VERSION}</span>}
-    </div>
+  // The game's name at the head of it all, with which version this is underneath for as long as that is worth
+  // knowing: it is early days. Pressing it goes home, to the game
+  const brand = (
+    <button className="flex-1 min-w-0 flex items-center gap-2.5 text-left cursor-pointer bounce-hover" title={APP_NAME} onClick={() => onNavigate("game")}>
+      <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" className="w-8 h-8 shrink-0" />
+      <span className="min-w-0 flex flex-col gap-1">
+        <h1 className={`text-lg font-bold leading-none truncate ${theme.textHead}`}>{APP_NAME}</h1>
+        <span className={`text-[11px] font-semibold leading-none opacity-60 ${theme.textBody}`}>{APP_VERSION}</span>
+      </span>
+    </button>
   )
 
   return (
@@ -161,23 +165,24 @@ export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onCloseP
       >
         {compact ? (
           <div className="flex flex-col gap-2 min-h-full">
-            <div className="flex items-center gap-2 pl-2">
-              <h2 className={`text-2xl font-semibold cursor-default ${theme.textHead}`}>More</h2>
+            <div className="flex items-center gap-2 pl-2 pb-2">
+              {brand}
               {closeButton}
             </div>
             <div className="flex flex-col gap-1">
               {pages}
               {tools}
             </div>
-            <div className="mt-auto pt-4">{links}</div>
+            {account && <div className={`mt-auto pt-3 border-t ${theme.menuBorder}`}>{account}</div>}
           </div>
         ) : (
           <div className="flex flex-col gap-2 min-h-full">
+            <div className="flex px-2 pt-1 pb-3">{brand}</div>
             {pages}
             {/* pushed to the bottom of the pane */}
             <div className="mt-auto flex flex-col gap-2">
               {tools}
-              {links}
+              {account && <div className={`mt-1 pt-3 border-t ${theme.menuBorder}`}>{account}</div>}
             </div>
           </div>
         )}
@@ -209,9 +214,9 @@ export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onCloseP
   )
 }
 
-// The pane floating on the left of a desktop, under the header, between the board (which slides underneath it) and
-// the account window (which opens above everything). Its width and its distance from the edges are the --nav-w
-// and --gap variables the app lays itself out with (App.tsx)
+// The pane down the left of a desktop, from the top of the screen to the bottom, between the board (which slides
+// underneath it) and the account window (which opens above everything). Its width and its distance from the edges
+// are the --nav-w and --gap variables the app lays itself out with (App.tsx)
 export default function MainNavigation({ width, minWidth, onWidthChange, offScreen, ...content }: MainNavigationProps) {
   const { theme } = useTheme()
   const navRef = useRef<HTMLElement>(null)

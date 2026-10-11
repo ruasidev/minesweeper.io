@@ -62,15 +62,15 @@ export default function Game() {
   }
 
   return (
-    // The page is the whole screen and scrolls as one: the board passes under the header going up, and under the
-    // left pane going sideways. What floats over it stays put: the status bar, and the dock along the bottom
+    // The page is the whole screen and scrolls as one: the board passes under the status bar going up, and under
+    // the left pane going sideways. What floats over it stays put: the status bar, and the dock along the bottom
     <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden px-2 pb-2 hide-scrollbar" style={{ paddingTop: "calc(var(--top-space) + 1rem)" }}>
       <div className="flex flex-col gap-6 w-full min-w-0 min-h-full">
         {/* STATS */}
         {statusBarPosition === "top" && (
           // The margins centre it over the board, in the space beside the navigation. It stops a gap short of the
-          // header as the page scrolls: where it sticks is measured from under the padding that keeps the page
-          // clear of the header, which is a little more than a gap
+          // top of the screen as the page scrolls: where it sticks is measured from under the padding at the top
+          // of the page, which is a little more than a gap
           <div className="sticky z-10 self-center" style={{ top: "calc(var(--gap) - 1rem)", marginLeft: NAV_SPACE, marginRight: RIGHT_SPACE }}>
             <GameStatusBar />
           </div>

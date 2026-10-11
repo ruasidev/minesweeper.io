@@ -105,12 +105,35 @@ export const publicRoutes = new Hono()
       ? await db.select().from(dailyAttempt).where(and(eq(dailyAttempt.userId, session.user.id), eq(dailyAttempt.date, date)))
       : []
 
+    // everyone who is on today's board, and how many of them were quicker than this player
+    const onBoard = and(eq(dailyAttempt.date, date), isNotNull(dailyAttempt.durationMs), eq(dailyAttempt.hidden, false))
+    const [{ cleared }] = await db.select({ cleared: count() }).from(dailyAttempt).where(onBoard)
+    const placed = mine && mine.durationMs !== null && !mine.hidden
+      ? await db.select({ quicker: count() }).from(dailyAttempt).where(and(onBoard, lt(dailyAttempt.durationMs, mine.durationMs)))
+      : null
+
+    // The record of their own go, once they have cleared it, for looking back over. It gives nothing away: a
+    // player who has cleared the board has seen all of it, and nobody else is shown a go at today's
+    const [record] = session && mine && mine.durationMs !== null
+      ? await db.select({ id: gameRecord.id }).from(gameRecord)
+        .where(and(eq(gameRecord.userId, session.user.id), eq(gameRecord.kind, "daily"), sql`${gameRecord.createdAt} >= ${date}::date`))
+        .orderBy(desc(gameRecord.createdAt))
+        .limit(1)
+      : []
+
     return c.json({
       date,
       settings: DAILY_BOARD_SETTINGS,
       entries,
-      // null if they haven't started today (or aren't signed in); durationMs is null until they have cleared it
-      mine: mine ? { startedAt: mine.startedAt.toISOString(), durationMs: mine.durationMs, mineHits: mine.mineHits } : null,
+      // how many players have cleared today's board: there may be more of them than the list has places for
+      cleared,
+      // Null if they haven't started today (or aren't signed in). durationMs is null until they have cleared it, and
+      // place until then too: where they stand among everyone who has (and never, for a time kept off the board)
+      mine: mine ? {
+        startedAt: mine.startedAt.toISOString(), durationMs: mine.durationMs, mineHits: mine.mineHits,
+        place: placed ? placed[0].quicker + 1 : null,
+        recordId: record?.id ?? null,
+      } : null,
     })
   })
   .get("/avatars/:userId", async (c) => {

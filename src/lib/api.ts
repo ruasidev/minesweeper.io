@@ -201,8 +201,12 @@ export type DailyInfo = {
   date: string
   settings: BoardSettings
   entries: ScoreEntry[]
-  // null if they haven't started today or aren't signed in; durationMs is null until they have cleared it
-  mine: { startedAt: string, durationMs: number | null, mineHits: number | null } | null
+  // how many players have cleared it: there may be more of them than `entries` has places for
+  cleared: number
+  // Null if they haven't started today or aren't signed in. durationMs is null until they have cleared it, and so
+  // are their place among everyone who has (which a time kept off the leaderboard never gets) and the record of
+  // their game, which is theirs to play back
+  mine: { startedAt: string, durationMs: number | null, mineHits: number | null, place: number | null, recordId: number | null } | null
 }
 
 // Each player's fastest clear of one of the classic boards, in one game: either of the singleplayer ones, or the
