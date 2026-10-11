@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
@@ -6,6 +6,7 @@ import { useConnection } from "../../context/ConnectionContext"
 import { Activity, Eye, Trophy } from "lucide-react"
 import type { AuthMode } from "../../game/types"
 import { useLayout } from "../../hooks/useLayout"
+import { useLetGo } from "../../hooks/useLetGo"
 import { navigate } from "../../hooks/useRoute"
 import { getDaily, type DailyInfo } from "../../lib/api"
 import { ownGameIn } from "../../lib/connection"
@@ -32,19 +33,8 @@ const WIN_HOLD_MS = 2200
 function useDailyOnBoard(): boolean {
   const daily = ownGameIn(useConnection(), "daily")
   const finished = daily?.outcome === "cleared"
-  const [held, setHeld] = useState(false)
-  // a board that was cleared before coming to this page has had its moment already
-  const clearedBefore = useRef(finished)
-  useEffect(() => {
-    if (!finished || clearedBefore.current) {
-      clearedBefore.current = finished
-      return
-    }
-    setHeld(true)
-    const timer = setTimeout(() => setHeld(false), WIN_HOLD_MS)
-    return () => clearTimeout(timer)
-  }, [finished])
-  return daily !== null && (!finished || held)
+  const letGo = useLetGo(finished, WIN_HOLD_MS)
+  return daily !== null && !letGo
 }
 
 // the time now, looked at again every half minute: enough for something that counts down in minutes
