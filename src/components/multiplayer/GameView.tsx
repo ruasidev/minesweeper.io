@@ -12,6 +12,7 @@ import { playSound } from "../../lib/sounds"
 import { boardSpan } from "../../lib/boardFit"
 import { ownGameIn } from "../../lib/connection"
 import { formatTimeLeft } from "../../lib/time"
+import { rulesOf } from "../../../shared/game/modes"
 import type { GameSummary, RoomDetail } from "../../../shared/protocol"
 import FloatingWindow from "../app/FloatingWindow"
 import BoardStage from "../minesweeper/BoardStage"
@@ -23,13 +24,14 @@ import OpponentBox from "./OpponentBox"
 import { plural } from "../../lib/text"
 
 // The clock on the players still going, which starts once enough of the others have finished.
-// It stays in view however far down the board they have scrolled, and beeps when it starts and through its last seconds
-function TimeLimit({ deadlineAt }: { deadlineAt: number }) {
-  const { compact } = useLayout()
-  const left = useTimeLeft(deadlineAt)
-  const lastSeconds = left <= 10_000
+//
+// Wherever it is shown, it takes up no room that wasn't already set aside for it: it starts in the middle of a
+// game, and a board that moved under the pointer just then would be a click on the wrong cell.
 
+// It beeps when it starts and through its last seconds
+function useTimeLimitBeeps(deadlineAt: number | null) {
   useEffect(() => {
+    if (deadlineAt === null) return
     const untilEnd = deadlineAt - Date.now()
     const beeps = [playSound("countdown")]
     for (const seconds of [3, 2, 1]) {
@@ -37,18 +39,30 @@ function TimeLimit({ deadlineAt }: { deadlineAt: number }) {
     }
     return () => beeps.forEach(cancel => cancel())
   }, [deadlineAt])
+}
 
+// On a big screen: a pill that floats over the head of the game, and stays in view however far down the board
+// the player has scrolled. `spare` is the same pill with nothing in it to see: what keeps its room for it
+function TimeLimitPill({ deadlineAt, spare }: { deadlineAt: number, spare?: boolean }) {
+  const left = useTimeLeft(deadlineAt)
+  const lastSeconds = left <= 10_000
   return (
     <div
-      role="timer"
-      className={`flex items-center gap-3 rounded-xl shadow-lg shadow-black/40 font-semibold cursor-default text-white
-        ${compact ? "px-3 py-1.5 text-sm" : "sticky top-2 z-20 self-start px-4 py-2"}
-        ${lastSeconds ? "bg-red-600 animate-pulse" : "bg-amber-600"}`}
+      role={spare ? undefined : "timer"}
+      aria-hidden={spare}
+      className={`flex items-center gap-3 px-4 py-1.5 rounded-xl font-semibold whitespace-nowrap cursor-default text-white
+        ${spare ? "invisible" : `shadow-lg shadow-black/40 ${lastSeconds ? "bg-red-600 animate-pulse" : "bg-amber-600"}`}`}
     >
-      <span className={`font-extrabold tabular-nums ${compact ? "text-xl" : "text-2xl"}`}>{formatTimeLeft(left)}</span>
-      <span>{compact ? "left: enough of the others have finished" : "left to clear the board: enough of the others have finished"}</span>
+      <span className="text-2xl font-extrabold tabular-nums">{spare ? "00:00" : formatTimeLeft(left)}</span>
+      <span>left to finish</span>
     </div>
   )
+}
+
+// On a small one: the figure the game's own clock has on the bar, counting down in its place
+function TimeLeftFigure({ deadlineAt, className }: { deadlineAt: number, className: string }) {
+  const left = useTimeLeft(deadlineAt)
+  return <span role="timer" className={`${className} ${left <= 10_000 ? "text-red-500! animate-pulse" : "text-amber-500!"}`}>{formatTimeLeft(left)}</span>
 }
 
 // How much room a column of the other players' boards needs beside this player's own, with the gap between them
@@ -76,6 +90,9 @@ export default function GameView({ room, game, connection }: { room: RoomDetail,
   const mine = myId ? game.progress[myId] : undefined
   const playing = mine?.outcome === "playing"
   const finishedMs = mine?.finishedMs ?? null
+  // when this player's time is up, once that clock is running: only those still playing are on it
+  const deadlineAt = playing ? connection.gameDeadlineAt : null
+  useTimeLimitBeeps(deadlineAt)
   const isHost = room.hostId === myId
   // everyone else who started, including anyone who has left the room since
   const opponents = game.players.filter(player => player.id !== myId && game.progress[player.id])
@@ -116,8 +133,12 @@ export default function GameView({ room, game, connection }: { room: RoomDetail,
                   </button>
                 }
               >
-                <BarField label="Time" vertical={short}>
-                  <span className={figure}><GameClock startedAt={connection.gameStartedAt} durationMs={finishedMs} /></span>
+                {/* the clock on the players still going counts down where the game's own clock was: nothing new
+                    comes onto the screen, so nothing on it moves */}
+                <BarField label={deadlineAt !== null ? "Time left" : "Time"} vertical={short}>
+                  {deadlineAt !== null
+                    ? <TimeLeftFigure deadlineAt={deadlineAt} className={figure} />
+                    : <span className={figure}><GameClock startedAt={connection.gameStartedAt} durationMs={finishedMs} /></span>}
                 </BarField>
                 <BarField label="Uncovered" vertical={short}>
                   <span className={`${figure} ${mine?.outcome === "cleared" ? "text-green-500!" : ""}`}>{mine?.percent ?? 0}%</span>
@@ -134,7 +155,6 @@ export default function GameView({ room, game, connection }: { room: RoomDetail,
               )}
             </div>
           }
-          banner={playing && connection.gameDeadlineAt !== null && <TimeLimit deadlineAt={connection.gameDeadlineAt} />}
           // it stays while a cleared board plays out its win, so the board doesn't jump as it does
           dock={touch ? <Dock><FlagToggle /></Dock> : undefined}
         >
@@ -166,13 +186,28 @@ export default function GameView({ room, game, connection }: { room: RoomDetail,
 
   return (
     <>
-      <section className={`${styles.card} flex flex-wrap items-center gap-x-6 gap-y-3 p-4 cursor-default ${theme.textBody}`}>
-        <h2 className={`text-xl font-semibold truncate ${theme.textHead}`}>{room.name}</h2>
-        <span className="font-semibold"><GameClock startedAt={connection.gameStartedAt} durationMs={finishedMs} /></span>
-        {mine && <span className="font-semibold">{mine.percent}% uncovered</span>}
-        {mine && mine.mineHits > 0 && <span className="font-semibold">{plural(mine.mineHits, "mine")} hit</span>}
-        {mine?.outcome === "cleared" && <span className="font-semibold text-green-500">Board cleared!</span>}
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+      {/* The clock on the players still going. It floats: it has no height of its own, so its coming and going
+          moves nothing, and it sits over the place the head of the game keeps for it (below) until the page is
+          scrolled, when it stays at the top of what can be seen. (The margin takes back the gap this would
+          otherwise add between itself and the head of the game) */}
+      <div className="sticky top-2 z-20 h-0 -mb-4 flex justify-center pointer-events-none">
+        {deadlineAt !== null && <div className="mt-4"><TimeLimitPill deadlineAt={deadlineAt} /></div>}
+      </div>
+
+      {/* What is in the middle is that place. It is kept from the start in a game that can have such a clock,
+          whether or not one is running, so that what is either side of it never has to make room */}
+      <section className={`${styles.card} grid grid-cols-[1fr_auto_1fr] items-center gap-x-6 p-4 cursor-default ${theme.textBody}`}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
+          <h2 className={`text-xl font-semibold truncate ${theme.textHead}`}>{room.name}</h2>
+          <span className="font-semibold"><GameClock startedAt={connection.gameStartedAt} durationMs={finishedMs} /></span>
+          {mine && <span className="font-semibold whitespace-nowrap tabular-nums">{mine.percent}% uncovered</span>}
+          {/* there from the start, at nought: a figure that turned up with the first mine would push the rest along */}
+          {mine && <span className="font-semibold whitespace-nowrap tabular-nums">{plural(mine.mineHits, "mine")} hit</span>}
+          {mine?.outcome === "cleared" && <span className="font-semibold text-green-500">Board cleared!</span>}
+        </div>
+        {/* at the top of the row, which is where the pill floats, however many lines the rest takes */}
+        <div className="self-start">{rulesOf(game.mode).finishLimit && <TimeLimitPill deadlineAt={0} spare />}</div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {playing && (confirmingGiveUp ? (
             <>
               <span className="font-semibold">Give up?</span>
@@ -188,8 +223,6 @@ export default function GameView({ room, game, connection }: { room: RoomDetail,
           {!confirmingGiveUp && <button className={styles.ghost} onClick={connection.leaveRoom}>Leave room</button>}
         </div>
       </section>
-
-      {playing && connection.gameDeadlineAt !== null && <TimeLimit deadlineAt={connection.gameDeadlineAt} />}
 
       <div ref={areaRef} className="flex flex-col gap-4">
         {!beside && opponents.length > 0 && <div className="flex flex-wrap justify-center gap-6">{opponents.map(boxFor)}</div>}
