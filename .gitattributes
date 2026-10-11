@@ -1,0 +1,4 @@
+# Written by tools, not by hand: kept out of diffs and collapsed in reviews
+shared/engine/boardgen.wasm.ts linguist-generated=true -diff
+crates/boardgen/tests/vectors.json linguist-generated=true
+Cargo.lock linguist-generated=true

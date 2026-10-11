@@ -1,35 +1,35 @@
-import { useState } from "react";
-import { useAccount } from "../../context/AccountContext";
-import { useTheme } from "../../context/ThemeContext";
-import type { AuthMode } from "../../game/types";
-import { useLayout } from "../../hooks/useLayout";
-import { avatarSrc } from "../../lib/avatar";
-import AccountMenu from "../account/AccountMenu";
-import AdminBadge from "../admin/AdminBadge";
+import { useState } from "react"
+import { useAccount } from "../../context/AccountContext"
+import { useTheme } from "../../context/ThemeContext"
+import type { AuthMode } from "../../game/types"
+import { useLayout } from "../../hooks/useLayout"
+import { avatarSrc } from "../../lib/avatar"
+import AccountMenu from "../account/AccountMenu"
+import AdminBadge from "../admin/AdminBadge"
 
 type AccountButtonsProps = {
-    onOpenAuth: (mode: AuthMode) => void
-    onOpenProfile: () => void
-    onOpenHistory: () => void
+  onOpenAuth: (mode: AuthMode) => void
+  onOpenProfile: () => void
+  onOpenHistory: () => void
 }
 
 // The account corner of the header: "Log in" / "Sign up" when signed out, which open the account window on that
 // form; otherwise who is signed in, which opens the menu of what is theirs. On a phone they are cut down to fit
 // beside the game's name
 export default function AccountButtons({ onOpenAuth, onOpenProfile, onOpenHistory }: AccountButtonsProps) {
-    const { theme } = useTheme()
-    // the button itself while its menu is open: the menu hangs off it
-    const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
-    const { session, isPending, isAdmin, profile } = useAccount()
-    const slim = useLayout().mode === "phone"
+  const { theme } = useTheme()
+  // the button itself while its menu is open: the menu hangs off it
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
+  const { session, isPending, isAdmin, profile } = useAccount()
+  const slim = useLayout().mode === "phone"
 
-    // Not known yet whether someone is signed in; show neither rather than flash the wrong one
-    if (isPending) return null
+  // Not known yet whether someone is signed in; show neither rather than flash the wrong one
+  if (isPending) return null
 
-    if (!session) {
-        const size = slim ? "h-9 px-2.5 text-sm" : "h-9 px-3.5"
-        return (
-            <>
+  if (!session) {
+    const size = slim ? "h-9 px-2.5 text-sm" : "h-9 px-3.5"
+    return (
+      <>
                 <button
                     onClick={() => onOpenAuth("signIn")}
                     className={`${size} rounded-lg font-semibold whitespace-nowrap transition-colors hover:opacity-80 pressable ${theme.textHead} ${theme.itemHoverBg}`}
@@ -43,12 +43,12 @@ export default function AccountButtons({ onOpenAuth, onOpenProfile, onOpenHistor
                 >
                     Sign up
                 </button>
-            </>
-        )
-    }
+      </>
+    )
+  }
 
-    return (
-        <>
+  return (
+    <>
         <button
             onClick={(e) => {
                 const pressed = e.currentTarget
@@ -69,6 +69,6 @@ export default function AccountButtons({ onOpenAuth, onOpenProfile, onOpenHistor
             />
         </button>
         {menuAnchor && <AccountMenu anchor={menuAnchor} onClose={() => setMenuAnchor(null)} onOpenProfile={onOpenProfile} onOpenHistory={onOpenHistory} />}
-        </>
-    )
+    </>
+  )
 }

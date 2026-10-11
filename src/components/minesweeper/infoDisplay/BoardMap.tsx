@@ -1,5 +1,6 @@
 import { useTheme } from "../../../context/ThemeContext"
-import type { Board } from "../../../game/types"
+import { isKnownMine, type BoardView } from "../../../lib/boardView"
+import { CELL_FLAGGED, isUncovered } from "../../../../shared/engine/view"
 import { useViewportWidth } from "../../../hooks/useViewportWidth"
 
 // the map is about this wide, however many columns the board has: less where the screen is narrower than that
@@ -18,22 +19,22 @@ const KINDS = {
 
 type Kind = keyof typeof KINDS
 
-function kindOf(cell: Board["grid"][number][number]): Kind | null {
-  if (cell.hasMine) return cell.revealed ? "hit" : cell.flagged ? "rightFlag" : "mine"
-  return cell.flagged ? "wrongFlag" : null
+function kindOf(view: BoardView, at: number): Kind | null {
+  const cell = view.cells[at]
+  if (isKnownMine(view, at)) return isUncovered(cell) ? "hit" : cell === CELL_FLAGGED ? "rightFlag" : "mine"
+  return cell === CELL_FLAGGED ? "wrongFlag" : null
 }
 
 // A lost board in miniature, with everything the player couldn't see: where the mines were, the one that ended the
 // game, and which of their flags were right. Under it, what each colour on it means
-export default function BoardMap({ board }: { board: Board }) {
+export default function BoardMap({ view }: { view: BoardView }) {
   const { theme } = useTheme()
   const width = Math.min(MAP_WIDTH, useViewportWidth() - WINDOW_EDGES)
-  const size = Math.max(3, Math.min(16, Math.floor(width / board.cols)))
+  const size = Math.max(3, Math.min(16, Math.floor(width / view.cols)))
   const gap = size > 5 ? 1 : 0
-  const cells = board.grid.flat()
+  const kinds = Array.from(view.cells, (_, at) => kindOf(view, at))
   const counts = new Map<Kind, number>()
-  for (const cell of cells) {
-    const kind = kindOf(cell)
+  for (const kind of kinds) {
     if (kind) counts.set(kind, (counts.get(kind) ?? 0) + 1)
   }
 
@@ -41,17 +42,14 @@ export default function BoardMap({ board }: { board: Board }) {
     <div className="flex flex-col items-center gap-3">
       <div
         className={`grid p-1.5 rounded-lg border ${theme.background} ${theme.itemBorder}`}
-        style={{ gridTemplateColumns: `repeat(${board.cols}, ${size}px)`, gridAutoRows: `${size}px`, gap }}
+        style={{ gridTemplateColumns: `repeat(${view.cols}, ${size}px)`, gridAutoRows: `${size}px`, gap }}
       >
-        {cells.map((cell) => {
-          const kind = kindOf(cell)
-          return (
-            <div
-              key={`${cell.row}-${cell.col}`}
-              className={`relative ${size > 5 ? "rounded-[2px]" : ""} ${kind ? KINDS[kind].color : cell.revealed ? theme.cellVisible : theme.cellHidden}`}
-            />
-          )
-        })}
+        {kinds.map((kind, at) => (
+          <div
+            key={at}
+            className={`relative ${size > 5 ? "rounded-[2px]" : ""} ${kind ? KINDS[kind].color : isUncovered(view.cells[at]) ? theme.cellVisible : theme.cellHidden}`}
+          />
+        ))}
       </div>
       <ul className={`flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs ${theme.textBody}`}>
         {(Object.keys(KINDS) as Kind[]).filter(kind => counts.has(kind)).map(kind => (

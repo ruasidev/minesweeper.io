@@ -2,19 +2,19 @@ import { useEffect, useState, type FormEvent } from "react"
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
-import type { Multiplayer } from "../../hooks/useMultiplayer"
+import type { ServerConnection } from "../../hooks/useServerConnection"
 import { PASSCODE_MAX, PASSCODE_MIN, ROOM_NAME_MAX, type RoomVisibility } from "../../../shared/protocol"
 import SidebarSectionHeader from "../menu/SidebarSectionHeader"
 
 // `bare` is for where something else frames the form and heads it: the sheet it is shown in on a phone
-export default function CreateRoomForm({ multiplayer, bare }: { multiplayer: Multiplayer, bare?: boolean }) {
+export default function CreateRoomForm({ connection, bare }: { connection: ServerConnection, bare?: boolean }) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { profile } = useAccount()
   const [name, setName] = useState("")
   const [visibility, setVisibility] = useState<RoomVisibility>("public")
   const [passcode, setPasscode] = useState("")
-  const error = multiplayer.error?.action === "createRoom" ? multiplayer.error.message : null
+  const error = connection.error?.action === "createRoom" ? connection.error.message : null
 
   // A starting name, once the player's username is known and unless they have typed one already
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function CreateRoomForm({ multiplayer, bare }: { multiplayer: Mul
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    multiplayer.createRoom(name, visibility, visibility === "private" ? passcode : undefined)
+    connection.createRoom(name, visibility, visibility === "private" ? passcode : undefined)
   }
 
   return (
@@ -63,7 +63,7 @@ export default function CreateRoomForm({ multiplayer, bare }: { multiplayer: Mul
         />
       )}
 
-      <button type="submit" className={styles.primary} disabled={multiplayer.status !== "connected"}>Create room</button>
+      <button type="submit" className={styles.primary} disabled={connection.status !== "connected"}>Create room</button>
       {error && <p role="alert" className="text-sm text-red-500 font-semibold">{error}</p>}
     </form>
   )

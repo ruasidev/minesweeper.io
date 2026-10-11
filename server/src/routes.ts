@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, isNotNull, lt, or, sql } from "drizzle-orm"
+import { and, asc, count, desc, eq, ilike, isNotNull, lt, ne, or, sql } from "drizzle-orm"
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import { createMiddleware } from "hono/factory"
@@ -9,9 +9,10 @@ import { account, avatar, dailyAttempt, gameRecord, gameResult, multiplayerResul
 import { env } from "./env.js"
 import { BIO_MAX, USERNAME_PATTERN } from "../../shared/profile.js"
 import { STARTING_ELO } from "../../shared/progression.js"
-import { BOARD_PRESETS, DAILY_BOARD_SETTINGS } from "../../shared/protocol.js"
-import { dailyDate } from "./multiplayer/daily.js"
-import { dropPlayer, openRooms } from "./multiplayer/lobby.js"
+import { BOARD_PRESETS, DAILY_BOARD_SETTINGS } from "../../shared/game/boards.js"
+import { isSingleplayerMode } from "../../shared/game/modes.js"
+import { lobby } from "./lobby/index.js"
+import { dailyDate } from "./modes/daily.js"
 import { getJoinDate, getOrCreateProfile, getStats, isUsernameTaken } from "./profile.js"
 
 type SessionUser = typeof auth.$Infer.Session.user
@@ -32,11 +33,13 @@ const LEADERBOARD_SIZE = 50
 // Open to everyone: profile photos are shown to other players,
 // and visitors who haven't signed in yet get to see which rooms are open
 export const publicRoutes = new Hono()
-  .get("/rooms", (c) => c.json({ rooms: openRooms() }))
+  .get("/rooms", (c) => c.json({ rooms: lobby.openRooms() }))
 
-  // The fastest clears of one of the classic boards: every player's best time, quickest first, in multiplayer
-  // (the default) or with ?mode=singleplayer. Either way only games the server ran itself are counted, and not
-  // the ones kept off the boards (too fast to have been a person, or removed by an admin)
+  // The fastest clears of one of the classic boards: every player's best time, quickest first. In multiplayer,
+  // unless ?mode= names one of the singleplayer games (noGuess, classic), each of which has leaderboards of its
+  // own: a board that never needs a guess and one laid by chance are not the same thing to be quickest at.
+  // Either way only games the server ran itself are counted, and not the ones kept off the boards (too fast to
+  // have been a person, or removed by an admin)
   .get("/leaderboard/:board", async (c) => {
     const preset = BOARD_PRESETS.find(candidate => candidate.id === c.req.param("board"))
     if (!preset) return c.json({ error: "There's no leaderboard for that board" }, 404)
@@ -44,7 +47,8 @@ export const publicRoutes = new Hono()
     const username = sql<string>`coalesce(${profile.username}, ${user.name})`
 
     // each player's fastest run on this board
-    const best = c.req.query("mode") === "singleplayer"
+    const mode = c.req.query("mode")
+    const best = isSingleplayerMode(mode)
       ? await db.selectDistinctOn([gameResult.userId], {
         userId: gameResult.userId,
         username,
@@ -56,7 +60,7 @@ export const publicRoutes = new Hono()
         .innerJoin(user, eq(user.id, gameResult.userId))
         .leftJoin(profile, eq(profile.userId, user.id))
         .where(and(
-          eq(gameResult.rows, rows), eq(gameResult.cols, cols), eq(gameResult.mines, mines),
+          eq(gameResult.mode, mode), eq(gameResult.rows, rows), eq(gameResult.cols, cols), eq(gameResult.mines, mines),
           eq(gameResult.won, true), eq(gameResult.verified, true), eq(gameResult.hidden, false), isNotNull(gameResult.durationMs),
         ))
         .orderBy(gameResult.userId, asc(gameResult.durationMs))
@@ -268,6 +272,7 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
     const games = await db.select({
       id: gameRecord.id,
       kind: gameRecord.kind,
+      mode: gameRecord.mode,
       rated: gameRecord.rated,
       rows: gameRecord.rows,
       cols: gameRecord.cols,
@@ -303,6 +308,7 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
       username: sql<string>`coalesce(${profile.username}, ${user.name})`,
       image: user.image,
       kind: gameRecord.kind,
+      mode: gameRecord.mode,
       rated: gameRecord.rated,
       rows: gameRecord.rows,
       cols: gameRecord.cols,
@@ -314,6 +320,7 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
       durationMs: gameRecord.durationMs,
       mineHits: gameRecord.mineHits,
       moves: gameRecord.moves,
+      match: gameRecord.match,
       at: gameRecord.createdAt,
     }).from(gameRecord)
       .innerJoin(user, eq(user.id, gameRecord.userId))
@@ -323,7 +330,25 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
     if (!seesEverything(viewer, game.userId) && game.kind === "daily" && dailyDate(game.at.getTime()) === dailyDate(Date.now())) {
       return c.json({ error: "Replays of today's challenge can be watched once the day is over" }, 403)
     }
-    return c.json(game)
+
+    // A multiplayer game was played on one board by everyone in it, and each of their games is kept the same way.
+    // The others' moves go with this player's, so the replay can show how far along each of them was at any moment
+    const others = game.kind !== "multiplayer" ? [] : await db.select({
+      id: gameRecord.id,
+      userId: gameRecord.userId,
+      username: sql<string>`coalesce(${profile.username}, ${user.name})`,
+      image: user.image,
+      outcome: gameRecord.outcome,
+      durationMs: gameRecord.durationMs,
+      moves: gameRecord.moves,
+    }).from(gameRecord)
+      .innerJoin(user, eq(user.id, gameRecord.userId))
+      .leftJoin(profile, eq(profile.userId, user.id))
+      .where(and(eq(gameRecord.match, game.match), ne(gameRecord.id, game.id)))
+      .orderBy(gameRecord.id)
+
+    // (which game of the room's it was is the server's own business)
+    return c.json({ ...game, match: undefined, others })
   })
 
   // Singleplayer results used to be reported here by the browser, which could report anything. The server runs
@@ -391,7 +416,7 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
       } else {
         const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 200) : ""
         await auth.api.banUser({ body: { userId, banReason: reason || "Banned by an admin" }, headers: c.req.raw.headers })
-        dropPlayer(userId)
+        lobby.dropPlayer(userId)
       }
     } catch (error) {
       return c.json({ error: error instanceof Error ? error.message : "That couldn't be done" }, 400)
@@ -401,10 +426,11 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
 
   // Takes one player's results on one board off the leaderboards, or puts them back: every result of theirs on
   // that board in that kind of game (or, for the daily challenge, their go on that day), since taking away only
-  // their best would just show the next best in its place
+  // their best would just show the next best in its place. In singleplayer, `mode` says which of its games, each
+  // of which has leaderboards of its own; without it, both
   .post("/admin/scores/visibility", async (c) => {
     const body = await c.req.json().catch(() => null)
-    const { kind, userId, rows, cols, mines, date } = body ?? {}
+    const { kind, mode, userId, rows, cols, mines, date } = body ?? {}
     const hidden = body?.hidden !== false
     const reason = hidden ? (typeof body?.reason === "string" && body.reason.trim() ? body.reason.trim().slice(0, 200) : "Removed by an admin") : null
     if (typeof userId !== "string") return c.json({ error: "Whose results?" }, 400)
@@ -414,9 +440,17 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
       await db.update(dailyAttempt).set({ hidden, hiddenReason: reason }).where(and(eq(dailyAttempt.userId, userId), eq(dailyAttempt.date, date)))
     } else if (kind === "singleplayer" || kind === "multiplayer") {
       if (![rows, cols, mines].every(value => isIntBetween(value, 1, 9999))) return c.json({ error: "Which board?" }, 400)
-      const table = kind === "singleplayer" ? gameResult : multiplayerResult
-      await db.update(table).set({ hidden, hiddenReason: reason })
-        .where(and(eq(table.userId, userId), eq(table.rows, rows), eq(table.cols, cols), eq(table.mines, mines)))
+      if (kind === "singleplayer") {
+        if (mode !== undefined && !isSingleplayerMode(mode)) return c.json({ error: "Which game?" }, 400)
+        await db.update(gameResult).set({ hidden, hiddenReason: reason }).where(and(
+          eq(gameResult.userId, userId), eq(gameResult.rows, rows), eq(gameResult.cols, cols), eq(gameResult.mines, mines),
+          mode === undefined ? undefined : eq(gameResult.mode, mode),
+        ))
+      } else {
+        await db.update(multiplayerResult).set({ hidden, hiddenReason: reason }).where(and(
+          eq(multiplayerResult.userId, userId), eq(multiplayerResult.rows, rows), eq(multiplayerResult.cols, cols), eq(multiplayerResult.mines, mines),
+        ))
+      }
     } else {
       return c.json({ error: "Which kind of game?" }, 400)
     }
@@ -430,6 +464,7 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
       userId: gameRecord.userId,
       username: sql<string>`coalesce(${profile.username}, ${user.name})`,
       kind: gameRecord.kind,
+      mode: gameRecord.mode,
       rows: gameRecord.rows,
       cols: gameRecord.cols,
       mines: gameRecord.mines,

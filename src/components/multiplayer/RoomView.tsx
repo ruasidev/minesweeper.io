@@ -4,19 +4,18 @@ import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import { useLayout } from "../../hooks/useLayout"
-import type { Multiplayer } from "../../hooks/useMultiplayer"
+import type { ServerConnection } from "../../hooks/useServerConnection"
 import { avatarSrc } from "../../lib/avatar"
-import { getMaxMines, MIN_BOARD_SIZE } from "../../../shared/board"
-import { BOARD_PRESETS, BOARD_SIZE_MAX, MINES_MAX, type BoardSettings, type RoomDetail } from "../../../shared/protocol"
+import { BOARD_SIZE_MAX, BOARD_SIZE_MIN, MINES_MAX, maxMines } from "../../../shared/engine/generate"
+import { BOARD_PRESETS, boardSize, presetOf } from "../../../shared/game/boards"
+import type { BoardSettings, RoomDetail } from "../../../shared/protocol"
 import PlayerName from "../account/PlayerName"
 import NumberInput from "../app/NumberInput"
 import SidebarSectionHeader from "../menu/SidebarSectionHeader"
 
-const describe = ({ rows, cols, mines }: BoardSettings) => `${rows} × ${cols} · ${mines} ${mines === 1 ? "mine" : "mines"}`
-
 type RoomViewProps = {
   room: RoomDetail
-  multiplayer: Multiplayer
+  connection: ServerConnection
   // back to the results of the room's game, for a player who took part in it
   onViewResults?: () => void
 }
@@ -24,7 +23,7 @@ type RoomViewProps = {
 // The room this player is in: the room itself across the top, then the game being set up (the host's to choose,
 // everyone else's to see) beside the list of who is here. A player whose own game is over can come back here
 // while the others are still playing; nothing can be set up or started until they are done
-export default function RoomView({ room, multiplayer, onViewResults }: RoomViewProps) {
+export default function RoomView({ room, connection, onViewResults }: RoomViewProps) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { session } = useAccount()
@@ -36,32 +35,30 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
   // the host sets up the next game, once the last one is over
   const canSetUp = isHost && !gameOn
   const { rows, cols, mines } = room.settings
-  const maxMines = Math.min(MINES_MAX, getMaxMines(rows, cols))
+  const mostMines = Math.min(MINES_MAX, maxMines(rows, cols))
 
-  // The mode is whichever classic board the settings match, or Custom.
+  // The board chosen is whichever classic one the settings match, or Custom.
   // The host can also sit on Custom with the sliders still matching a classic board
   const [customChosen, setCustomChosen] = useState(false)
-  const matchingPreset = BOARD_PRESETS.find(preset =>
-    preset.settings.rows === rows && preset.settings.cols === cols && preset.settings.mines === mines)
-  const mode = canSetUp && customChosen ? "custom" : matchingPreset?.id ?? "custom"
+  const board = canSetUp && customChosen ? "custom" : presetOf(room.settings)?.id ?? "custom"
 
   function changeSettings(change: Partial<BoardSettings>) {
     const next = { ...room.settings, ...change }
     // a smaller board may not fit as many mines
-    next.mines = Math.min(next.mines, MINES_MAX, getMaxMines(next.rows, next.cols))
-    multiplayer.setSettings(next)
+    next.mines = Math.min(next.mines, MINES_MAX, maxMines(next.rows, next.cols))
+    connection.setSettings(next)
   }
 
   // the small buttons the host gets beside each other player
   const hostButtonClass = styles.ghostSmall
 
   // One of the modes to pick from. Only the host can pick; everyone else just sees which one is chosen
-  const modeButton = (id: string, label: string, detail: string, onPick: () => void) => (
+  const boardButton = (id: string, label: string, detail: string, onPick: () => void) => (
     <button
       key={id}
-      aria-pressed={mode === id}
+      aria-pressed={board === id}
       disabled={!canSetUp}
-      className={`${styles.option(mode === id)} flex flex-col items-center gap-0.5 ${canSetUp ? "" : "pointer-events-none"}`}
+      className={`${styles.option(board === id)} flex flex-col items-center gap-0.5 ${canSetUp ? "" : "pointer-events-none"}`}
       onClick={onPick}
     >
       <span>{label}</span>
@@ -79,7 +76,7 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
         </span>
         <div className="ml-auto flex flex-wrap justify-end gap-2">
           {onViewResults && <button className={styles.ghost} onClick={onViewResults}>{gameOn ? "Results so far" : "Last game's results"}</button>}
-          <button className={styles.ghost} onClick={multiplayer.leaveRoom}>Leave room</button>
+          <button className={styles.ghost} onClick={connection.leaveRoom}>Leave room</button>
         </div>
       </section>
 
@@ -90,21 +87,21 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
           <div>
             <SidebarSectionHeader text="Mode" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-              {BOARD_PRESETS.map(preset => modeButton(preset.id, preset.label, describe(preset.settings), () => {
+              {BOARD_PRESETS.map(preset => boardButton(preset.id, preset.label, boardSize(preset.settings), () => {
                 setCustomChosen(false)
-                multiplayer.setSettings(preset.settings)
+                connection.setSettings(preset.settings)
               }))}
-              {modeButton("custom", "Custom", mode === "custom" ? describe(room.settings) : "Your own board", () => setCustomChosen(true))}
+              {boardButton("custom", "Custom", board === "custom" ? boardSize(room.settings) : "Your own board", () => setCustomChosen(true))}
             </div>
           </div>
 
-          {canSetUp && mode === "custom" && (
+          {canSetUp && board === "custom" && (
             // three side by side where there is a mouse to work them with; one under the other, with buttons to step
             // them exactly, where it is a finger
             <div className={`grid gap-4 ${touch ? "max-w-md" : "grid-cols-3"}`}>
-              <NumberInput stepper={touch} label="rows" value={rows} min={MIN_BOARD_SIZE} max={BOARD_SIZE_MAX} onChange={rows => changeSettings({ rows })} />
-              <NumberInput stepper={touch} label="cols" value={cols} min={MIN_BOARD_SIZE} max={BOARD_SIZE_MAX} onChange={cols => changeSettings({ cols })} />
-              <NumberInput stepper={touch} label="mines" value={mines} max={maxMines} onChange={mines => changeSettings({ mines })} />
+              <NumberInput stepper={touch} label="rows" value={rows} min={BOARD_SIZE_MIN} max={BOARD_SIZE_MAX} onChange={rows => changeSettings({ rows })} />
+              <NumberInput stepper={touch} label="cols" value={cols} min={BOARD_SIZE_MIN} max={BOARD_SIZE_MAX} onChange={cols => changeSettings({ cols })} />
+              <NumberInput stepper={touch} label="mines" value={mines} max={mostMines} onChange={mines => changeSettings({ mines })} />
             </div>
           )}
 
@@ -114,7 +111,7 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
                 : isHost ? "Everyone plays the same board."
                 : "Waiting for the host to start the game."}
             </span>
-            {isHost && <button className={`${styles.primary} ml-auto px-6! max-sm:w-full`} disabled={gameOn} onClick={multiplayer.startGame}>Start game</button>}
+            {isHost && <button className={`${styles.primary} ml-auto px-6! max-sm:w-full`} disabled={gameOn} onClick={connection.startGame}>Start game</button>}
           </div>
         </section>
 
@@ -141,8 +138,8 @@ export default function RoomView({ room, multiplayer, onViewResults }: RoomViewP
                 )}
                 {isHost && player.id !== room.hostId && (
                   <div className="ml-auto shrink-0 flex gap-2">
-                    <button className={hostButtonClass} onClick={() => multiplayer.makeHost(player.id)}>Make host</button>
-                    <button className={hostButtonClass} title="Remove from the room" onClick={() => multiplayer.kick(player.id)}>Kick</button>
+                    <button className={hostButtonClass} onClick={() => connection.makeHost(player.id)}>Make host</button>
+                    <button className={hostButtonClass} title="Remove from the room" onClick={() => connection.kick(player.id)}>Kick</button>
                   </div>
                 )}
               </div>

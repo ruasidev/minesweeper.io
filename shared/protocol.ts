@@ -1,90 +1,78 @@
-// What the browser and the server say to each other over the multiplayer WebSocket (/api/ws), as JSON.
-// Imported by both sides, so this file must not import anything else
+// What the browser and the server say to each other over the game's WebSocket (/api/ws), as JSON.
+// Imported by both sides. The rules of the games themselves are in engine/ and game/
+
+import type { BoardSettings } from "./engine/field.js"
+import type { GameModeId, RoomModeId, SoloModeId } from "./game/modes.js"
+
+export type { BoardSettings } from "./engine/field.js"
+
+// Goes up whenever a message changes shape. The site says which it speaks as it connects (?v=), and a server that
+// speaks another closes the connection with CLOSE_OUTDATED: a page left open across an update is told to reload,
+// rather than left half working
+export const PROTOCOL_VERSION = 2
+
+// The code a connection is closed with when the same account connects again somewhere else
+export const CLOSE_REPLACED = 4000
+// ...when the account has been banned
+export const CLOSE_BANNED = 4003
+// ...and when the page is from before the server was last updated
+export const CLOSE_OUTDATED = 4004
 
 export const ROOM_NAME_MAX = 40
 export const PASSCODE_MIN = 4
 export const PASSCODE_MAX = 32
 
-// The code a connection is closed with when the same account connects again somewhere else
-export const CLOSE_REPLACED = 4000
-// ...and when the account has been banned
-export const CLOSE_BANNED = 4003
-
 export const CHAT_TEXT_MAX = 300
 // A room remembers this many of its latest chat messages, for showing to players who join later
 export const CHAT_HISTORY_MAX = 50
 
-export const BOARD_SIZE_MAX = 99
-export const MINES_MAX = 99
-
-// How long players get to look at the board, and where it opens, before a game lets them play
-export const START_COUNTDOWN_MS = 3000
-
-// A mine going off doesn't end a game the server runs. It covers back up everything the player had uncovered
-// within this many cells of it (a smaller blast on a small board), and they sit out while it plays out
-export const mineBlastRadius = ({ rows, cols }: { rows: number, cols: number }): number =>
-  Math.max(2, Math.min(3, Math.round(Math.min(rows, cols) / 5))) + 0.5
-export const MINE_COOLDOWN_MS = 800
-
-// Once at least half of the players have cleared the board, the rest get this long to finish before they are
-// stopped: a bigger board gives more time. (About 55 seconds for Beginner, 1:45 for Intermediate, 2:55 for Expert.)
-const FINISH_TIME_BASE_MS = 30_000
-const FINISH_TIME_PER_CELL_MS = 300
-const FINISH_TIME_MAX_MS = 10 * 60_000
-export const finishTimeMs = ({ rows, cols }: { rows: number, cols: number }): number =>
-  Math.min(FINISH_TIME_MAX_MS, FINISH_TIME_BASE_MS + rows * cols * FINISH_TIME_PER_CELL_MS)
-
 // How finished one section of a player's board is goes from 0 to this
 export const SECTION_LEVELS = 10
 
-// A player's own board is sent as one character per cell, row after row:
-// one of these, or "0" to "8" for an uncovered cell with that many mines around it
-export const CELL_HIDDEN = "."
-export const CELL_FLAGGED = "F"
-export const CELL_MINE = "*"
-
-export type BoardSettings = {
-  rows: number
-  cols: number
-  mines: number
-}
-
-// The classic boards. Any other board is a custom one
-export const BOARD_PRESETS: { id: string, label: string, settings: BoardSettings }[] = [
-  { id: "beginner", label: "Beginner", settings: { rows: 9, cols: 9, mines: 10 } },
-  { id: "intermediate", label: "Intermediate", settings: { rows: 16, cols: 16, mines: 40 } },
-  { id: "expert", label: "Expert", settings: { rows: 16, cols: 30, mines: 99 } },
-]
-
-// what a new room starts with: Intermediate
-export const DEFAULT_BOARD_SETTINGS: BoardSettings = BOARD_PRESETS[1].settings
-
-// the board every day's challenge is played on: Intermediate
-export const DAILY_BOARD_SETTINGS: BoardSettings = BOARD_PRESETS[1].settings
+export type CellPosition = { row: number, col: number }
 
 // How a player's game has gone: still at it, or how it ended for them.
 // "timedOut" is being stopped with the board uncleared: by the time limit, or by the host ending the game.
-// "lost" is uncovering a mine in a game where that ends it: singleplayer
+// "lost" is uncovering a mine in a game where that ends it
 export type PlayerOutcome = "playing" | "cleared" | "gaveUp" | "timedOut" | "left" | "lost"
 
-// One thing a player did in a game the server ran: how far into the game (in milliseconds), what it was
-// (0 uncovering or chording a cell, 1 flagging or unflagging one), and the cell. Every game is kept as a list of these
+// One thing a player did in a game: how far into the game (in milliseconds), what it was (0 clicking a cell, which
+// uncovers or chords it; 1 flagging or unflagging one), and the cell. Every game is kept as a list of these
 export type Move = [ms: number, kind: 0 | 1, row: number, col: number]
+export const MOVE_CLICK = 0
+export const MOVE_FLAG = 1
 
-// A singleplayer game the server is running for a signed-in player. The server holds the mines and times the game,
-// which is what lets the result be trusted
-export type SoloState = {
+// The game a player is playing themselves, whatever kind of game it is: their own board as they see it, and how
+// they stand. The server holds the mines and the clock, which is what lets a result be trusted
+export type OwnGame = {
   // different for every game
   id: number
+  mode: GameModeId
   settings: BoardSettings
-  // how long the game had been going when this was sent: its clock starts with the first click
+  // the cell the board was opened on
+  opening: CellPosition
+  // How long the game's clock had been running when this was sent.
+  // Negative during the countdown before a dealt board may be played: play begins when this reaches 0
   elapsedMs: number
-  outcome: "playing" | "cleared" | "lost"
-  // how long the game lasted, once it is over
-  endedMs: number | null
-  // Where every mine was, one character per cell, row after row ("1" a mine, "0" not).
-  // Only once the game is over: until then nothing about a covered cell leaves the server
-  mines: string | null
+  // their board, one character per cell, row after row (see engine/view.ts)
+  cells: string
+  // how long they still have to sit out after a mine went off
+  cooldownMs: number
+  outcome: PlayerOutcome
+  // how long their game lasted, once it is over for them
+  durationMs: number | null
+  mineHits: number
+  // how much of the board they have uncovered, 0 to 100
+  percent: number
+  // Where every mine was, one character per cell, row after row ("1" a mine, "0" not). Only once their game is over,
+  // and only in a game whose rules show it: until then nothing about a covered cell leaves the server
+  layout: string | null
+}
+
+// A board someone is watching: another player's, as that player sees it
+export type WatchedBoard = {
+  cells: string
+  cooldownMs: number
 }
 
 // How far along one player is, as everyone in the room sees it
@@ -106,25 +94,11 @@ export type PlayerProgress = {
   ratingChange: number | null
 }
 
-// A player's go at today's challenge, while they are playing it
-export type DailyState = {
-  // the day it belongs to, as YYYY-MM-DD (the server's day, in UTC)
-  date: string
-  settings: BoardSettings
-  // the cell the opening click was made on
-  start: { row: number, col: number }
-  // How long their clock had been running when this was sent: it starts the first time they start
-  // the challenge that day and never stops. Negative during the countdown before that
-  elapsedMs: number
-  percent: number
-  mineHits: number
-  finishedMs: number | null
-}
-
 // The game being played in a room, or the last one played there, as everyone in the room sees it
 export type GameSummary = {
   // different for every game, so one game can be told from the next
   id: number
+  mode: GameModeId
   settings: BoardSettings
   // whether the game counts towards ratings (see README: only some rooms' games do)
   rated: boolean
@@ -139,8 +113,8 @@ export type GameSummary = {
   // how many sections the board is divided into each way
   sectionRows: number
   sectionCols: number
-  // the cell the opening click was made on for everyone
-  start: { row: number, col: number }
+  // the cell the board was opened on for everyone
+  opening: CellPosition
   // How long the game had been going when this was sent.
   // Negative during the countdown before it starts: play begins when this reaches 0
   elapsedMs: number
@@ -156,7 +130,7 @@ export type Player = {
   image: string | null
 }
 
-// Something a player said in their room's chat
+// Something a player said in a chat
 export type ChatMessage = {
   id: number
   playerId: string
@@ -185,7 +159,8 @@ export type RoomDetail = {
   hostId: string
   // in the order they joined
   players: Player[]
-  // the board the next game will be played on; the host chooses
+  // the game the room plays next, and the board it will be played on; the host chooses both
+  mode: RoomModeId
   settings: BoardSettings
   game: GameSummary | null
 }
@@ -203,7 +178,8 @@ export type ClientMessage =
   | { type: "makeHost", playerId: string }
   // host only: remove a player from the room. They can't come back into it
   | { type: "kick", playerId: string }
-  // host only, between games
+  // host only, between games: what the room plays next, and on what board
+  | { type: "setMode", mode: RoomModeId }
   | { type: "setSettings", settings: BoardSettings }
   | { type: "startGame" }
   // host only: stop the game for everyone still playing it
@@ -213,14 +189,14 @@ export type ClientMessage =
   // Watch another player's board in the room's game, or stop watching (null).
   // Only for someone whose own game is over: everyone plays the same board
   | { type: "spectate", playerId: string | null }
-  // start today's challenge, or pick it back up; not while in a room
-  | { type: "startDaily" }
-  // Start a singleplayer game with its first click: the mines are laid around that cell, as they would be in the
-  // browser. Not while in a room. Whatever singleplayer game was going before is given up
-  | { type: "soloStart", settings: BoardSettings, row: number, col: number }
-  // give up the singleplayer game (or put away one that is over)
-  | { type: "soloEnd" }
-  // uncover a cell, or chord it if it is already uncovered: in the room's game, the daily challenge, or singleplayer
+  // Start a game played alone, or pick one back up where its rules allow. Not while in a room; whatever was being
+  // played alone before is given up. A game whose board opens on the player's own click is started by that click,
+  // on the board asked for: `settings` and `opening`. One whose board is dealt takes neither
+  | { type: "startSolo", mode: SoloModeId, settings?: BoardSettings, opening?: CellPosition }
+  // put the game being played alone away: giving it up, if it isn't over
+  | { type: "endSolo" }
+  // click a cell (which uncovers it, or chords it if it is uncovered already), or flag one, in whatever game this
+  // player is playing
   | { type: "reveal", row: number, col: number }
   | { type: "flag", row: number, col: number }
 
@@ -237,15 +213,11 @@ export type ServerMessage =
   | { type: "chatHistory", messages: ChatMessage[] }
   // something just said in the room
   | { type: "chat", message: ChatMessage }
-  // this player's go at today's challenge; sent when they start it and whenever it changes
-  | { type: "daily", daily: DailyState | null }
-  // this player's singleplayer game; sent when it starts, when it ends, and when it is put away
-  | { type: "solo", solo: SoloState | null }
-  // this player's own board in the game, and how long they still have to sit out;
-  // sent when the game starts and whenever their board changes
-  | { type: "board", cells: string, cooldownMs: number }
+  // The game this player is playing themselves, or null once there isn't one. Sent when it starts, whenever their
+  // board or their standing in it changes, and when it is put away
+  | { type: "game", game: OwnGame | null }
   // the board of the player being watched; sent on starting to watch and whenever that board changes
-  | { type: "watching", playerId: string, cells: string, cooldownMs: number }
+  | { type: "watching", playerId: string, board: WatchedBoard }
   // this player was removed from their room by its host
   | { type: "kicked", roomName: string }
   // something this player asked for couldn't be done

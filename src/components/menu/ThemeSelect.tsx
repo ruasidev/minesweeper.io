@@ -4,7 +4,7 @@ import { itemColors, themes } from "../../game/themes"
 import SidebarSectionHeader from "./SidebarSectionHeader"
 
 export default function ThemeSelect() {
-  const { theme, themeId, setThemeId } = useTheme();
+  const { theme, themeId, setThemeId } = useTheme()
 
   // the dark themes and the light ones are listed apart, each under its own heading
   const group = (heading: string, list: ThemeProps[]) => (

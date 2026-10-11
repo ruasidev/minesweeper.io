@@ -3,7 +3,8 @@ import { Eye } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
 import { useLayout } from "../../hooks/useLayout"
 import { describeResult } from "../../lib/gameResults"
-import { SECTION_LEVELS, type GameSummary, type Player, type PlayerProgress } from "../../../shared/protocol"
+import { SECTION_LEVELS, type Player, type PlayerProgress } from "../../../shared/protocol"
+import { plural } from "../../lib/text"
 
 // The box is at most about this wide, however many sections the board has
 const BOX_WIDTH = 132
@@ -13,7 +14,8 @@ const CHIP_WIDTH = 32
 type OpponentBoxProps = {
   player: Player
   progress: PlayerProgress
-  game: GameSummary
+  // how many sections across the board is divided into
+  sectionCols: number
   // Given where the box can be clicked to watch this player's board: it is then drawn as a button, and a little larger
   onSpectate?: () => void
   // Cut down to a chip: a thumbnail of the board with the name and the figure beside it. For a phone, where the
@@ -22,17 +24,17 @@ type OpponentBoxProps = {
 }
 
 // Another player's board, seen from a distance: one square per section of it, greener the more of that section is done
-export default function OpponentBox({ player, progress, game, onSpectate, chip }: OpponentBoxProps) {
+export default function OpponentBox({ player, progress, sectionCols, onSpectate, chip }: OpponentBoxProps) {
   const { theme } = useTheme()
   const { mode } = useLayout()
   // two of the boxes that can be clicked fit side by side on a phone at the usual size
   const width = chip ? CHIP_WIDTH : onSpectate && mode !== "phone" ? BOX_WIDTH * 1.25 : BOX_WIDTH
-  const pixel = Math.max(chip ? 2 : 4, Math.min(onSpectate ? 16 : 12, Math.floor(width / game.sectionCols)))
+  const pixel = Math.max(chip ? 2 : 4, Math.min(onSpectate ? 16 : 12, Math.floor(width / sectionCols)))
 
   const map = (
     <div
       className={`shrink-0 grid gap-px border ${chip ? "p-0.5" : "p-1"} ${theme.menuBg} ${theme.menuBorder}`}
-      style={{ gridTemplateColumns: `repeat(${game.sectionCols}, ${pixel}px)`, gridAutoRows: `${pixel}px` }}
+      style={{ gridTemplateColumns: `repeat(${sectionCols}, ${pixel}px)`, gridAutoRows: `${pixel}px` }}
     >
       {progress.sections.map((level, section) => (
         <div key={section} className={theme.cellHidden}>
@@ -64,7 +66,7 @@ export default function OpponentBox({ player, progress, game, onSpectate, chip }
         {progress.outcome === "cleared" ? `Finished in ${describeResult(progress)}`
           : progress.outcome === "playing" ? `${progress.percent}%`
           : describeResult(progress)}
-        {progress.mineHits > 0 && ` · ${progress.mineHits} ${progress.mineHits === 1 ? "mine" : "mines"} hit`}
+        {progress.mineHits > 0 && ` · ${plural(progress.mineHits, "mine")} hit`}
       </span>
     </>
   )

@@ -7,6 +7,7 @@ import { avatarSrc } from "../../lib/avatar"
 import { MEDALS } from "../../lib/gameResults"
 import { formatScore } from "../../lib/time"
 import PlayerName from "../account/PlayerName"
+import { plural } from "../../lib/text"
 
 type ScoreTableProps = {
   entries: ScoreEntry[]
@@ -22,7 +23,6 @@ type ScoreTableProps = {
   onRemove?: (entry: ScoreEntry) => void
 }
 
-const plural = (count: number, word: string) => `${count} ${count === 1 ? word : `${word}s`}`
 const dayOf = (at: string | number | Date) => new Date(at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
 
 // A leaderboard: who cleared a board, quickest first. A row reads the way a result is said: where they came, who
@@ -40,8 +40,6 @@ export default function ScoreTable({ entries, emptyText, highlightUserId, showDa
     )
   }
 
-  const headClass = `px-3 sm:px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
-  const cellClass = "px-3 sm:px-4 py-2.5 whitespace-nowrap"
   // shown as columns of their own only where there is room for them
   const wideOnly = "hidden sm:table-cell"
 
@@ -50,12 +48,12 @@ export default function ScoreTable({ entries, emptyText, highlightUserId, showDa
       <table className={`w-full text-sm text-left cursor-default ${theme.textBody}`}>
         <thead>
           <tr className={`border-y ${theme.itemBorder} ${theme.itemBg}`}>
-            <th className={`${headClass} w-12 sm:w-14 text-center`}>#</th>
-            <th className={headClass}>Player</th>
-            {!hideMineHits && <th className={`${headClass} ${wideOnly} text-right`}>Mines hit</th>}
-            {showDate && <th className={`${headClass} ${wideOnly}`}>Set on</th>}
-            <th className={`${headClass} text-right`}>Time</th>
-            {onRemove && <th className={headClass} />}
+            <th className={`${styles.th} w-12 sm:w-14 text-center`}>#</th>
+            <th className={styles.th}>Player</th>
+            {!hideMineHits && <th className={`${styles.th} ${wideOnly} text-right`}>Mines hit</th>}
+            {showDate && <th className={`${styles.th} ${wideOnly}`}>Set on</th>}
+            <th className={`${styles.th} text-right`}>Time</th>
+            {onRemove && <th className={styles.th} />}
           </tr>
         </thead>
         <tbody>
@@ -63,12 +61,12 @@ export default function ScoreTable({ entries, emptyText, highlightUserId, showDa
             const own = entry.userId === highlightUserId
             return (
               <tr key={entry.userId} className={`border-b last:border-b-0 ${theme.itemBorder} ${own ? theme.itemBg : ""}`}>
-                <td className={`${cellClass} text-center`}>
+                <td className={`${styles.td} text-center`}>
                   {index < MEDALS.length
                     ? <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-extrabold tabular-nums ${MEDALS[index]}`}>{index + 1}</span>
                     : <span className="font-semibold tabular-nums opacity-70">{index + 1}</span>}
                 </td>
-                <td className={cellClass}>
+                <td className={styles.td}>
                   <div className="flex items-center gap-3">
                     <img
                       src={avatarSrc(entry.image)}
@@ -89,11 +87,11 @@ export default function ScoreTable({ entries, emptyText, highlightUserId, showDa
                     </div>
                   </div>
                 </td>
-                {!hideMineHits && <td className={`${cellClass} ${wideOnly} text-right tabular-nums`}>{entry.mineHits}</td>}
-                {showDate && <td className={`${cellClass} ${wideOnly} opacity-80`}>{dayOf(entry.at)}</td>}
-                <td className={`${cellClass} text-right text-base font-bold tabular-nums ${theme.textHead}`}>{formatScore(entry.durationMs)}</td>
+                {!hideMineHits && <td className={`${styles.td} ${wideOnly} text-right tabular-nums`}>{entry.mineHits}</td>}
+                {showDate && <td className={`${styles.td} ${wideOnly} opacity-80`}>{dayOf(entry.at)}</td>}
+                <td className={`${styles.td} text-right text-base font-bold tabular-nums ${theme.textHead}`}>{formatScore(entry.durationMs)}</td>
                 {onRemove && (
-                  <td className={`${cellClass} text-right`}>
+                  <td className={`${styles.td} text-right`}>
                     <button
                       className={`px-2 py-1 rounded text-xs font-semibold pressable ${ghostColors(theme)}`}
                       title="Admins: take this player's results off this leaderboard"

@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm"
 import { boolean, customType, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+import type { GameFamily, GameModeId, SingleplayerModeId } from "../../../shared/game/modes.js"
 import type { Move } from "../../../shared/protocol.js"
 import { user } from "./auth-schema.js"
 
@@ -37,6 +38,9 @@ export const avatar = pgTable("avatar", {
 export const gameResult = pgTable("game_result", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  // Which singleplayer game it was: one whose boards never need a guess, or the classic one, with its mines
+  // wherever chance put them. Every result from before there was a choice is a classic one
+  mode: text("mode").$type<SingleplayerModeId>().notNull().default("classic"),
   rows: integer("rows").notNull(),
   cols: integer("cols").notNull(),
   mines: integer("mines").notNull(),
@@ -89,14 +93,17 @@ export const dailyAttempt = pgTable("daily_attempt", {
   primaryKey({ columns: [table.userId, table.date] }),
 ])
 
-// Every game the server has run, for each player who was in it, move by move: singleplayer, multiplayer and the
-// daily challenge alike. With the board's layout beside the moves, a game can be played back exactly as it went,
-// which is how a result that looks wrong can be looked into
+// Every game the server has run, for each player who was in it, move by move, whatever kind of game it was.
+// With the board's layout beside the moves, a game can be played back exactly as it went, which is how a result
+// that looks wrong can be looked into
 export const gameRecord = pgTable("game_record", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
-  // "singleplayer", "multiplayer" or "daily"
-  kind: text("kind").notNull(),
+  // where it was played: alone, in the day's challenge, or in a room (see shared/game/modes.ts)
+  kind: text("kind").$type<GameFamily>().notNull(),
+  // The game it was, which says what rules to play it back by. (The default is what every game was before there
+  // were others to tell apart: the migration that added this filled it in for those.)
+  mode: text("mode").$type<GameModeId>().notNull().default("classic"),
   // the same for every player of one multiplayer game
   match: text("match").notNull(),
   // whether the game counted towards ratings

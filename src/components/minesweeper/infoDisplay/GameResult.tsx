@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react"
 import { Bomb, Eye, Trophy } from "lucide-react"
-import { useMinesweeperGameContext } from "../../../context/MinesweeperGameContext"
+import { useSoloGameContext } from "../../../context/SoloGameContext"
 import { useTheme } from "../../../context/ThemeContext"
 import { ghostColors } from "../../../game/themes"
+import { isKnownMine, safeCellsOf } from "../../../lib/boardView"
+import { formatDuration } from "../../../lib/time"
+import { CELL_FLAGGED } from "../../../../shared/engine/view"
 import BoardMap from "./BoardMap"
 import GameResultItem from "./GameResultItem"
 import PlayAgainButton from "./PlayAgainButton"
@@ -16,27 +19,27 @@ export default function GameResult() {
   // put away to look at the board; the status bar's Reset starts the next game from there
   const [putAway, setPutAway] = useState(false)
   const { theme } = useTheme()
-  const { rows, cols, mines, board, timeMinutes, timeSeconds } = useMinesweeperGameContext()
+  const { settings, view, seconds } = useSoloGameContext()
+  const over = view.status === "won" || view.status === "lost"
 
   // fade-in
   useEffect(() => {
-    if (board.status === "won" || board.status === "lost") {
-      requestAnimationFrame(() => setVisible(true))
-    } else {
-      setVisible(false)
-    }
-  }, [board.status])
+    if (!over) return setVisible(false)
+    const frame = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(frame)
+  }, [over])
 
-  if ((board.status !== "won" && board.status !== "lost") || putAway) return null
+  if (!over || putAway) return null
 
-  const won = board.status === "won"
-  const formattedTime = `${timeMinutes.toString().padStart(2, "0")}:${timeSeconds.toString().padStart(2, "0")}`
-  const safeCells = rows * cols - mines
-  const safeLeft = safeCells - board.revealedCount
-  // worked out here from the board as it ended, whatever the game's own running figure says once it has stopped
-  const progress = Math.floor(100 * board.revealedCount / safeCells)
-  const flags = board.grid.flat().filter(cell => cell.flagged)
-  const rightFlags = flags.filter(cell => cell.hasMine).length
+  const { rows, cols, mines } = settings
+  const won = view.status === "won"
+  const formattedTime = formatDuration(seconds * 1000)
+  const safeCells = safeCellsOf(settings)
+  const safeLeft = safeCells - view.uncovered
+  // how much of what there was to uncover got uncovered
+  const progress = Math.floor(100 * view.uncovered / safeCells)
+  const flags = Array.from(view.cells, (cell, at) => (cell === CELL_FLAGGED ? at : -1)).filter(at => at >= 0)
+  const rightFlags = flags.filter(at => isKnownMine(view, at)).length
 
   const detail = won ? `Cleared in ${formattedTime}.`
     // a near miss deserves saying so
@@ -69,12 +72,12 @@ export default function GameResult() {
                 <div className="h-full rounded-full bg-green-500" style={{ width: `${progress}%` }} />
               </div>
               <div className={`flex justify-between text-xs font-semibold tabular-nums ${theme.textBody}`}>
-                <span>{board.revealedCount} of {safeCells} safe cells uncovered</span>
+                <span>{view.uncovered} of {safeCells} safe cells uncovered</span>
                 <span>{progress}%</span>
               </div>
             </div>
 
-            <BoardMap board={board} />
+            <BoardMap view={view} />
           </>
         )}
 
@@ -87,9 +90,9 @@ export default function GameResult() {
             : <GameResultItem label="Flags right">{rightFlags} of {flags.length}</GameResultItem>}
         </div>
 
-        {/* side by side where they fit; on a phone each is the full width, the way on first */}
-        <div className="w-full flex flex-col sm:flex-row sm:flex-wrap justify-center gap-2 sm:gap-3">
-          <PlayAgainButton label={won ? "Play again" : "Try again"} />
+        {/* Side by side where they fit, with the way on at the trailing end, where the thing to do next is looked
+            for. On a phone each is the full width, and the way on comes first */}
+        <div className="w-full flex flex-col-reverse sm:flex-row sm:flex-wrap justify-center gap-2 sm:gap-3">
           <button
             className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg pressable font-semibold ${ghostColors(theme)}`}
             title="Put this away. Reset, on the status bar, starts the next game"
@@ -98,6 +101,7 @@ export default function GameResult() {
             <Eye className="w-4 h-4" />
             Look at the board
           </button>
+          <PlayAgainButton label={won ? "Play again" : "Try again"} />
         </div>
       </div>
     </ScreenDim>

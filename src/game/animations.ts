@@ -1,12 +1,12 @@
 export type LossAnimationChoices =
-  | "explode" | "shake"   | "fade"    
-  | "pulse"   | "spin"    | "drop"    
+  | "explode" | "shake"   | "fade"
+  | "pulse"   | "spin"    | "drop"
   | "flash"   | "crumble" | "burn"
-  | "shatter" | "implode" | "fizzle"  
+  | "shatter" | "implode" | "fizzle"
   | "popoff"  | "pig2"    | "none"
 
-export type WinAnimationChoices = 
-  | "bloom" | "sparkle" | "celebrate" 
+export type WinAnimationChoices =
+  | "bloom" | "sparkle" | "celebrate"
   | "shine" | "rainbow"
 
 export type AnimationChoices = LossAnimationChoices | WinAnimationChoices

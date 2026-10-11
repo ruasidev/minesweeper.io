@@ -1,9 +1,10 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react"
-import { FlagTriangleRight, Shovel } from "lucide-react"
+import { Shovel } from "lucide-react"
 import { useInputMode } from "../../context/InputModeContext"
 import { useTheme } from "../../context/ThemeContext"
 import { ghostColors } from "../../game/themes"
 import { useLayout } from "../../hooks/useLayout"
+import FlagIcon from "./FlagIcon"
 
 // The bar under a board on a phone or a tablet, holding what is pressed while playing. It is made like the bars
 // above the board, and its buttons are tall enough for a thumb. Down the side of a phone held sideways, it stacks
@@ -64,7 +65,7 @@ export function FlagToggle() {
         Dig
       </button>
       <button aria-pressed={flagMode} className={`${segment} ${flagMode ? `${theme.cellFlagged} text-white` : `${theme.textBody} opacity-70`}`} onClick={() => setFlagMode(true)}>
-        <FlagTriangleRight className="w-4 h-4 shrink-0" fill="currentColor" />
+        <FlagIcon className="w-4 h-4 shrink-0" />
         Flag
       </button>
     </div>

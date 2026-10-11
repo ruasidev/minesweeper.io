@@ -1,6 +1,6 @@
 import { and, count, eq, isNotNull, sql } from "drizzle-orm"
 import type { BadgeId } from "../../shared/badges.js"
-import { BOARD_PRESETS } from "../../shared/protocol.js"
+import { BOARD_PRESETS } from "../../shared/game/boards.js"
 import { db } from "./db/index.js"
 import { dailyAttempt, gameResult, multiplayerResult } from "./db/schema.js"
 

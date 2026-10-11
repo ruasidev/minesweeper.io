@@ -1,8 +1,11 @@
 import { useLayout } from "../../hooks/useLayout"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import { useTheme } from "../../context/ThemeContext"
-import type { NavigationBarProps } from "../../game/types"
 import GithubButton from "../menu/GithubButton"
+
+type NavigationBarProps = {
+  children?: React.ReactNode
+}
 
 export const APP_VERSION = "v1.0.0-beta.1"
 

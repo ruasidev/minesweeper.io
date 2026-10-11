@@ -1,0 +1,77 @@
+name: Check the code
+
+# Runs on every push and pull request: the types, the lint rules and the tests, for the site, the server and the
+# board generator. Nothing is deployed from here (see static.yml and Railway for that)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install the site's dependencies
+        run: npm ci
+
+      - name: Install the server's dependencies
+        run: npm ci
+        working-directory: server
+
+      - name: Check the site's types
+        run: npx tsc -b
+
+      - name: Check the server's types
+        run: npm run typecheck
+        working-directory: server
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run the tests
+        run: npm test
+
+  # The board generator (crates/boardgen, in Rust). The job above already tests the build of it that is kept in
+  # the repository and that the game runs; this one tests its source, then builds it afresh and tests that
+  boardgen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # what rust-toolchain.toml asks for
+      - name: Setup Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy --target wasm32-unknown-unknown
+
+      - name: Check the formatting
+        run: cargo fmt --all --check
+
+      - name: Lint
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run the tests
+        run: cargo test
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install the site's dependencies
+        run: npm ci
+
+      - name: Build the WebAssembly module
+        run: npm run build:boardgen
+
+      - name: Test the module that was built
+        run: npx vitest run shared/engine

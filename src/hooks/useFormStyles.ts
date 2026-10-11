@@ -29,6 +29,9 @@ export function useFormStyles() {
     option: (selected: boolean) => `p-2 rounded-md pressable font-semibold text-sm
       ${ghostColors(theme, selected)}
       ${selected ? "" : "opacity-70"}`,
+    // a table's column headings, and its cells
+    th: `px-3 sm:px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`,
+    td: "px-3 sm:px-4 py-2.5 whitespace-nowrap",
     // a small label attached to something, like "Host"
     tag: `px-1.5 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wide leading-none cursor-default
       ${theme.itemBg} ${theme.itemBorder} ${theme.textBody}`,

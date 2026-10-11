@@ -57,6 +57,20 @@
       "when": 1791580057429,
       "tag": "0007_match_details",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791683518777,
+      "tag": "0008_game_modes",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791690298483,
+      "tag": "0009_game_result_mode",
+      "breakpoints": true
     }
   ]
 }

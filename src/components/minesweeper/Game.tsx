@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react"
-import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
+import { useSoloGameContext } from "../../context/SoloGameContext"
 import { useSettings } from "../../context/SettingsContext"
 import { useReportGameWidth } from "../../context/GameWidthContext"
 import { useBoardSounds } from "../../hooks/useBoardSounds"
 import { useLayout } from "../../hooks/useLayout"
+import { boardSpan } from "../../lib/boardFit"
 import { playSound } from "../../lib/sounds"
 import GameStatusBar from "./infoDisplay/GameStatusBar"
 import Board from "./Board"
@@ -20,10 +21,10 @@ const RIGHT_SPACE = "3rem"
 const SIDE_BAR_SPACE = "13rem"
 
 export default function Game() {
-  const { board, showResult } = useMinesweeperGameContext()
+  const { view: board, showResult } = useSoloGameContext()
   const { settings } = useSettings()
   const { compact } = useLayout()
-  const gameStarted = board.status !== "uninitialized"
+  const gameStarted = board.status !== "ready"
   useBoardSounds(board)
 
   // The game-over screen arriving after a loss has a sound of its own.
@@ -42,7 +43,7 @@ export default function Game() {
   // While a game is being played the app is told how wide it is, so the left pane can make way in a narrow window.
   // A status bar standing beside the board, on either side, counts towards that
   const barBeside = statusBarPosition === "left" || statusBarPosition === "right"
-  const boardWidth = board.cols * settings.cellSize + (board.cols - 1) * settings.cellGap
+  const boardWidth = boardSpan(board.cols, settings.cellSize, settings.cellGap)
   useReportGameWidth(board.status === "playing" ? boardWidth + (barBeside ? 13 * 16 : 0) : null)
 
   // On a phone or a tablet: the figures along the top, the board in the room between, and under it the dock, which

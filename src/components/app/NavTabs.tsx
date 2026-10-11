@@ -13,11 +13,14 @@ type NavTabsProps = {
   onNavigate: (route: Route) => void
   moreOpen: boolean
   onToggleMore: () => void
-  // something is waiting behind "More": unread messages in the global chat
+  // something is waiting behind "More": the player was mentioned in the global chat
   moreBadge: boolean
   // how many multiplayer rooms are open right now
   openRooms: number
 }
+
+// the tabs, and whether they are the lower ones (see Tab)
+type TabsProps = NavTabsProps & { tight?: boolean }
 
 type TabProps = {
   icon: ReactNode
@@ -27,23 +30,32 @@ type TabProps = {
   badge?: boolean
   // a figure on it
   count?: number
+  // where there is little height to spare (along the bottom of a phone, down the side of one held sideways):
+  // the tile behind the icon is a little lower
+  tight?: boolean
   onClick: () => void
 }
 
-// One tab: its icon on a pill that fills with the theme's highlight when this is where the player is, and its name underneath
-function Tab({ icon, label, selected, badge, count, onClick }: TabProps) {
+// One tab: its icon on a tile that fills with the theme's highlight when this is where the player is, and its name
+// underneath. The tile has the rounded corners everything else that can be chosen in the app has, and is only as
+// wide as an icon needs: the names are longer than that, and are given the full width of the tab to themselves
+function Tab({ icon, label, selected, badge, count, tight, onClick }: TabProps) {
   const { theme } = useTheme()
   return (
     <button
       aria-current={selected ? "page" : undefined}
-      className={`group flex flex-col items-center justify-center gap-0.5 min-w-0 cursor-pointer ${selected ? theme.textHead : `${theme.textBody} opacity-70 hover:opacity-100`}`}
+      className={`group flex flex-col items-center justify-center min-w-0 cursor-pointer ${tight ? "gap-0.5" : "gap-1"} ${selected ? theme.textHead : `${theme.textBody} opacity-70 hover:opacity-100`}`}
       onClick={onClick}
     >
-      <span className={`relative flex items-center justify-center w-14 h-7 rounded-full transition-colors duration-200 ${selected ? theme.itemSelected : ""}`}>
+      <span
+        className={`relative flex items-center justify-center w-12 transition-colors duration-200
+          ${tight ? "h-7 rounded-lg" : "h-8 rounded-[0.625rem]"}
+          ${selected ? theme.itemSelected : "group-hover:bg-current/10"}`}
+      >
         {icon}
-        {badge && <span className="absolute top-0.5 right-3.5 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-black/30" />}
+        {badge && <span className="absolute top-0.5 right-2.5 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-black/30" />}
         {count !== undefined && count > 0 && (
-          <span className={`absolute -top-1 right-1.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full border text-[10px] font-bold leading-none ${theme.menuBg} ${theme.menuBorder} ${theme.textHead}`}>{count}</span>
+          <span className={`absolute -top-1 right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full border text-[10px] font-bold leading-none ${theme.menuBg} ${theme.menuBorder} ${theme.textHead}`}>{count}</span>
         )}
       </span>
       <span className="max-w-full px-0.5 text-[11px] max-[359px]:text-[10px] font-semibold leading-tight truncate">{label}</span>
@@ -53,7 +65,7 @@ function Tab({ icon, label, selected, badge, count, onClick }: TabProps) {
 
 // The tabs themselves, the same on a phone and on a tablet: only where they are put differs.
 // First the main pages...
-function PageTabs({ route, onNavigate, moreOpen, openRooms }: NavTabsProps) {
+function PageTabs({ route, onNavigate, moreOpen, openRooms, tight }: TabsProps) {
   return MAIN_PAGES.map(({ route: to, short, icon: Icon }) => (
     <Tab
       key={to}
@@ -61,14 +73,15 @@ function PageTabs({ route, onNavigate, moreOpen, openRooms }: NavTabsProps) {
       label={short}
       selected={!moreOpen && route === to}
       count={to === "multiplayer" ? openRooms : undefined}
+      tight={tight}
       onClick={() => onNavigate(to)}
     />
   ))
 }
 
 // ...then "More", which is lit while it is open, and while the page showing is the one that is reached through it
-function MoreTab({ route, moreOpen, onToggleMore, moreBadge }: NavTabsProps) {
-  return <Tab icon={<Menu className="w-5 h-5" />} label="More" selected={moreOpen || route === "admin"} badge={moreBadge && !moreOpen} onClick={onToggleMore} />
+function MoreTab({ route, moreOpen, onToggleMore, moreBadge, tight }: TabsProps) {
+  return <Tab icon={<Menu className="w-5 h-5" />} label="More" selected={moreOpen || route === "admin"} badge={moreBadge && !moreOpen} tight={tight} onClick={onToggleMore} />
 }
 
 // The tabs along the bottom of a phone: the four main pages within reach of a thumb, and everything else behind
@@ -85,8 +98,8 @@ export function TabBar(props: NavTabsProps) {
         bottom: "max(var(--gap), env(safe-area-inset-bottom))",
       }}
     >
-      <PageTabs {...props} />
-      <MoreTab {...props} />
+      <PageTabs {...props} tight />
+      <MoreTab {...props} tight />
     </nav>
   )
 }
@@ -109,7 +122,7 @@ export function NavRail({ standalone, onOpenAuth, onOpenProfile, onOpenHistory, 
   // the picture at the foot of the rail while its menu is open: the menu hangs off it
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   // each tab's height: closer together where the rail has the logo and the account to fit in as well
-  const rows = standalone ? "auto-rows-[3.25rem]" : "auto-rows-[3.75rem]"
+  const rows = standalone ? "auto-rows-[3.25rem]" : "auto-rows-[4rem]"
   return (
     <nav
       aria-label="Main"
@@ -128,9 +141,9 @@ export function NavRail({ standalone, onOpenAuth, onOpenProfile, onOpenHistory, 
 
       {/* The pages at the head of the rail and "More" at its foot, as the left pane of a desktop has its links and
           its tools. Where the screen is too short to keep them apart they close up, and scroll rather than squash */}
-      <div className="flex-1 min-h-0 flex flex-col justify-between py-1.5 overflow-y-auto hide-scrollbar">
-        <div className={`shrink-0 grid ${rows}`}><PageTabs {...tabsProps} /></div>
-        <div className={`shrink-0 grid ${rows}`}><MoreTab {...tabsProps} /></div>
+      <div className="flex-1 min-h-0 flex flex-col justify-between py-2 overflow-y-auto hide-scrollbar">
+        <div className={`shrink-0 grid ${rows}`}><PageTabs {...tabsProps} tight={standalone} /></div>
+        <div className={`shrink-0 grid ${rows}`}><MoreTab {...tabsProps} tight={standalone} /></div>
       </div>
 
       {standalone && !isPending && (

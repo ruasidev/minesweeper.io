@@ -1,0 +1,18 @@
+[package]
+name = "boardgen"
+version = "0.1.0"
+description = "Lays out minesweeper boards, by default ones that can be cleared without a guess"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+# cdylib: the WebAssembly module the game loads. rlib: what the tests and examples here are built against
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

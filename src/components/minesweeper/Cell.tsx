@@ -1,61 +1,60 @@
 import { memo, useEffect, useState, type ReactNode } from "react"
-import { Bomb, FlagTriangleRight } from "lucide-react"
-import type { CellProps } from "../../game/types"
+import { Bomb } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
+import { CELL_FLAGGED, CELL_MINE, isUncovered, numberOn } from "../../../shared/engine/view"
+import FlagIcon from "./FlagIcon"
+
+export type CellProps = {
+  row: number
+  col: number
+  // what the cell shows: its character in the board's view (see shared/engine/view.ts)
+  cell: string
+  animationClass?: string
+  animationDelay?: string
+  chordHintKey?: number
+  // set on a cell that a mine going off has just covered back up: which blast, and how long it takes to reach the cell
+  blastId?: number
+  blastDelayMs?: number
+  // changes when a new game starts
+  resetKey: number
+}
+
+const NUMBER_COLORS = ["", "text-blue-600", "text-green-600", "text-red-600", "text-purple-700", "text-orange-700", "text-cyan-700", "text-black", "text-gray-600"]
 
 // One cell of a board. It only draws: its size comes from the grid it sits in (BoardViewport), and presses are
-// picked up by the grid for all its cells at once (useBoardInput), which finds the cell by the mark it carries here
-function Cell({ cell, animationClass, animationDelay, chordHintKey, blastId, blastDelayMs = 0, resetKey }: CellProps) {
+// picked up by the grid for all its cells at once (useBoardInput), which finds the cell by the mark it carries here.
+// Everything it is given is a plain value, so a move redraws the handful of cells it changed and no others
+function Cell({ row, col, cell, animationClass, animationDelay, chordHintKey, blastId, blastDelayMs = 0, resetKey }: CellProps) {
   const [hideValue, setHideValue] = useState(false)
   const { theme } = useTheme()
-  // An uncovered mine that is simply sitting there. Only multiplayer has these: uncovering a mine doesn't end
-  // the game there. In singleplayer an uncovered mine means the game is lost, and the loss animation takes it from here
-  const isOpenMine = cell.revealed && cell.hasMine && !animationClass
+  const flagged = cell === CELL_FLAGGED
+  // An uncovered mine that is simply sitting there, as it does where uncovering one doesn't end the game.
+  // Where it does, an uncovered mine means the game is lost, and the loss animation takes it from here
+  const openMine = cell === CELL_MINE && !animationClass
+  const number = numberOn(cell)
 
   useEffect(() => {
     setHideValue(false)
   }, [resetKey])
 
-  let value: ReactNode = ""
-  let textColor = ""
-  if (cell.revealed && cell.neighborCount > 0) {
-    value = cell.neighborCount.toString()
-    textColor = getNumberColor(cell.neighborCount)
-  }
-  // filled in, so it still reads as a flag when the cells are small
-  if (cell.flagged) value = <FlagTriangleRight className="w-[1em] h-[1em]" fill="currentColor" />
-  if (isOpenMine) value = <Bomb className="w-[1em] h-[1em]" />
-
+  let value: ReactNode = number ? String(number) : ""
+  // smaller than a number, which leaves it room on every side: a cell full to its edges with flag reads as a
+  // block of colour and not as a flag
+  if (flagged) value = <FlagIcon className="w-[0.8em] h-[0.8em]" />
+  if (openMine) value = <Bomb className="w-[1em] h-[1em]" />
   if (hideValue) value = ""
 
-  let themeClasses = `
-    ${theme.cellBorder} 
-    ${theme.cellHoverBorder}
-  `
-  if (cell.flagged || isOpenMine) {
-    themeClasses += `
-      ${theme.cellFlagged} 
-      ${theme.cellHoverBgFlagged}
-    `
-  } else if (!cell.revealed) {
-    themeClasses += `
-      ${theme.cellHidden} 
-      ${theme.cellHoverBgHidden}
-    `
-  } else {
-    themeClasses += `
-      ${theme.cellVisible} 
-      ${theme.cellHoverBgVisible}
-    `
-  }
+  const look = flagged || openMine ? `${theme.cellFlagged} ${theme.cellHoverBgFlagged}`
+    : isUncovered(cell) ? `${theme.cellVisible} ${theme.cellHoverBgVisible}`
+    : `${theme.cellHidden} ${theme.cellHoverBgHidden}`
 
   return (
     <button
-      data-cell={`${cell.row},${cell.col}`}
-      style={{ animationDelay: animationDelay }}
+      data-cell={`${row},${col}`}
+      style={{ animationDelay }}
       className={`border flex items-center justify-center rounded font-extrabold leading-none
-        ${themeClasses}
-        ${textColor}
+        ${theme.cellBorder} ${theme.cellHoverBorder} ${look}
+        ${number ? NUMBER_COLORS[number] : ""}
         ${animationClass ? `animate-${animationClass}` : ""}
         ${chordHintKey !== undefined || blastId !== undefined ? "relative" : ""}
       `}
@@ -88,32 +87,4 @@ function Cell({ cell, animationClass, animationDelay, chordHintKey, blastId, bla
   )
 }
 
-// A move changes a handful of cells, and the rest have nothing to redraw. A board is rebuilt from scratch whenever
-// the server sends one, so a cell is the same if it looks the same, not only if it is the very same object
-export default memo(Cell, (before, after) =>
-  before.cell.revealed === after.cell.revealed
-  && before.cell.flagged === after.cell.flagged
-  && before.cell.hasMine === after.cell.hasMine
-  && before.cell.neighborCount === after.cell.neighborCount
-  && before.cell.row === after.cell.row
-  && before.cell.col === after.cell.col
-  && before.animationClass === after.animationClass
-  && before.animationDelay === after.animationDelay
-  && before.chordHintKey === after.chordHintKey
-  && before.blastId === after.blastId
-  && before.blastDelayMs === after.blastDelayMs
-  && before.resetKey === after.resetKey)
-
-function getNumberColor(count: number): string {
-  switch (count) {
-    case 1: return "text-blue-600"
-    case 2: return "text-green-600"
-    case 3: return "text-red-600"
-    case 4: return "text-purple-700"
-    case 5: return "text-orange-700"
-    case 6: return "text-cyan-700"
-    case 7: return "text-black"
-    case 8: return "text-gray-600"
-    default: return ""
-  }
-}
+export default memo(Cell)

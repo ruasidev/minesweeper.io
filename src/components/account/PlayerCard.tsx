@@ -11,6 +11,7 @@ import FloatingWindow from "../app/FloatingWindow"
 import Badges from "./Badges"
 import LevelBar from "./LevelBar"
 import ProfileStats from "./ProfileStats"
+import { useFormStyles } from "../../hooks/useFormStyles"
 
 // keeps the card this far from what it hangs off and from the edges of the screen
 const GAP = 8
@@ -29,6 +30,7 @@ type PlayerCardProps = {
 // On a phone there is no room beside a name for a card to pop up in, so it comes up from the bottom as a sheet
 export default function PlayerCard({ playerId, anchor, onClose }: PlayerCardProps) {
   const { theme } = useTheme()
+  const styles = useFormStyles()
   const { settings } = useSettings()
   const { mode, short } = useLayout()
   const asSheet = mode === "phone" || short
@@ -107,7 +109,7 @@ export default function PlayerCard({ playerId, anchor, onClose }: PlayerCardProp
           {profile.bio && <p className={`text-sm whitespace-pre-wrap break-words ${theme.textBody}`}>{profile.bio}</p>}
           <ProfileStats {...profile} />
           <button
-            className={`self-start px-3 py-2 rounded-md border pressable font-semibold text-sm ${theme.itemBg} ${theme.itemHoverBg} ${theme.itemHoverBorder} ${theme.itemBorder} ${theme.textBody}`}
+            className={`${styles.button} self-start text-sm`}
             onClick={() => {
               navigate("history", playerId)
               onClose()

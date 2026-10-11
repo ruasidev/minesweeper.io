@@ -1,13 +1,13 @@
-import AnimationPreview from "./AnimationPreview";
-import { winAnimations } from "../../game/animations";
-import SidebarSectionHeader from "./SidebarSectionHeader";
-import { useTheme } from "../../context/ThemeContext";
-import { useGameAnimations } from "../../context/GameAnimationContext";
+import AnimationPreview from "./AnimationPreview"
+import { winAnimations } from "../../game/animations"
+import SidebarSectionHeader from "./SidebarSectionHeader"
+import { useTheme } from "../../context/ThemeContext"
+import { useGameAnimations } from "../../context/GameAnimationContext"
 
 export default function WinAnimationSelect() {
-    const { theme } = useTheme()
-    const { winAnimationId, setWinAnimationId } = useGameAnimations()
-    return (
+  const { theme } = useTheme()
+  const { winAnimationId, setWinAnimationId } = useGameAnimations()
+  return (
         <div>
             <SidebarSectionHeader text="Win Animations" />
             <div className="grid grid-cols-2 gap-4">
@@ -28,5 +28,5 @@ export default function WinAnimationSelect() {
             </div>
         </div>
 
-    )
+  )
 }

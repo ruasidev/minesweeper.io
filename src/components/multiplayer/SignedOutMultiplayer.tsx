@@ -5,6 +5,7 @@ import { useFormStyles } from "../../hooks/useFormStyles"
 import type { AuthMode } from "../../game/types"
 import { useOpenRooms } from "../../hooks/useOpenRooms"
 import SignInForm from "../account/SignInForm"
+import { plural } from "../../lib/text"
 
 // What a visitor who isn't signed in sees on the multiplayer page: what multiplayer is, the rooms open right now,
 // and the way in right there beside them, rather than a wall with a log in button on it
@@ -31,7 +32,7 @@ export default function SignedOutMultiplayer() {
           <section className={`${styles.card} overflow-hidden cursor-default`}>
             <div className="flex items-center gap-4 p-4">
               <h2 className={`text-xl font-semibold ${theme.textHead}`}>Open right now</h2>
-              <span className={`text-sm opacity-70 ${theme.textBody}`}>{rooms.length} {rooms.length === 1 ? "room" : "rooms"}</span>
+              <span className={`text-sm opacity-70 ${theme.textBody}`}>{plural(rooms.length, "room")}</span>
             </div>
             {rooms.length === 0 && (
               <p className={`px-4 pb-4 opacity-70 ${theme.textBody}`}>No rooms at the moment. Sign up and open the first one.</p>
@@ -43,7 +44,7 @@ export default function SignedOutMultiplayer() {
                   <span className="truncate">{room.name}</span>
                 </div>
                 <div className="text-sm opacity-70 truncate">
-                  Hosted by @{room.hostUsername} · {room.playerCount} {room.playerCount === 1 ? "player" : "players"}
+                  Hosted by @{room.hostUsername} · {plural(room.playerCount, "player")}
                   {room.inGame && " · game in progress"}
                 </div>
               </div>

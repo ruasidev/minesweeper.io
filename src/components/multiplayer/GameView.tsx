@@ -6,28 +6,21 @@ import { useTheme } from "../../context/ThemeContext"
 import { useElementWidth } from "../../hooks/useElementWidth"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import { useLayout } from "../../hooks/useLayout"
-import type { Multiplayer } from "../../hooks/useMultiplayer"
+import type { ServerConnection } from "../../hooks/useServerConnection"
 import { useTimeLeft } from "../../hooks/useTimeLeft"
 import { playSound } from "../../lib/sounds"
-import { formatDuration, formatTimeLeft } from "../../lib/time"
+import { boardSpan } from "../../lib/boardFit"
+import { ownGameIn } from "../../lib/connection"
+import { formatTimeLeft } from "../../lib/time"
 import type { GameSummary, RoomDetail } from "../../../shared/protocol"
 import FloatingWindow from "../app/FloatingWindow"
 import BoardStage from "../minesweeper/BoardStage"
 import Dock, { FlagToggle } from "../minesweeper/Dock"
 import GameBar, { BarField } from "../minesweeper/GameBar"
+import GameClock from "../minesweeper/GameClock"
+import LiveBoard from "../minesweeper/LiveBoard"
 import OpponentBox from "./OpponentBox"
-import PlayableBoard from "./PlayableBoard"
-
-// How long a game has been going, or how long this player took once they've finished
-export function GameClock({ startedAt, finishedMs }: { startedAt: number | null, finishedMs: number | null }) {
-  const [now, setNow] = useState(Date.now)
-  useEffect(() => {
-    if (finishedMs !== null) return
-    const timer = setInterval(() => setNow(Date.now()), 250)
-    return () => clearInterval(timer)
-  }, [finishedMs])
-  return <span className="tabular-nums">{formatDuration(finishedMs ?? (startedAt === null ? 0 : now - startedAt))}</span>
-}
+import { plural } from "../../lib/text"
 
 // The clock on the players still going, which starts once enough of the others have finished.
 // It stays in view however far down the board they have scrolled, and beeps when it starts and through its last seconds
@@ -67,7 +60,7 @@ const SIDE_GAP = 24
 // the others go in a row above the board instead.
 // On a phone or a tablet the board has the screen: the figures and the other players are a strip along the top,
 // the switch between digging and flagging is under a thumb, and leaving or giving up is behind a button
-export default function GameView({ room, game, multiplayer }: { room: RoomDetail, game: GameSummary, multiplayer: Multiplayer }) {
+export default function GameView({ room, game, connection }: { room: RoomDetail, game: GameSummary, connection: ServerConnection }) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { session } = useAccount()
@@ -86,24 +79,15 @@ export default function GameView({ room, game, multiplayer }: { room: RoomDetail
   const isHost = room.hostId === myId
   // everyone else who started, including anyone who has left the room since
   const opponents = game.players.filter(player => player.id !== myId && game.progress[player.id])
-  const boardWidth = game.settings.cols * display.cellSize + (game.settings.cols - 1) * display.cellGap
+  const boardWidth = boardSpan(game.settings.cols, display.cellSize, display.cellGap)
   const beside = opponents.length > 0 && areaWidth >= boardWidth + 2 * (SIDE_COLUMN + SIDE_GAP)
   const boxFor = (player: typeof opponents[number]) => (
-    <OpponentBox key={player.id} player={player} progress={game.progress[player.id]} game={game} />
+    <OpponentBox key={player.id} player={player} progress={game.progress[player.id]} sectionCols={game.sectionCols} />
   )
 
-  const board = multiplayer.board && (
-    <PlayableBoard
-      settings={game.settings}
-      ownBoard={multiplayer.board}
-      startsAt={multiplayer.gameStartedAt}
-      start={game.start}
-      finished={mine?.outcome === "cleared"}
-      centered
-      onReveal={multiplayer.reveal}
-      onFlag={multiplayer.flag}
-    />
-  )
+  // this player's own board in the game, once it has arrived
+  const own = ownGameIn(connection, "multiplayer")
+  const board = own?.id === game.id && <LiveBoard game={own} centered onReveal={connection.reveal} onFlag={connection.flag} />
 
   if (compact) {
     const figure = `text-sm font-bold leading-5 tabular-nums ${theme.textHead}`
@@ -133,7 +117,7 @@ export default function GameView({ room, game, multiplayer }: { room: RoomDetail
                 }
               >
                 <BarField label="Time" vertical={short}>
-                  <span className={figure}><GameClock startedAt={multiplayer.gameStartedAt} finishedMs={finishedMs} /></span>
+                  <span className={figure}><GameClock startedAt={connection.gameStartedAt} durationMs={finishedMs} /></span>
                 </BarField>
                 <BarField label="Uncovered" vertical={short}>
                   <span className={`${figure} ${mine?.outcome === "cleared" ? "text-green-500!" : ""}`}>{mine?.percent ?? 0}%</span>
@@ -145,12 +129,12 @@ export default function GameView({ room, game, multiplayer }: { room: RoomDetail
               {/* everyone else, a thumbnail each: a strip that scrolls sideways, or a list down the side of a phone held sideways */}
               {opponents.length > 0 && (
                 <div className={`flex gap-2 ${short ? "flex-col" : "overflow-x-auto hide-scrollbar"}`}>
-                  {opponents.map(player => <OpponentBox key={player.id} chip player={player} progress={game.progress[player.id]} game={game} />)}
+                  {opponents.map(player => <OpponentBox key={player.id} chip player={player} progress={game.progress[player.id]} sectionCols={game.sectionCols} />)}
                 </div>
               )}
             </div>
           }
-          banner={playing && multiplayer.gameDeadlineAt !== null && <TimeLimit deadlineAt={multiplayer.gameDeadlineAt} />}
+          banner={playing && connection.gameDeadlineAt !== null && <TimeLimit deadlineAt={connection.gameDeadlineAt} />}
           // it stays while a cleared board plays out its win, so the board doesn't jump as it does
           dock={touch ? <Dock><FlagToggle /></Dock> : undefined}
         >
@@ -163,14 +147,14 @@ export default function GameView({ room, game, multiplayer }: { room: RoomDetail
               {confirmingGiveUp ? (
                 <>
                   <p className="pb-1 cursor-default">Give up this game? Your board stops where it is, and you can watch the others.</p>
-                  <button className={`${menuButton} text-red-500`} onClick={() => { multiplayer.giveUp(); setMenuOpen(false) }}>Yes, give up</button>
+                  <button className={`${menuButton} text-red-500`} onClick={() => { connection.giveUp(); setMenuOpen(false) }}>Yes, give up</button>
                   <button className={menuButton} onClick={() => setConfirmingGiveUp(false)}>Keep playing</button>
                 </>
               ) : (
                 <>
                   {playing && <button className={menuButton} onClick={() => setConfirmingGiveUp(true)}>Give up</button>}
-                  {isHost && <button className={menuButton} onClick={() => { multiplayer.endGame(); setMenuOpen(false) }}>End the game for everyone</button>}
-                  <button className={menuButton} onClick={multiplayer.leaveRoom}>Leave room</button>
+                  {isHost && <button className={menuButton} onClick={() => { connection.endGame(); setMenuOpen(false) }}>End the game for everyone</button>}
+                  <button className={menuButton} onClick={connection.leaveRoom}>Leave room</button>
                 </>
               )}
             </div>
@@ -184,28 +168,28 @@ export default function GameView({ room, game, multiplayer }: { room: RoomDetail
     <>
       <section className={`${styles.card} flex flex-wrap items-center gap-x-6 gap-y-3 p-4 cursor-default ${theme.textBody}`}>
         <h2 className={`text-xl font-semibold truncate ${theme.textHead}`}>{room.name}</h2>
-        <span className="font-semibold"><GameClock startedAt={multiplayer.gameStartedAt} finishedMs={finishedMs} /></span>
+        <span className="font-semibold"><GameClock startedAt={connection.gameStartedAt} durationMs={finishedMs} /></span>
         {mine && <span className="font-semibold">{mine.percent}% uncovered</span>}
-        {mine && mine.mineHits > 0 && <span className="font-semibold">{mine.mineHits} {mine.mineHits === 1 ? "mine" : "mines"} hit</span>}
+        {mine && mine.mineHits > 0 && <span className="font-semibold">{plural(mine.mineHits, "mine")} hit</span>}
         {mine?.outcome === "cleared" && <span className="font-semibold text-green-500">Board cleared!</span>}
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {playing && (confirmingGiveUp ? (
             <>
               <span className="font-semibold">Give up?</span>
-              <button className={`${styles.button} text-red-500`} onClick={multiplayer.giveUp}>Yes, give up</button>
+              <button className={`${styles.button} text-red-500`} onClick={connection.giveUp}>Yes, give up</button>
               <button className={styles.ghost} onClick={() => setConfirmingGiveUp(false)}>Keep playing</button>
             </>
           ) : (
             <button className={styles.ghost} onClick={() => setConfirmingGiveUp(true)}>Give up</button>
           ))}
           {isHost && !confirmingGiveUp && (
-            <button className={styles.ghost} title="Stop the game for everyone" onClick={multiplayer.endGame}>End game</button>
+            <button className={styles.ghost} title="Stop the game for everyone" onClick={connection.endGame}>End game</button>
           )}
-          {!confirmingGiveUp && <button className={styles.ghost} onClick={multiplayer.leaveRoom}>Leave room</button>}
+          {!confirmingGiveUp && <button className={styles.ghost} onClick={connection.leaveRoom}>Leave room</button>}
         </div>
       </section>
 
-      {playing && multiplayer.gameDeadlineAt !== null && <TimeLimit deadlineAt={multiplayer.gameDeadlineAt} />}
+      {playing && connection.gameDeadlineAt !== null && <TimeLimit deadlineAt={connection.gameDeadlineAt} />}
 
       <div ref={areaRef} className="flex flex-col gap-4">
         {!beside && opponents.length > 0 && <div className="flex flex-wrap justify-center gap-6">{opponents.map(boxFor)}</div>}

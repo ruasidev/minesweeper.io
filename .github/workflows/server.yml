@@ -56,7 +56,7 @@ jobs:
           done
           curl -fsS http://localhost:3000/api/health
           # this one reads from the database
-          curl -fsS "http://localhost:3000/api/leaderboard/beginner?mode=singleplayer"
+          curl -fsS "http://localhost:3000/api/leaderboard/beginner?mode=noGuess"
 
       - name: Show the API's log
         if: always()

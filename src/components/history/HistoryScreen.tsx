@@ -7,11 +7,12 @@ import { useFormStyles } from "../../hooks/useFormStyles"
 import { navigate } from "../../hooks/useRoute"
 import { getHistory, type HistoryGame } from "../../lib/api"
 import { avatarSrc } from "../../lib/avatar"
-import { describeBoard, MEDALS, ordinal, verdictOf } from "../../lib/gameResults"
+import { MEDALS, ordinal, verdictOf } from "../../lib/gameResults"
+import { boardName } from "../../../shared/game/boards"
+import { gameName } from "../../../shared/game/modes"
 import Page from "../app/Page"
 import ReplayView from "./ReplayView"
-
-const KINDS: Record<HistoryGame["kind"], string> = { singleplayer: "Singleplayer", multiplayer: "Multiplayer", daily: "Daily challenge" }
+import { plural } from "../../lib/text"
 
 type HistoryScreenProps = {
   // whose history: the signed-in player's own, unless the address names someone else
@@ -114,10 +115,10 @@ function GameList({ ownerId, isOwn }: { ownerId: string, isOwn: boolean }) {
               <span className="block sm:flex-1 min-w-0">
                 {/* on a phone the name of the game is never cut short: its label drops under it instead */}
                 <span className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 font-semibold ${theme.textHead}`}>
-                  <span className="sm:truncate">{KINDS[game.kind]} · {describeBoard(game)}</span>
+                  <span className="sm:truncate">{gameName(game.mode)} · {boardName(game)}</span>
                   {game.rated && <span className={styles.tag}>Rated</span>}
                 </span>
-                <span className="block text-xs opacity-70 truncate">{when(game)} · {game.moves} {game.moves === 1 ? "move" : "moves"}</span>
+                <span className="block text-xs opacity-70 truncate">{when(game)} · {plural(game.moves, "move")}</span>
               </span>
               <span className="block sm:w-60 sm:shrink-0 max-sm:mt-1.5">
                 <span className={`block font-bold truncate ${tones[verdict.tone] || theme.textHead}`}>{verdict.word}</span>

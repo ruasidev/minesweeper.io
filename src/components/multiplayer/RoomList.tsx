@@ -2,12 +2,13 @@ import { useState, type FormEvent } from "react"
 import { Lock, Plus } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
-import type { Multiplayer } from "../../hooks/useMultiplayer"
+import type { ServerConnection } from "../../hooks/useServerConnection"
+import { plural } from "../../lib/text"
 
 // Every room there is. Private ones are listed too, and ask for their passcode before letting anyone in.
 // `onCreate` is given where the form for a new room isn't on the page beside the list: the list then gets a
 // button that brings it up
-export default function RoomList({ multiplayer, onCreate }: { multiplayer: Multiplayer, onCreate?: () => void }) {
+export default function RoomList({ connection, onCreate }: { connection: ServerConnection, onCreate?: () => void }) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   // the private room whose passcode is being asked for, and what has been typed
@@ -15,11 +16,11 @@ export default function RoomList({ multiplayer, onCreate }: { multiplayer: Multi
   const [passcode, setPasscode] = useState("")
   // the room last asked to join, which is where a refusal is shown
   const [attemptedId, setAttemptedId] = useState<string | null>(null)
-  const error = multiplayer.error?.action === "joinRoom" ? multiplayer.error.message : null
+  const error = connection.error?.action === "joinRoom" ? connection.error.message : null
 
   function join(roomId: string, withPasscode?: string) {
     setAttemptedId(roomId)
-    multiplayer.joinRoom(roomId, withPasscode)
+    connection.joinRoom(roomId, withPasscode)
   }
 
   function unlock(e: FormEvent) {
@@ -32,21 +33,21 @@ export default function RoomList({ multiplayer, onCreate }: { multiplayer: Multi
       <div className="flex items-center gap-4 p-4">
         <h2 className={`text-xl font-semibold cursor-default ${theme.textHead}`}>Rooms</h2>
         <span className={`text-sm opacity-70 cursor-default ${theme.textBody}`}>
-          {multiplayer.rooms.length} open
+          {connection.rooms.length} open
         </span>
         {onCreate && (
-          <button className={`${styles.primary} ml-auto inline-flex items-center gap-1.5 py-2! text-sm`} disabled={multiplayer.status !== "connected"} onClick={onCreate}>
+          <button className={`${styles.primary} ml-auto inline-flex items-center gap-1.5 py-2! text-sm`} disabled={connection.status !== "connected"} onClick={onCreate}>
             <Plus className="w-4 h-4" />
             Create
           </button>
         )}
       </div>
 
-      {multiplayer.rooms.length === 0 && (
+      {connection.rooms.length === 0 && (
         <p className={`px-4 pb-4 opacity-70 cursor-default ${theme.textBody}`}>No rooms yet. Create one and it shows up here for everyone.</p>
       )}
 
-      {multiplayer.rooms.map(room => (
+      {connection.rooms.map(room => (
         <div key={room.id} className={`flex flex-col gap-2 px-4 py-3 border-t ${theme.itemBorder} ${theme.textBody}`}>
           <div className="flex items-center gap-4">
             <div className="flex-1 min-w-0 cursor-default">
@@ -55,7 +56,7 @@ export default function RoomList({ multiplayer, onCreate }: { multiplayer: Multi
                 <span className="truncate">{room.name}</span>
               </div>
               <div className="text-sm opacity-70 truncate">
-                Hosted by @{room.hostUsername} · {room.playerCount} {room.playerCount === 1 ? "player" : "players"}
+                Hosted by @{room.hostUsername} · {plural(room.playerCount, "player")}
                 {room.inGame && " · game in progress"}
               </div>
             </div>

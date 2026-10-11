@@ -1,10 +1,12 @@
 import { useEffect, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { ChevronDown, ChevronUp } from "lucide-react"
+import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import { useLayout } from "../../hooks/useLayout"
 import { useLocalStorage } from "../../hooks/useLocalStorage"
-import type { Multiplayer } from "../../hooks/useMultiplayer"
+import type { ServerConnection } from "../../hooks/useServerConnection"
+import { isMentioned } from "../../lib/mentions"
 import ChatBox from "./ChatBox"
 
 // How short the pane can be dragged, in px, and how much of the window's height it can take up at most
@@ -16,14 +18,15 @@ const HEIGHT_DEFAULT = 240
 // Dragging its top edge resizes it, and it can be hidden down to a thin bar that counts what is said in the meantime.
 // On a phone it starts out as that bar, because the room itself needs the screen, and opened it takes a set share
 // of the height: there is no edge there big enough to drag with a finger
-export default function ChatDock({ multiplayer }: { multiplayer: Multiplayer }) {
+export default function ChatDock({ connection }: { connection: ServerConnection }) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { mode, compact } = useLayout()
   // (where it sits, and how far in from the edges, is the page's doing: it is the page's footer)
   const [height, setHeight] = useLocalStorage<number>("chatHeight", HEIGHT_DEFAULT)
   const [hidden, setHidden] = useLocalStorage<boolean>("chatHidden", mode === "phone")
-  const { chat } = multiplayer
+  const { session, profile } = useAccount()
+  const { chat, room } = connection
 
   // how many messages there were when the chat was last on show, to count the ones that arrive while it is hidden
   const [seenCount, setSeenCount] = useState(chat.length)
@@ -31,6 +34,9 @@ export default function ChatDock({ multiplayer }: { multiplayer: Multiplayer }) 
     if (!hidden) setSeenCount(chat.length)
   }, [hidden, chat.length])
   const unseen = Math.max(0, chat.length - seenCount)
+  // ...and whether any of those was somebody saying this player's name
+  const myName = profile?.username ?? session?.user.name
+  const mentioned = chat.slice(chat.length - unseen).some(message => message.playerId !== session?.user.id && isMentioned(message.text, myName))
 
   function startResize(e: ReactPointerEvent<HTMLDivElement>) {
     const handle = e.currentTarget
@@ -60,6 +66,7 @@ export default function ChatDock({ multiplayer }: { multiplayer: Multiplayer }) 
       <section className={`${styles.card} flex items-center gap-3 px-4 py-2 cursor-pointer`} onClick={() => setHidden(false)}>
         <h2 className={`font-semibold ${theme.textHead}`}>Chat</h2>
         {unseen > 0 && <span className="px-1.5 py-0.5 rounded-full bg-green-500 text-white text-xs font-semibold leading-none">{unseen} new</span>}
+        {mentioned && <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-black text-xs font-semibold leading-none">You were mentioned</span>}
         <button className={`${toggleClass} ml-auto`} title="Show chat">
           <ChevronUp className="w-5 h-5 pressable" />
         </button>
@@ -86,7 +93,7 @@ export default function ChatDock({ multiplayer }: { multiplayer: Multiplayer }) 
           <ChevronDown className="w-5 h-5 pressable" />
         </button>
       </div>
-      <ChatBox messages={chat} onSend={multiplayer.sendChat} emptyText="Nothing said yet." />
+      <ChatBox messages={chat} onSend={connection.sendChat} emptyText="Nothing said yet." people={room?.players.map(player => player.username)} />
     </section>
   )
 }

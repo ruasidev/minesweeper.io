@@ -2,12 +2,8 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { useSettings } from "../../context/SettingsContext"
 import { useElementSize } from "../../hooks/useElementSize"
 import { useLayout } from "../../hooks/useLayout"
+import { BOARD_EDGE, fittedSize } from "../../lib/boardFit"
 
-// room kept around a board in the space it is panned about in, px
-const EDGE = 8
-// A board too big for the screen is shrunk to fit it, but only while its cells stay at least this big (px).
-// Any smaller and a finger starts landing on the wrong one, so the board keeps its size and is panned instead
-const FIT_MIN = 28
 // how small and how big two fingers can make the cells, px
 const ZOOM_MIN = 14
 const ZOOM_MAX = 72
@@ -16,21 +12,6 @@ const SNAP = 0.07
 
 // what each size of board has been zoomed to, for as long as the page is open
 const zooms = new Map<string, number>()
-
-// How big the cells of a board are drawn when nobody has zoomed it: the size chosen in the settings if the whole
-// board fits at that, otherwise the biggest that fits, as long as the cells stay big enough to press
-function fittedSize(chosen: number, gap: number, rows: number, cols: number, room: { width: number, height: number }): number {
-  // not measured yet
-  if (!room.width || !room.height) return chosen
-  const fitting = (space: number, count: number) => Math.floor((space - 2 * EDGE - (count - 1) * gap) / count)
-  const across = Math.min(chosen, fitting(room.width, cols))
-  const down = Math.min(chosen, fitting(room.height, rows))
-  // all of it in view
-  if (Math.min(across, down) >= FIT_MIN) return Math.min(across, down)
-  // or fitting one way, so it only has to be panned the other
-  if (Math.max(across, down) >= FIT_MIN) return Math.max(across, down)
-  return chosen
-}
 
 const middle = (touches: TouchList) => ({ x: (touches[0].clientX + touches[1].clientX) / 2, y: (touches[0].clientY + touches[1].clientY) / 2 })
 const spread = (touches: TouchList) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY)
@@ -150,7 +131,7 @@ export default function BoardViewport({ rows, cols, readOnly, centered, classNam
     <div ref={viewportRef} className="board-viewport flex-1 min-w-0 min-h-0 flex overflow-auto hide-scrollbar" style={metrics}>
       {/* margins that take up whatever room is over: a board smaller than its space sits in the middle of it,
           and a bigger one starts at the top left corner, where all of it can be reached by panning */}
-      <div className="shrink-0 m-auto" style={{ padding: EDGE }}>
+      <div className="shrink-0 m-auto" style={{ padding: BOARD_EDGE }}>
         <div ref={boardRef} className={`relative ${held}`}>{children}</div>
       </div>
     </div>

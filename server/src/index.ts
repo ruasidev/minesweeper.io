@@ -4,7 +4,7 @@ import { cors } from "hono/cors"
 import { WebSocketServer } from "ws"
 import { auth } from "./auth.js"
 import { env } from "./env.js"
-import { dropDeadConnections, multiplayerSocket } from "./multiplayer/socket.js"
+import { dropDeadConnections, gameSocket } from "./lobby/socket.js"
 import { publicRoutes, routes } from "./routes.js"
 
 const app = new Hono()
@@ -18,10 +18,10 @@ app.get("/api/health", (c) => c.json({ ok: true }))
 app.all("/api/auth/*", (c) => auth.handler(c.req.raw))
 
 app.route("/api", publicRoutes)
-app.route("/api", multiplayerSocket)
+app.route("/api", gameSocket)
 app.route("/api", routes)
 
-// Multiplayer messages are small; anything much bigger than that is not a real one
+// A game's messages are small; anything much bigger than that is not a real one
 const sockets = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 })
 dropDeadConnections(sockets)
 

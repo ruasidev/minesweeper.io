@@ -1,13 +1,13 @@
-import AnimationPreview from "./AnimationPreview";
-import { lossAnimations } from "../../game/animations";
-import SidebarSectionHeader from "./SidebarSectionHeader";
-import { useTheme } from "../../context/ThemeContext";
-import { useGameAnimations } from "../../context/GameAnimationContext";
+import AnimationPreview from "./AnimationPreview"
+import { lossAnimations } from "../../game/animations"
+import SidebarSectionHeader from "./SidebarSectionHeader"
+import { useTheme } from "../../context/ThemeContext"
+import { useGameAnimations } from "../../context/GameAnimationContext"
 
 export function LossAnimationSelect() {
-    const { theme } = useTheme()
-    const { lossAnimationId, setLossAnimationId } = useGameAnimations()
-    return (
+  const { theme } = useTheme()
+  const { lossAnimationId, setLossAnimationId } = useGameAnimations()
+  return (
         <div>
             <SidebarSectionHeader text="Loss Animations" />
             <div className="grid grid-cols-2 gap-4">
@@ -28,5 +28,5 @@ export function LossAnimationSelect() {
             </div>
         </div>
 
-    )
+  )
 }

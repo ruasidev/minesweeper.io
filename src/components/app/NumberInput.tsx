@@ -1,6 +1,20 @@
-import { Minus, Plus } from "lucide-react";
-import { useTheme } from "../../context/ThemeContext";
-import type { NumberInputProps } from "../../game/types";
+import { Minus, Plus } from "lucide-react"
+import { useTheme } from "../../context/ThemeContext"
+
+type NumberInputProps = {
+  label: string
+  value: number
+  min?: number
+  max?: number
+  // how much one notch of the slider moves the figure
+  step?: number
+  unit?: string
+  // for a bar: a small caption with the figure beside it, over a short slider
+  compact?: boolean
+  // with a button either side of the figure to move it one at a time, for setting it with a finger
+  stepper?: boolean
+  onChange: (n: number) => void
+}
 
 export default function NumberInput({ label, value, min = 1, max = 99, step = 1, unit = "", compact, stepper, onChange }: NumberInputProps) {
   const { theme } = useTheme()

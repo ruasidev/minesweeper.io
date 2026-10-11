@@ -14,16 +14,22 @@
 //
 // It only ever touches a database on this machine: every made-up account has an address ending in @demo.invalid,
 // and that is all `clear` removes.
+import { randomUUID } from "node:crypto"
 import { eq, like } from "drizzle-orm"
 import WebSocket from "ws"
 import { db, pool } from "../src/db/index.js"
 import { dailyAttempt, gameResult, multiplayerResult, profile, user } from "../src/db/schema.js"
 import { env } from "../src/env.js"
-import { dailyDate, openDailyGame, saveDailyResult } from "../src/multiplayer/daily.js"
-import { flag, giveUp, isPlaying, recordOf, reveal, standings, startGame, type Game } from "../src/multiplayer/game.js"
-import { DAILY_XP, multiplayerXp, singleplayerXp } from "../src/progression.js"
-import { saveRecord, suspicion } from "../src/records.js"
-import { BOARD_PRESETS, type BoardSettings, type RoomDetail, type RoomSummary, type ServerMessage } from "../../shared/protocol.js"
+import { databaseLedger } from "../src/ledger.js"
+import { dailyDate, dailySeedFrom } from "../src/modes/daily.js"
+import { DAILY_XP, multiplayerXp, singleplayerXp, suspicion } from "../src/scoring.js"
+import { COVERED, UNCOVERED } from "../../shared/engine/board.js"
+import { colOf, rowOf } from "../../shared/engine/field.js"
+import { SEED_BYTES } from "../../shared/engine/seed.js"
+import { BOARD_PRESETS, DAILY_BOARD_SETTINGS } from "../../shared/game/boards.js"
+import { flag, giveUp, isPlaying, recordOf, reveal, standings, startGame, type Game } from "../../shared/game/game.js"
+import { START_COUNTDOWN_MS, type SingleplayerModeId } from "../../shared/game/modes.js"
+import { PROTOCOL_VERSION, type BoardSettings, type RoomDetail, type RoomSummary, type ServerMessage } from "../../shared/protocol.js"
 
 const DEMO_DOMAIN = "demo.invalid"
 const BOT_PASSWORD = "demo-password-1"
@@ -62,6 +68,9 @@ const random = seeded(20261009)
 const between = (low: number, high: number) => low + random() * (high - low)
 const pick = <T>(items: T[]): T => items[Math.floor(random() * items.length)]
 const DAY = 24 * 60 * 60 * 1000
+// the seed of a made-up game's board, from the same made-up randomness as everything else
+const nextSeed = () => Uint8Array.from({ length: SEED_BYTES }, () => 1 + Math.floor(random() * 255))
+const dailySeed = dailySeedFrom(env.authSecret)
 
 // A round picture with the player's initial on it, in two colours of their own: no file, just the address of one
 function avatar(name: string, at: number): string {
@@ -76,29 +85,33 @@ type Skill = { paceMs: number, slips: number }
 // Plays a player's game out from `from`, a move at a time, as someone would who somehow never guesses wrong except
 // when they slip. Returns the moment they stopped
 function playOut(game: Game, id: string, from: number, skill: Skill, quitChance = 0): number {
+  const { cols, mines } = game.field
   let now = from
-  let last = game.start
+  let last = { row: rowOf(cols, game.opening), col: colOf(cols, game.opening) }
   for (let moves = 0; isPlaying(game, id) && moves < 5000; moves++) {
-    const cells = game.players.get(id)!.board.grid.flat()
-    const covered = cells.filter(cell => !cell.revealed && !cell.hasMine && !cell.flagged)
+    const cells = Array.from(game.players.get(id)!.board.cells, (state, at) => ({ row: rowOf(cols, at), col: colOf(cols, at), state, mine: mines[at] === 1 }))
+    const covered = cells.filter(cell => cell.state === COVERED && !cell.mine)
     if (covered.length === 0) break
     now += skill.paceMs * between(0.5, 1.5)
-    const touchesOpen = (cell: typeof cells[number]) => cells.some(other => other.revealed && Math.abs(other.row - cell.row) <= 1 && Math.abs(other.col - cell.col) <= 1)
+    const touchesOpen = (cell: typeof cells[number]) =>
+      cells.some(other => other.state === UNCOVERED && Math.abs(other.row - cell.row) <= 1 && Math.abs(other.col - cell.col) <= 1)
+    // a mine nobody has marked, beside what is uncovered
+    const nearbyMine = () => cells.find(cell => cell.mine && cell.state === COVERED && touchesOpen(cell))
 
     if (random() < quitChance) {
       giveUp(game, id, now)
       break
     }
-    // now and then a flag on a mine beside what is uncovered
+    // now and then a flag on one
     if (random() < 0.1) {
-      const mine = cells.find(cell => cell.hasMine && !cell.flagged && !cell.revealed && touchesOpen(cell))
+      const mine = nearbyMine()
       if (mine) {
         flag(game, id, mine.row, mine.col, now)
         now += skill.paceMs * 0.4
       }
     }
     if (random() < skill.slips) {
-      const mine = cells.find(cell => cell.hasMine && !cell.flagged && !cell.revealed && touchesOpen(cell))
+      const mine = nearbyMine()
       if (mine) {
         reveal(game, id, mine.row, mine.col, now)
         // sitting out the blast, where the game goes on
@@ -166,16 +179,18 @@ async function seed() {
       const settings: BoardSettings = count > 100 ? BOARD_PRESETS[0].settings : pick([BOARD_PRESETS[0], BOARD_PRESETS[1], BOARD_PRESETS[1], BOARD_PRESETS[2]]).settings
       const started = now - between(0.02, 45) * DAY
       const opening = { row: Math.floor(random() * settings.rows), col: Math.floor(random() * settings.cols) }
-      const game = startGame(settings, [person.id], started, { random, opening, startedAt: started, mineEnds: true })
+      // most play the game as it comes, on boards that need no guess; some would rather have theirs laid by chance
+      const mode: SingleplayerModeId = random() < 0.7 ? "noGuess" : "classic"
+      const game = startGame(mode, settings, [person.id], started, { seed: nextSeed(), key: randomUUID(), opening })
       // in singleplayer a slip is the end of the game, so they are rarer than where a mine only costs time
       const ended = playOut(game, person.id, started, { ...person.skill, slips: person.skill.slips * 0.35 })
       const result = recordOf(game, person.id, ended)!
       const won = result.outcome === "cleared"
       await db.insert(gameResult).values({
-        userId: person.id, ...settings, won, durationSeconds: Math.round(result.durationMs / 1000), durationMs: Math.round(result.durationMs),
+        userId: person.id, mode, ...settings, won, durationSeconds: Math.round(result.durationMs / 1000), durationMs: Math.round(result.durationMs),
         verified: true, createdAt: new Date(ended),
       })
-      await saveRecord("singleplayer", game, person.id, ended)
+      await databaseLedger.saveRecord(game, person.id, ended)
       person.xp += won ? singleplayerXp(settings) : 0
       person.playSeconds += result.durationMs / 1000
       person.gamesStarted++
@@ -188,7 +203,7 @@ async function seed() {
     const settings = pick([BOARD_PRESETS[0], BOARD_PRESETS[1], BOARD_PRESETS[1], BOARD_PRESETS[2]]).settings
     const players = [...people].sort(() => random() - 0.5).slice(0, Math.round(between(2, 4.4)))
     const created = now - between(0.02, 45) * DAY
-    const game = startGame(settings, players.map(person => person.id), created, { random, rated: random() < 0.75 })
+    const game = startGame("race", settings, players.map(person => person.id), created, { seed: nextSeed(), key: randomUUID(), rated: random() < 0.75 })
     const ends = new Map(players.map(person => [person.id, playOut(game, person.id, game.startedAt + between(250, 900), person.skill, 0.0012)]))
     const over = Math.max(...ends.values())
     const places = standings(game, over)
@@ -200,7 +215,7 @@ async function seed() {
           userId: person.id, ...settings, durationMs: Math.round(result.durationMs), mineHits: result.mineHits, createdAt: new Date(ends.get(person.id)!),
         })
       }
-      await saveRecord("multiplayer", game, person.id, ends.get(person.id)!)
+      await databaseLedger.saveRecord(game, person.id, ends.get(person.id)!, { place: standing.place, players: players.length })
       person.xp += multiplayerXp(settings, { ...standing, playerCount: players.length })
       person.playSeconds += result.durationMs / 1000
       person.gamesStarted++
@@ -219,13 +234,15 @@ async function seed() {
       // a few never miss a day (and have the badge for it); the rest turn up some days
       if (!(at % 9 === 2) && random() > 0.38) continue
       const opened = start + random() * window
-      const daily = await openDailyGame(person.id, opened)
-      if (!daily) continue
-      const ended = playOut(daily.game, person.id, daily.game.startedAt + between(300, 900), person.skill)
-      const result = recordOf(daily.game, person.id, ended)!
+      const date = dailyDate(opened)
+      const attempt = await databaseLedger.openDailyAttempt(person.id, date, opened + START_COUNTDOWN_MS)
+      if (attempt.cleared) continue
+      const game = startGame("daily", DAILY_BOARD_SETTINGS, [person.id], opened, { seed: dailySeed(date), key: randomUUID(), startedAt: attempt.startedAt })
+      const ended = playOut(game, person.id, game.startedAt + between(300, 900), person.skill)
+      const result = recordOf(game, person.id, ended)!
       if (result.outcome !== "cleared") continue
-      await saveDailyResult(person.id, daily.date, Math.round(result.durationMs), result.mineHits)
-      await saveRecord("daily", daily.game, person.id, ended)
+      await databaseLedger.saveDailyResult({ userId: person.id, date, durationMs: result.durationMs, mineHits: result.mineHits, hiddenReason: null })
+      await databaseLedger.saveRecord(game, person.id, ended)
       person.xp += DAILY_XP
       person.playSeconds += result.durationMs / 1000
       person.gamesStarted++
@@ -234,18 +251,19 @@ async function seed() {
   }
 
   console.log("Two results nobody could have played, for the admin screen…")
-  for (const person of [people[20], people[33]]) {
+  // one in each of the singleplayer games
+  for (const [person, mode] of [[people[20], "noGuess"], [people[33], "classic"]] as const) {
     const settings = BOARD_PRESETS[2].settings
     const started = now - between(0.1, 3) * DAY
-    const game = startGame(settings, [person.id], started, { random, opening: { row: 8, col: 15 }, startedAt: started, mineEnds: true })
+    const game = startGame(mode, settings, [person.id], started, { seed: nextSeed(), key: randomUUID(), opening: { row: 8, col: 15 } })
     const ended = playOut(game, person.id, started, { paceMs: 22, slips: 0 })
     const result = recordOf(game, person.id, ended)!
     const reason = suspicion(game, result)
     await db.insert(gameResult).values({
-      userId: person.id, ...settings, won: true, durationSeconds: Math.round(result.durationMs / 1000), durationMs: Math.round(result.durationMs),
+      userId: person.id, mode, ...settings, won: true, durationSeconds: Math.round(result.durationMs / 1000), durationMs: Math.round(result.durationMs),
       verified: true, hidden: reason !== null, hiddenReason: reason, createdAt: new Date(ended),
     })
-    await saveRecord("singleplayer", game, person.id, ended, { suspectReason: reason })
+    await databaseLedger.saveRecord(game, person.id, ended, { suspectReason: reason })
     games++
   }
 
@@ -293,7 +311,7 @@ async function signIn(name: string): Promise<Bot> {
   if (!response.ok) throw new Error(`${name} couldn't sign in: run "seed" first, with the dev server running`)
   const id = (await response.json() as { user: { id: string } }).user.id
   const cookie = response.headers.getSetCookie().map(part => part.split(";")[0]).join("; ")
-  const socket = new WebSocket(`${API.replace(/^http/, "ws")}/api/ws`, { headers: { Cookie: cookie, Origin: ORIGIN } })
+  const socket = new WebSocket(`${API.replace(/^http/, "ws")}/api/ws?v=${PROTOCOL_VERSION}`, { headers: { Cookie: cookie, Origin: ORIGIN } })
   const bot: Bot = {
     name, id, socket, rooms: [], room: null, cells: null, blockedUntil: 0, paceMs: 380 + live() * 520,
     send: message => { if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message)) },
@@ -302,9 +320,9 @@ async function signIn(name: string): Promise<Bot> {
     const message = JSON.parse(data.toString()) as ServerMessage
     if (message.type === "rooms") bot.rooms = message.rooms
     if (message.type === "room") bot.room = message.room
-    if (message.type === "board") {
-      bot.cells = message.cells
-      bot.blockedUntil = Date.now() + message.cooldownMs
+    if (message.type === "game") {
+      bot.cells = message.game?.cells ?? null
+      bot.blockedUntil = Date.now() + (message.game?.cooldownMs ?? 0)
     }
   })
   await new Promise((resolve, reject) => { socket.once("open", resolve); socket.once("error", reject) })

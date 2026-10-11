@@ -1,0 +1,5 @@
+# What the Rust code is built with. The WebAssembly target is what the site and the server run (npm run build:boardgen)
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]

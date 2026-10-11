@@ -1,7 +1,7 @@
 import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
-import type { Multiplayer } from "../../hooks/useMultiplayer"
+import type { ServerConnection } from "../../hooks/useServerConnection"
 import { useTimeLeft } from "../../hooks/useTimeLeft"
 import { avatarSrc } from "../../lib/avatar"
 import { describeResult, ordinal } from "../../lib/gameResults"
@@ -9,11 +9,12 @@ import { formatScore, formatTimeLeft } from "../../lib/time"
 import type { GameSummary, PlayerProgress, RoomDetail } from "../../../shared/protocol"
 import PlayerName from "../account/PlayerName"
 import OpponentBox from "./OpponentBox"
+import { plural } from "../../lib/text"
 
 type ResultsViewProps = {
   room: RoomDetail
   game: GameSummary
-  multiplayer: Multiplayer
+  connection: ServerConnection
   onBackToRoom: () => void
   // look at one player's board
   onWatch: (playerId: string) => void
@@ -21,7 +22,7 @@ type ResultsViewProps = {
 
 // What the top of the screen says about how this player's own game went
 function headline(mine: PlayerProgress | undefined, playerCount: number): { title: string, detail: string, tone: string } {
-  const hits = mine && mine.mineHits > 0 ? ` · ${mine.mineHits} ${mine.mineHits === 1 ? "mine" : "mines"} hit` : ""
+  const hits = mine && mine.mineHits > 0 ? ` · ${plural(mine.mineHits, "mine")} hit` : ""
   switch (mine?.outcome) {
     case "cleared":
       return {
@@ -54,7 +55,7 @@ function RatingChange({ change, pending }: { change: number | null, pending: boo
 // stopped. It says how they did, lists everyone whose game is over in the order they came, and under that shows
 // the boards of whoever is still playing, each one a click away from being watched. It keeps itself up to date
 // until the last player is done
-export default function ResultsView({ room, game, multiplayer, onBackToRoom, onWatch }: ResultsViewProps) {
+export default function ResultsView({ room, game, connection, onBackToRoom, onWatch }: ResultsViewProps) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { session } = useAccount()
@@ -73,8 +74,6 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
   // ratings only move in a game that counts, and when there was somebody to be measured against
   const rated = game.rated && game.players.length > 1
 
-  const headClass = `px-3 sm:px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
-  const cellClass = "px-3 sm:px-4 py-2.5 whitespace-nowrap"
   // On a phone there is room for who, their rating and the way to their board: how each of them did moves to a
   // line under their name
   const wideOnly = "hidden sm:table-cell"
@@ -91,9 +90,9 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
         <div className="ml-auto flex flex-wrap items-center gap-2 max-sm:w-full max-sm:flex-nowrap max-sm:text-sm max-sm:*:flex-1 max-sm:*:px-1!">
           <button className={styles.button} onClick={onBackToRoom}>Back to room</button>
           {room.hostId === myId && !game.over && (
-            <button className={styles.ghost} title="Stop the game for everyone still playing" onClick={multiplayer.endGame}>End game</button>
+            <button className={styles.ghost} title="Stop the game for everyone still playing" onClick={connection.endGame}>End game</button>
           )}
-          <button className={styles.ghost} onClick={multiplayer.leaveRoom}>Leave room</button>
+          <button className={styles.ghost} onClick={connection.leaveRoom}>Leave room</button>
         </div>
       </section>
 
@@ -107,20 +106,20 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
           <table className="w-full text-sm text-left">
             <thead>
               <tr className={`border-y ${theme.itemBorder} ${theme.itemBg}`}>
-                <th className={`${headClass} w-10 sm:w-12`}>#</th>
-                <th className={headClass}>Player</th>
-                <th className={`${headClass} ${wideOnly}`}>Result</th>
-                <th className={`${headClass} ${wideOnly} text-right`}>Mines hit</th>
-                <th className={`${headClass} text-right`}>Rating</th>
-                <th className={headClass} />
+                <th className={`${styles.th} w-10 sm:w-12`}>#</th>
+                <th className={styles.th}>Player</th>
+                <th className={`${styles.th} ${wideOnly}`}>Result</th>
+                <th className={`${styles.th} ${wideOnly} text-right`}>Mines hit</th>
+                <th className={`${styles.th} text-right`}>Rating</th>
+                <th className={styles.th} />
               </tr>
             </thead>
             <tbody>
               {done.map(({ player, progress }) => (
                 <tr key={player.id} className={`border-b last:border-b-0 ${theme.itemBorder} ${player.id === myId ? theme.itemBg : ""}`}>
                   {/* a place is only shown once it can't change any more */}
-                  <td className={`${cellClass} font-bold tabular-nums`}>{progress.outcome === "cleared" || game.over ? progress.place : "–"}</td>
-                  <td className={cellClass}>
+                  <td className={`${styles.td} font-bold tabular-nums`}>{progress.outcome === "cleared" || game.over ? progress.place : "–"}</td>
+                  <td className={styles.td}>
                     <div className="flex items-center gap-3">
                       <img
                         src={avatarSrc(player.image)}
@@ -135,17 +134,17 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
                         </div>
                         <div className="sm:hidden text-xs opacity-70 tabular-nums">
                           {describeResult(progress)}
-                          {progress.mineHits > 0 && ` · ${progress.mineHits} ${progress.mineHits === 1 ? "mine" : "mines"} hit`}
+                          {progress.mineHits > 0 && ` · ${plural(progress.mineHits, "mine")} hit`}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className={`${cellClass} ${wideOnly} tabular-nums ${progress.outcome === "cleared" ? "font-bold" : ""}`}>{describeResult(progress)}</td>
-                  <td className={`${cellClass} ${wideOnly} text-right tabular-nums`}>{progress.mineHits}</td>
-                  <td className={`${cellClass} text-right tabular-nums`}>
+                  <td className={`${styles.td} ${wideOnly} tabular-nums ${progress.outcome === "cleared" ? "font-bold" : ""}`}>{describeResult(progress)}</td>
+                  <td className={`${styles.td} ${wideOnly} text-right tabular-nums`}>{progress.mineHits}</td>
+                  <td className={`${styles.td} text-right tabular-nums`}>
                     <RatingChange change={progress.ratingChange} pending={rated && game.over} />
                   </td>
-                  <td className={`${cellClass} text-right`}>
+                  <td className={`${styles.td} text-right`}>
                     <button
                       className={styles.ghostSmall}
                       title="Look at the board as they left it"
@@ -177,14 +176,14 @@ export default function ResultsView({ room, game, multiplayer, onBackToRoom, onW
               Still playing ({stillPlaying.length})
             </h2>
             <span className="text-sm opacity-70">
-              {multiplayer.gameDeadlineAt !== null
-                ? <><TimeLeft deadlineAt={multiplayer.gameDeadlineAt} /> left to clear the board. Click a board to watch it.</>
+              {connection.gameDeadlineAt !== null
+                ? <><TimeLeft deadlineAt={connection.gameDeadlineAt} /> left to clear the board. Click a board to watch it.</>
                 : "No time limit until half the players have finished. Click a board to watch it."}
             </span>
           </div>
           <div className="flex flex-wrap gap-2 sm:gap-4">
             {stillPlaying.map(({ player, progress }) => (
-              <OpponentBox key={player.id} player={player} progress={progress} game={game} onSpectate={() => onWatch(player.id)} />
+              <OpponentBox key={player.id} player={player} progress={progress} sectionCols={game.sectionCols} onSpectate={() => onWatch(player.id)} />
             ))}
           </div>
         </section>

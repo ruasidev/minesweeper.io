@@ -5,7 +5,7 @@ import { useLocalStorage } from "./hooks/useLocalStorage"
 import { ROUTES, useRoute } from "./hooks/useRoute"
 import { useLayout } from "./hooks/useLayout"
 import { useOpenRooms } from "./hooks/useOpenRooms"
-import { useUnseenChat } from "./hooks/useUnseenChat"
+import { useUnseenMentions } from "./hooks/useUnseenMentions"
 import { useTyping, useVisibleHeight } from "./hooks/useVisibleHeight"
 import { useViewportWidth } from "./hooks/useViewportWidth"
 import { GameWidthContext } from "./context/GameWidthContext"
@@ -14,7 +14,7 @@ import BadgeGallery from "./components/account/BadgeGallery"
 import type { BadgeId } from "../shared/badges"
 import { GameAnimationProvider } from "./context/GameAnimationContext"
 import { InputModeContext } from "./context/InputModeContext"
-import { MinesweeperGameProvider } from "./context/MinesweeperGameContext"
+import { SoloGameProvider } from "./context/SoloGameContext"
 
 import Game from "./components/minesweeper/Game"
 import AdminScreen from "./components/admin/AdminScreen"
@@ -28,14 +28,16 @@ import AccountButtons from "./components/menu/AccountButtons"
 import ViewTransition from "./components/app/ViewTransition"
 import MainNavigation, { NavContent, NAV_DEFAULT_WIDTH, NAV_MIN_WIDTH, NAV_PANEL_MIN_WIDTH } from "./components/app/MainNavigation"
 import MoreSheet from "./components/app/MoreSheet"
+import UpdateNotice from "./components/app/UpdateNotice"
 import { NavRail, TabBar } from "./components/app/NavTabs"
 import type { AuthMode, Panel, Route } from "./game/types"
 import { playSound } from "./lib/sounds"
 
 // Room a game needs around its board and beside the left pane before the pane has to make way, in px
 const GAME_MARGIN = 96
-// how wide the rail of tabs is, in px: what a tablet has for navigation, and what the pane folds down to
-const RAIL_WIDTH = 76
+// How wide the rail of tabs is, in px: what a tablet has for navigation, and what the pane folds down to.
+// Wide enough for the longest of the tabs' names ("Leaderboard") to stand clear of its edges
+const RAIL_WIDTH = 88
 
 function App() {
   const { route, params, navigate } = useRoute()
@@ -71,7 +73,7 @@ function App() {
   const rail = layout.mode === "rail" || collapsed
   // with the whole pane on show there is nothing for "More" to bring up
   if (desktop && !collapsed && moreOpen) setMoreOpen(false)
-  const unseenChat = useUnseenChat(openPanel === "chat" && ((desktop && !collapsed) || moreOpen))
+  const chatMentions = useUnseenMentions(openPanel === "chat" && ((desktop && !collapsed) || moreOpen))
   // how many multiplayer rooms are open right now, to say so beside the way to them
   const openRooms = useOpenRooms()?.length ?? 0
 
@@ -90,8 +92,8 @@ function App() {
   // The window listing every badge, opened by clicking a badge anywhere; it marks the ones that player has
   const [galleryBadges, setGalleryBadges] = useState<BadgeId[] | null>(null)
 
-  const { theme } = useTheme();
-  const { settings } = useSettings();
+  const { theme } = useTheme()
+  const { settings } = useSettings()
 
   // Going somewhere puts "More" away: it was only in the way to get there
   const goTo = (to: Route) => {
@@ -104,7 +106,7 @@ function App() {
     openPanel,
     onOpenPanel: setOpenPanel,
     onClosePanel: () => setOpenPanel(null),
-    unseenChat,
+    chatMentions,
     openRooms,
   }
   const tabs = {
@@ -112,7 +114,7 @@ function App() {
     onNavigate: goTo,
     moreOpen,
     onToggleMore: () => setMoreOpen(open => !open),
-    moreBadge: unseenChat > 0,
+    moreBadge: chatMentions > 0,
     openRooms,
   }
   // what is the signed-in player's own, wherever the way to it is put: the header, or the foot of a rail without one
@@ -178,7 +180,7 @@ function App() {
           <main className="absolute inset-0">
             {/* the singleplayer game's state lives above the pages, so a game in progress is still there after visiting another one */}
             <GameWidthContext.Provider value={setGameWidth}>
-            <MinesweeperGameProvider>
+            <SoloGameProvider>
               {/* switching page eases the new one in, the same way multiplayer moves between its stages */}
               <ViewTransition view={route} order={ROUTES} className="h-full">
                 {route === "admin" ? <AdminScreen />
@@ -188,7 +190,7 @@ function App() {
                   : route === "history" ? <HistoryScreen userId={params[0] ?? null} gameId={params[1] ? Number(params[1]) : null} onOpenAuth={openAccount} />
                   : <Game />}
               </ViewTransition>
-            </MinesweeperGameProvider>
+            </SoloGameProvider>
             </GameWidthContext.Provider>
           </main>
 
@@ -216,6 +218,7 @@ function App() {
               offScreen={collapsed}
             />
           )}
+          <UpdateNotice />
           <AccountModal
             isOpen={accountOpen}
             onClose={() => setAccountOpen(false)}

@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react"
 import { CalendarDays, ShieldCheck, Swords, User } from "lucide-react"
 import { useAccount } from "../../context/AccountContext"
+import { useSoloGameContext } from "../../context/SoloGameContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
-import { getDaily, getLeaderboard, setScoresHidden, type ScoreEntry } from "../../lib/api"
+import { getDaily, getLeaderboard, setScoresHidden, type ScoreEntry, type ScoreSelection } from "../../lib/api"
 import { ordinal } from "../../lib/gameResults"
 import { formatScore } from "../../lib/time"
-import { BOARD_PRESETS, DAILY_BOARD_SETTINGS, type BoardSettings } from "../../../shared/protocol"
+import { BOARD_PRESETS, DAILY_BOARD_SETTINGS, boardSize } from "../../../shared/game/boards"
+import { CHANCE_SOLO_MODE, DEFAULT_ROOM_MODE, DEFAULT_SOLO_MODE, rulesOf, type SingleplayerModeId } from "../../../shared/game/modes"
 import Page from "../app/Page"
 import Segmented from "../app/Segmented"
+import Switch from "../app/Switch"
 import ScoreTable from "./ScoreTable"
 
 // The kinds of game with a leaderboard, named and drawn as they are in the navigation
@@ -21,22 +24,30 @@ const KINDS = [
 // ...and the boards each of the first two is ranked on
 const BOARDS = BOARD_PRESETS.map(preset => ({ id: preset.id, label: preset.label }))
 
-const describe = ({ rows, cols, mines }: BoardSettings) => `${rows} × ${cols}, ${mines} mines`
-const WHAT: Record<Kind, string> = {
-  singleplayer: "Each player's fastest singleplayer win",
+const WHAT: Record<Exclude<Kind, "singleplayer"> | SingleplayerModeId, string> = {
+  noGuess: "Each player's fastest singleplayer win on a board that needs no guess",
+  classic: "Each player's fastest singleplayer win on a classic board, its mines laid by chance",
   multiplayer: "Each player's fastest clear in a multiplayer game",
   daily: "Everyone who has cleared today's board, quickest first",
 }
 
 // The leaderboards. Two questions pick the one on show, asked in the order a player thinks of them: which kind of
 // game, then (for the kinds played on more than one) which board. Under them, where this player stands on it,
-// and then the board itself
+// and then the board itself.
+//
+// Singleplayer is two games, and a time on a board that never needs a guess isn't to be set beside one on a board
+// laid by chance: each has leaderboards of its own. Which is on show is not a third row of choices but the one
+// switch the game itself has for it, "No guessing", and it starts as the player has it set for their own games
 export default function LeaderboardScreen() {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { session, isAdmin } = useAccount()
   const [kind, setKind] = useState<Kind>("singleplayer")
   const [board, setBoard] = useState(BOARD_PRESETS[1].id)
+  // which of the singleplayer games: the one this player plays, until they ask for the other
+  const [soloMode, setSoloMode] = useState<SingleplayerModeId>(useSoloGameContext().mode)
+  // what is on show: one of the singleplayer games, or one of the other two kinds
+  const shown = kind === "singleplayer" ? soloMode : kind
   // null while it loads
   const [entries, setEntries] = useState<ScoreEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -50,21 +61,25 @@ export default function LeaderboardScreen() {
     setEntries(null)
     const loading = kind === "daily"
       ? getDaily().then((daily) => { if (!cancelled) setDailyDate(daily.date); return daily })
-      : getLeaderboard(board, kind)
+      : getLeaderboard(board, kind === "singleplayer" ? soloMode : DEFAULT_ROOM_MODE)
     loading
       .then(loaded => { if (!cancelled) { setEntries(loaded.entries); setError(null) } })
       .catch((e: Error) => { if (!cancelled) setError(e.message) })
     return () => { cancelled = true }
-  }, [kind, board, reload])
+  }, [kind, board, soloMode, reload])
 
   const preset = BOARD_PRESETS.find(candidate => candidate.id === board)
   const settings = kind === "daily" ? DAILY_BOARD_SETTINGS : preset?.settings
 
   // Admins: takes a player's results off the board on show. (They come back from the admin screen.)
   function remove(entry: ScoreEntry) {
-    const scores = kind === "daily"
-      ? dailyDate && { kind: "daily" as const, userId: entry.userId, date: dailyDate }
-      : preset && { kind, userId: entry.userId, ...preset.settings }
+    const board = preset && { userId: entry.userId, ...preset.settings }
+    // the leaderboard on show, and no other: in singleplayer, the one for the game on show
+    const scores: ScoreSelection | undefined
+      = kind === "daily" ? (dailyDate ? { kind, userId: entry.userId, date: dailyDate } : undefined)
+      : !board ? undefined
+      : kind === "singleplayer" ? { kind, mode: soloMode, ...board }
+      : { kind, ...board }
     if (!scores || !window.confirm(`Take @${entry.username}'s results off this leaderboard?`)) return
     setScoresHidden(scores, true).then(() => setReload(n => n + 1), (e: Error) => setError(e.message))
   }
@@ -78,9 +93,12 @@ export default function LeaderboardScreen() {
         <div className="flex flex-col gap-3 p-4">
           <Segmented label="Kind of game" options={KINDS} value={kind} onChange={setKind} />
           {kind !== "daily" && <Segmented small label="Board" options={BOARDS} value={board} onChange={setBoard} />}
+          {kind === "singleplayer" && (
+            <Switch label="No guessing" checked={rulesOf(soloMode).guessFree} onChange={on => setSoloMode(on ? DEFAULT_SOLO_MODE : CHANCE_SOLO_MODE)} />
+          )}
           <p className={`text-sm cursor-default ${theme.textBody}`}>
-            <span className="opacity-70">{WHAT[kind]}</span>
-            {settings && <span className="opacity-70"> · {describe(settings)}</span>}
+            <span className="opacity-70">{WHAT[shown]}</span>
+            {settings && <span className="opacity-70"> · {boardSize(settings)}</span>}
             {kind === "daily" && dailyDate && <span className="opacity-70"> · {dailyDate}</span>}
           </p>
         </div>
@@ -107,7 +125,7 @@ export default function LeaderboardScreen() {
         {entries && (
           <ScoreTable
             entries={entries}
-            emptyText={kind === "daily" ? "Nobody has cleared today's board yet. Be the first." : `Nobody has cleared this board in ${kind} yet. Be the first.`}
+            emptyText={kind === "daily" ? "Nobody has cleared today's board yet. Be the first." : `Nobody has cleared this board in ${shown === "classic" ? "classic singleplayer" : kind} yet. Be the first.`}
             highlightUserId={myId}
             showDate={kind !== "daily"}
             hideMineHits={kind === "singleplayer"}

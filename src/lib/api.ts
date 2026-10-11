@@ -1,5 +1,6 @@
 import { API_URL } from "./authClient"
 import type { BadgeId } from "../../shared/badges"
+import type { GameFamily, GameModeId, RoomModeId, SingleplayerModeId } from "../../shared/game/modes"
 import type { BoardSettings, Move, RoomSummary } from "../../shared/protocol"
 
 export type BestTime = {
@@ -71,7 +72,8 @@ export type SuspectGame = {
   id: number
   userId: string
   username: string
-  kind: "singleplayer" | "multiplayer" | "daily"
+  kind: GameFamily
+  mode: GameModeId
   rows: number
   cols: number
   mines: number
@@ -83,9 +85,11 @@ export type SuspectGame = {
   at: string
 }
 
-// Whose results, on which board, to take off the leaderboards or put back
+// Whose results, on which board, to take off the leaderboards or put back. In singleplayer, in which of its two
+// games: each has leaderboards of its own
 export type ScoreSelection =
-  | { kind: "singleplayer" | "multiplayer", userId: string, rows: number, cols: number, mines: number }
+  | { kind: "singleplayer", mode: SingleplayerModeId, userId: string, rows: number, cols: number, mines: number }
+  | { kind: "multiplayer", userId: string, rows: number, cols: number, mines: number }
   | { kind: "daily", userId: string, date: string }
 
 // Calls the API as the signed-in player. Throws an Error carrying the server's message when it refuses.
@@ -122,7 +126,9 @@ export const getSuspectGames = () => request<{ games: SuspectGame[] }>("/admin/s
 // One game in someone's match history
 export type HistoryGame = {
   id: number
-  kind: "singleplayer" | "multiplayer" | "daily"
+  // where it was played, and which game it was (see shared/game/modes.ts)
+  kind: GameFamily
+  mode: GameModeId
   // whether it counted towards ratings
   rated: boolean
   rows: number
@@ -152,6 +158,21 @@ export type RecordedGame = Omit<HistoryGame, "moves" | "place" | "players" | "ra
   // the cell the board was opened on
   openRow: number
   openCol: number
+  moves: Move[]
+  // A game played in a room: the games of everyone else who played it, on the same board from the same opening.
+  // Empty for any other kind of game
+  others: OtherPlayersGame[]
+}
+
+// Another player's side of a multiplayer game that is being played back
+export type OtherPlayersGame = {
+  // their own record of the game, which can be played back in its own right
+  id: number
+  userId: string
+  username: string
+  image: string | null
+  outcome: string
+  durationMs: number
   moves: Move[]
 }
 
@@ -184,7 +205,8 @@ export type DailyInfo = {
   mine: { startedAt: string, durationMs: number | null, mineHits: number | null } | null
 }
 
-// Each player's fastest clear of one of the classic boards, in one mode. `board` is a BOARD_PRESETS id
-export const getLeaderboard = (board: string, mode: "singleplayer" | "multiplayer") =>
+// Each player's fastest clear of one of the classic boards, in one game: either of the singleplayer ones, or the
+// one rooms play. `board` is a BOARD_PRESETS id
+export const getLeaderboard = (board: string, mode: SingleplayerModeId | RoomModeId) =>
   request<{ entries: ScoreEntry[] }>(`/leaderboard/${board}?mode=${mode}`)
 export const getDaily = () => request<DailyInfo>("/daily")

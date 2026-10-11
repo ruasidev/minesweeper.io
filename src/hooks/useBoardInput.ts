@@ -1,7 +1,9 @@
 import { useEffect, useRef, type MouseEvent, type PointerEvent } from "react"
 import { useInputMode } from "../context/InputModeContext"
 import { useSettings } from "../context/SettingsContext"
-import type { Board } from "../game/types"
+import type { BoardView } from "../lib/boardView"
+import { isOnBoard } from "../../shared/engine/field"
+import { isUncovered } from "../../shared/engine/view"
 
 // how far a finger may wander (px) and still count as holding a cell. How long it has to stay down is a setting
 const HOLD_SLACK = 10
@@ -22,13 +24,15 @@ function cellAt(target: EventTarget): { row: number, col: number } | null {
 // - A mouse: the left button uncovers, the right button flags.
 // - A finger: a tap uncovers, holding it down flags. With the switch under the board on Flag, those two swap over
 //   for a covered cell, for the stretch of a game where flags are what is being placed
-export function useBoardInput(board: Board, onUncover: CellAction, onFlag: CellAction) {
+//
+// A board nobody has played on yet has nothing to flag: whatever is done to it is its first click
+export function useBoardInput(view: BoardView, onUncover: CellAction, onFlag: CellAction) {
   const { flagMode } = useInputMode()
   const { holdMs } = useSettings().settings
   // what the timer of a held finger acts on: whatever is current when it runs out, not when it was started
-  const latest = useRef({ board, onUncover, onFlag, flagMode })
+  const latest = useRef({ view, onUncover, onFlag, flagMode })
   useEffect(() => {
-    latest.current = { board, onUncover, onFlag, flagMode }
+    latest.current = { view, onUncover, onFlag, flagMode }
   })
 
   const hold = useRef<{ timer: ReturnType<typeof setTimeout>, x: number, y: number } | null>(null)
@@ -42,12 +46,16 @@ export function useBoardInput(board: Board, onUncover: CellAction, onFlag: CellA
   }
   useEffect(() => letGo, [])
 
+  // Does what a tap on a cell, or holding it, means. Returns whether that was anything
   function press(row: number, col: number, held: boolean) {
-    const { board, onUncover, onFlag, flagMode } = latest.current
-    const cell = board.grid[row]?.[col]
-    if (!cell) return false
+    const { view, onUncover, onFlag, flagMode } = latest.current
+    if (!isOnBoard(view, row, col)) return false
+    if (view.status === "ready") {
+      onUncover(row, col)
+      return true
+    }
     // an uncovered cell has nothing to flag: a tap chords it, and holding it does nothing
-    if (cell.revealed) {
+    if (isUncovered(view.cells[row * view.cols + col])) {
       if (!held) onUncover(row, col)
       return !held
     }

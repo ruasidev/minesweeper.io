@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react"
 import { Search } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
-import { ghostColors } from "../../game/themes"
 import { navigate } from "../../hooks/useRoute"
 import { getAdminUsers, resetRating, setBanned, type AdminUser } from "../../lib/api"
 import { avatarSrc } from "../../lib/avatar"
 import { isAdminRole } from "../../lib/roles"
 import AdminBadge from "./AdminBadge"
+import { plural } from "../../lib/text"
+import { useFormStyles } from "../../hooks/useFormStyles"
 
 // How accounts sign in, as the server names them → as shown in the table
 const SIGN_IN_LABELS: Record<string, string> = {
@@ -17,6 +18,7 @@ const SIGN_IN_LABELS: Record<string, string> = {
 // Every account, newest first, with a search over display name, username and email
 export default function UsersPanel() {
   const { theme } = useTheme()
+  const styles = useFormStyles()
   const [search, setSearch] = useState("")
   // what was last searched for: `search`, once typing has paused
   const [query, setQuery] = useState("")
@@ -49,10 +51,7 @@ export default function UsersPanel() {
     setBanned(account.id, true, reason).then(() => { setError(null); setReload(n => n + 1) }, (e: Error) => setError(e.message))
   }
   // bare until the pointer is over them: one box per button, in every row, would be a lot of boxes
-  const actionClass = `px-2 py-1 rounded text-xs font-semibold pressable select-none ${ghostColors(theme)}`
-
-  const headClass = `px-4 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${theme.textHead}`
-  const cellClass = "px-4 py-2 whitespace-nowrap"
+  const actionClass = `${styles.ghostSmall} select-none`
 
   return (
     <section className={`rounded-xl border shadow-lg shadow-black/40 ring-1 ring-white/10 overflow-hidden ${theme.menuBg} ${theme.menuBorder}`}>
@@ -62,7 +61,7 @@ export default function UsersPanel() {
           <span className={`text-sm opacity-70 cursor-default ${theme.textBody}`}>
             {result.users.length < result.total
               ? `Showing the newest ${result.users.length} of ${result.total}`
-              : `${result.total} ${result.total === 1 ? "account" : "accounts"}`}
+              : `${plural(result.total, "account")}`}
           </span>
         )}
         <label className={`ml-auto flex items-center gap-2 px-3 py-2 w-72 max-w-full rounded-md border focus-within:ring-2
@@ -84,21 +83,21 @@ export default function UsersPanel() {
         <table className={`w-full text-sm text-left select-text ${theme.textBody}`}>
           <thead>
             <tr className={`border-y ${theme.itemBorder} ${theme.itemBg}`}>
-              <th className={headClass}>User</th>
-              <th className={headClass}>Username</th>
-              <th className={headClass}>Email</th>
-              <th className={headClass}>Signs in with</th>
-              <th className={`${headClass} text-right`}>Games</th>
-              <th className={`${headClass} text-right`}>Rating</th>
-              <th className={headClass}>Joined</th>
+              <th className={styles.th}>User</th>
+              <th className={styles.th}>Username</th>
+              <th className={styles.th}>Email</th>
+              <th className={styles.th}>Signs in with</th>
+              <th className={`${styles.th} text-right`}>Games</th>
+              <th className={`${styles.th} text-right`}>Rating</th>
+              <th className={styles.th}>Joined</th>
               {/* the buttons stay at the right-hand edge however far the table has to scroll sideways */}
-              <th className={`${headClass} sticky right-0 ${theme.itemBg}`} />
+              <th className={`${styles.th} sticky right-0 ${theme.itemBg}`} />
             </tr>
           </thead>
           <tbody>
             {result?.users.map(account => (
               <tr key={account.id} className={`border-b last:border-b-0 ${theme.itemBorder}`}>
-                <td className={cellClass}>
+                <td className={styles.td}>
                   <div className="flex items-center gap-3">
                     <img
                       src={avatarSrc(account.image)}
@@ -114,16 +113,16 @@ export default function UsersPanel() {
                   </div>
                 </td>
                 {/* no username until the account's profile has been opened once */}
-                <td className={cellClass}>{account.username ? `@${account.username}` : "–"}</td>
-                <td className={cellClass}>
+                <td className={styles.td}>{account.username ? `@${account.username}` : "–"}</td>
+                <td className={styles.td}>
                   {account.email}
                   {!account.emailVerified && <span className="ml-2 text-xs opacity-60" title="This address hasn't been confirmed">unconfirmed</span>}
                 </td>
-                <td className={cellClass}>{account.signInMethods.map(method => SIGN_IN_LABELS[method] ?? method).join(", ") || "–"}</td>
-                <td className={`${cellClass} text-right tabular-nums`}>{account.gamesPlayed}</td>
-                <td className={`${cellClass} text-right tabular-nums`}>{account.elo ?? "–"}</td>
-                <td className={cellClass}>{new Date(account.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</td>
-                <td className={`${cellClass} sticky right-0 ${theme.menuBg}`}>
+                <td className={styles.td}>{account.signInMethods.map(method => SIGN_IN_LABELS[method] ?? method).join(", ") || "–"}</td>
+                <td className={`${styles.td} text-right tabular-nums`}>{account.gamesPlayed}</td>
+                <td className={`${styles.td} text-right tabular-nums`}>{account.elo ?? "–"}</td>
+                <td className={styles.td}>{new Date(account.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</td>
+                <td className={`${styles.td} sticky right-0 ${theme.menuBg}`}>
                   <div className="flex justify-end gap-2">
                     <button className={actionClass} onClick={() => navigate("history", account.id)}>Games</button>
                     {account.elo !== null && (

@@ -1,21 +1,21 @@
-import { useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react"
 
 type ScreenDimProps = {
-    visible: boolean
-    children: ReactNode
-    // a click on the dimmed area itself calls this
-    onDismiss?: () => void
-    // dim only a little, keep what's behind sharp, and come up quickly
-    soft?: boolean
+  visible: boolean
+  children: ReactNode
+  // a click on the dimmed area itself calls this
+  onDismiss?: () => void
+  // dim only a little, keep what's behind sharp, and come up quickly
+  soft?: boolean
 }
 
 // Dims the whole screen behind `children`
 export default function ScreenDim({ visible, children, onDismiss, soft }: ScreenDimProps) {
-    // A click only dismisses if the press started on the dimmed area too,
-    // so dragging out of a text box (selecting what's in it) doesn't close anything
-    const pressedOnDim = useRef(false)
+  // A click only dismisses if the press started on the dimmed area too,
+  // so dragging out of a text box (selecting what's in it) doesn't close anything
+  const pressedOnDim = useRef(false)
 
-    return (
+  return (
         <div
             onPointerDown={(e) => { pressedOnDim.current = e.target === e.currentTarget }}
             onClick={(e) => {
@@ -29,5 +29,5 @@ export default function ScreenDim({ visible, children, onDismiss, soft }: Screen
         `}>
             {children}
         </div>
-    )
+  )
 }

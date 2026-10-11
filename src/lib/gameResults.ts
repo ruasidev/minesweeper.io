@@ -1,5 +1,6 @@
-import { BOARD_PRESETS, type PlayerOutcome, type PlayerProgress } from "../../shared/protocol"
+import type { PlayerOutcome, PlayerProgress } from "../../shared/protocol"
 import { formatScore } from "./time"
+import { plural } from "./text"
 
 // What each way of not clearing the board is called
 const STOPPED: Record<Exclude<PlayerOutcome, "playing" | "cleared">, string> = {
@@ -24,16 +25,10 @@ export function describeOutcome(outcome: string, durationMs: number): string {
     case "lost": return `Hit a mine at ${time}`
     case "abandoned": return `Abandoned at ${time}`
     case "gaveUp": return `Gave up at ${time}`
-    case "timedOut": return `Did not finish`
+    case "timedOut": return "Did not finish"
     case "left": return `Left at ${time}`
     default: return time
   }
-}
-
-// What a board is called: the classic one it matches, or its size
-export function describeBoard({ rows, cols, mines }: { rows: number, cols: number, mines: number }): string {
-  const preset = BOARD_PRESETS.find(({ settings }) => settings.rows === rows && settings.cols === cols && settings.mines === mines)
-  return preset ? preset.label : `${rows} × ${cols} · ${mines} ${mines === 1 ? "mine" : "mines"}`
 }
 
 // 1 → "1st", 2 → "2nd", 11 → "11th"
@@ -61,7 +56,7 @@ type PlayedGame = {
 
 export function verdictOf(game: PlayedGame): Verdict {
   const time = formatScore(game.durationMs)
-  const hits = game.mineHits > 0 ? ` · ${game.mineHits} ${game.mineHits === 1 ? "mine" : "mines"} hit` : ""
+  const hits = game.mineHits > 0 ? ` · ${plural(game.mineHits, "mine")} hit` : ""
   const cleared = game.outcome === "cleared"
 
   // singleplayer is won or lost; a game thrown away is neither

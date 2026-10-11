@@ -36,14 +36,3 @@
 .font-space-mono {
   font-family: 'Space Mono', monospace;
 }
-
-/* 
-@keyframes originBlast {
-  0%   { transform: scale(1); opacity: 1; background-color: #ff0000; }
-  30%  { transform: scale(2); opacity: 1; background-color: #ffffff; }
-  70%  { transform: scale(1.5) rotate(45deg); opacity: 0.7; background-color: #ff9900; }
-  100% { transform: scale(0.1) rotate(-90deg); opacity: 0; }
-}
-.animate-originBlast {
-  animation: originBlast 900ms ease-out forwards;
-} */

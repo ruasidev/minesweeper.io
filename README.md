@@ -1,24 +1,186 @@
 # Minesweeper World
 
-A React + TypeScript implementation of Minesweeper with a panel-based UI inspired by chess.com.  
-The game board stays visible on the left, while controls and customization options are in a right-hand panel.
+Minesweeper in the browser: singleplayer, live multiplayer rooms, a daily challenge, leaderboards, levels and
+badges, and a replay of every game the server ran. It runs at https://minesweeper.wooasi.com.
 
 ## Features
 
-- Customizable Minesweeper gameplay
-- Adjustable rows, columns, and mine count
-- Reset button to start fresh
-- Stats panel with current game state
-- Customizable themes with preset color palettes
-- Color picker support for fine-tuned styling
-- Responsive layout with scroll support for large boards
+- Singleplayer on the classic boards or any size, with themes, win and loss animations and sounds
+- Boards that never need a guess: every one can be cleared from its first click by reasoning alone. Classic
+  Minesweeper, with the mines wherever chance puts them, is a switch away
+- Multiplayer rooms: everyone races the same board, with ratings, spectating and a room chat
+- A daily challenge, the same board for everyone
+- Leaderboards, levels, experience and badges
+- A match history, with every game played back move by move
+- Fair play: the server runs every ranked game, so the mines never reach the browser until a game is over
+- One layout for desktop, tablet and phone, with touch controls
 
-## Tech Stack
+## Tech stack
 
-- React 18
-- TypeScript
-- Tailwind CSS
-- Vite
+- The site (`src/`): React 19, TypeScript, Tailwind CSS 4, Vite
+- The API (`server/`): Hono, WebSockets, Better Auth, Drizzle ORM, Postgres
+- The rules both sides play by (`shared/`): the board engine, the game modes, the running of a game, the protocol
+- The board generator (`crates/boardgen/`): Rust, with no dependencies, run by both sides as WebAssembly
+- Tests: Vitest, with Testing Library for the parts that need a page; `cargo test` for the Rust
+
+## How the code is laid out
+
+The game is built in layers, each of which only knows about the ones under it.
+
+```
+crates/boardgen/  The board generator, in Rust: lays the mines, and plays every board through to make sure it
+                  can be cleared without a guess. Run as WebAssembly (see "Board generation" below)
+
+shared/engine/    The board. Plain data and pure functions, nothing else:
+  seed.ts           what a board is made from
+  generate.ts       where the mines go: asks the generator
+  boardgen.ts       the door to the generator, and boardgen.wasm.ts, the generator itself as it is run
+  field.ts          a field of mines, and the numbers that follow from it
+  board.ts          a board being played: uncover, chord, flag, and what a mine does
+  analysis.ts       how many clicks a board needs (3BV), how far along a player is
+  view.ts           a board as its player sees it: what is sent, and what is drawn
+
+shared/game/      Games.
+  modes.ts          every game there is, and the rules each is played by
+  boards.ts         the classic boards
+  game.ts           a game being played: its players, its clock, its record. Run by the server for every
+                    game that counts, and by the browser for someone playing without an account
+
+shared/protocol.ts  what the browser and the server say to each other
+
+server/src/
+  lobby/            who is connected and what they are doing: rooms, games played alone, chat, the socket
+  modes/            the server's half of each game: how it starts, and what comes of its results
+  scoring.ts        what a game is worth: experience, ratings, whether a result can be believed
+  ledger.ts         everything the games keep in the database, behind one interface
+  routes.ts         the HTTP API: profiles, leaderboards, match history, admin
+
+src/
+  lib/              the site's own logic, free of React: the connection's state, the board as it is drawn,
+                    replays, the layout rules
+  hooks/            that logic wired into React: the connection, the singleplayer game, touch input
+  context/          what the whole app shares: the account, the connection, settings, the theme
+  components/       what is on the screen
+```
+
+A board is kept flat: one byte per cell, row after row, in a typed array, and a cell is known by its place in it.
+A move copies those bytes and changes the copy, so every board of a game can be kept for playing it back.
+
+### Adding a game mode
+
+A mode is two small definitions, and the rest of the app follows from them.
+
+1. **Its rules**, in `shared/game/modes.ts`: an entry in `GAME_MODES` saying where it is played (alone, or in a
+   room) and how: what a mine does, how the board is opened, whether the mines are shown afterwards, whether
+   stragglers are put on a clock, whether its boards are made to need no guess. The engine, the server's running
+   of the game, the site's drawing of it and its replays all go by these.
+2. **What the server does with it**, in `server/src/modes/`: a file like `singleplayer.ts` or `race.ts` that starts a
+   game of it and says what comes of the results (experience, a leaderboard time, ratings, the record kept), then
+   one line in `modes/index.ts`. Leaving this out doesn't compile.
+
+A rule the engine doesn't have yet (a new thing a mine can do, say) is added to `Rules` and to the one place that
+plays moves, `press` in `shared/engine/board.ts`. A mode that keeps a new kind of result adds what it needs to
+`Ledger` (`server/src/ledger.ts`). The record of every game says which mode it was (`game_record.mode`), so
+match history and replays need nothing.
+
+What a new mode does not get for free is somewhere to choose it. A room's host can already change the room's
+mode (`setMode`) but has no button for it while there is only one. The singleplayer page plays one of two:
+
+- **No guessing** (`noGuess`), unless the player says otherwise: every board can be cleared by reasoning alone.
+- **Classic** (`classic`): Minesweeper as it has always been, with the mines wherever chance puts them. It is what
+  the "No guessing" switch turns on when it is switched off: in the board options, behind the last button of the
+  bar under a fresh board (`GameDock.tsx`), where the size of the board is chosen too. With it off, that button
+  shows dice, and the status bar is headed "Classic".
+
+The two are alike in everything else, and are one definition on the server (`modes/singleplayer.ts`). Which of
+the two a game was is kept with its record and its result (`game_record.mode`, `game_result.mode`) and shown in
+the match history, and each has leaderboards of its own. Every game from before there was a choice was a classic
+one, and is recorded as such. A third singleplayer game will want something more than a switch to choose it with.
+
+### Board generation
+
+Boards are made by `crates/boardgen`, a small Rust program with no dependencies. The server and the browser both
+run it as WebAssembly, so a game played without an account gets its boards from the very same code as a ranked
+one. A board is made at the first click (or, for a board that is dealt, when the game starts), and takes well
+under a thousandth of a second: about 0.15 ms for an Expert board, and never more than a few milliseconds for
+any board that can be asked for.
+
+What it promises:
+
+- **A board is its seed.** The same settings, 16-byte seed and opening give the same board, byte for byte,
+  wherever it runs. All the chance comes from the seed, through a generator that is nothing but 32-bit integer
+  arithmetic (xoshiro128**).
+- **The first click is never beside a mine.** The cell a board opens on and the cells around it are kept clear, so
+  the opening always uncovers a patch.
+- **No guessing, by default.** Every board can be cleared from its opening by reasoning alone. A game mode can
+  turn this off (`guessFree: false` in its rules), and then the mines fall wherever chance puts them. One does:
+  the classic singleplayer game (below).
+
+How the last of those is kept: the generator has a solver, which plays a board through the way a careful player
+would, uncovering only cells it can prove are safe from the numbers showing and the count of mines left. It
+reasons in three ways, each stronger and slower than the last, and only reaches for the next when the one before
+has nothing more to give: one number at a time; two numbers that share cells; and, where neither gets anywhere,
+every way the mines could lie around a group of numbers. A board the solver clears needs no guess. One it gets
+stuck on is thrown away and another laid from the same seed, so what comes out is a board picked at random from
+among those that need no guess: about nine Beginner boards in ten pass as they are laid, seven Intermediate
+ones, and one Expert board in seven.
+
+On a board crowded with mines, far beyond anything the classic boards have, chance would never lay one that
+passes. After 64 tries the generator starts helping instead: where the solver stops, the mines around the number
+it is stuck on are moved somewhere out of the way and the solver carries on, and a board cleared that way is put
+to the solver once more from the start before it is trusted. Every size and mine count the game allows has been
+tried (`cargo run --release --example survey sweep`), and a board that needs no guess was found every time. If
+one ever isn't, within the work a board is allowed to take, the closest board found is handed over and
+`guessFree` on the result says so. (That allowance, `WORK_MAX`, was set with today's limits in mind, 99 by 99 and
+99 mines: if they are raised, run the sweep again.)
+
+```
+cargo test                               # the generator's own tests
+cargo run --release --example survey     # how long boards take, and how often chance alone is enough
+npm run build:boardgen                   # build it for the game: writes shared/engine/boardgen.wasm.ts
+```
+
+The WebAssembly module is kept in the repository (as base64, in `shared/engine/boardgen.wasm.ts`), so building
+the site or the API needs nothing but Node. **After changing anything in `crates/boardgen`, run
+`npm run build:boardgen` and commit what it writes.** Forgetting is caught: `crates/boardgen/tests/vectors.json`
+holds some four hundred boards the generator is on record as making, the Rust tests hold the source to them, and
+`shared/engine/generate.test.ts` holds the module the game runs to the very same ones. Changing what boards come
+out is done on purpose or not at all (`cargo run --example vectors > crates/boardgen/tests/vectors.json`), since
+it changes every board from then on, the day's daily challenge included.
+
+Building it needs [Rust](https://rustup.rs); `rust-toolchain.toml` says which parts, and rustup fetches them.
+
+## Tests
+
+```
+npm test            # everything, once
+npm run test:watch  # again on every change
+```
+
+The tests sit beside what they test: `shared/` for the board engine and the running of games, `server/src/` for
+the lobby, the game modes, scoring, ratings and fair play, and `src/` for the site's own logic, its touch input
+and a few of its components. They need no database and no browser: the lobby is tested whole, driven by the
+messages a browser would send, with a ledger that keeps everything in memory (`server/src/testing/`).
+`src/lib/replay.test.ts` plays games through the same code the server runs and checks that the replay of each
+shows exactly what the player saw after every move.
+
+The board generator has tests of its own, in Rust (`cargo test`). The ones that matter most hold its solver to
+the slowest and surest way of answering the same question: on boards small enough to try every single way the
+mines could lie, it must say a board needs no guess exactly when that is so
+(`crates/boardgen/tests/oracle.rs`). While they run, every cell the solver uncovers or marks is also checked
+against where the mines really are.
+
+A test that needs a page to work on starts with `// @vitest-environment jsdom`. The same checks run on GitHub
+for every push (`.github/workflows/test.yml`), together with the types and the lint rules:
+
+```
+npx tsc -b && npm run lint && npm test
+npm --prefix server run typecheck
+cargo fmt --all --check && cargo clippy --all-targets -- -D warnings && cargo test
+```
+
+`npm run lint` also holds the code to one style (two spaces, double quotes, no semicolons); `npm run lint -- --fix`
+puts a file right.
 
 ## Layout and design
 
@@ -105,18 +267,23 @@ npm run set-role -- someone@example.com admin     # or: user
 
 ### Multiplayer
 
-Signed-in players hold one WebSocket connection to the API (`/api/ws`) while the Multiplayer page is open.
+Signed-in players hold one WebSocket connection to the API (`/api/ws`) for as long as they are signed in.
 The messages that go over it are defined in `shared/protocol.ts`. Everything in `shared/` is used by both the
-site and the server, including the rules of the game themselves (`shared/board.ts`).
+site and the server, including the rules of the game themselves (`shared/engine/`).
 
-Rooms live in the server's memory (`server/src/multiplayer/lobby.ts`), not in the database: a room exists while
+The site says which version of the protocol it speaks as it connects (`PROTOCOL_VERSION`). A page left open
+across an update that changed the protocol is told so, and asks to be reloaded, rather than being left half
+working. Bump the version whenever a message changes shape.
+
+Rooms live in the server's memory (`server/src/lobby/rooms.ts`), not in the database: a room exists while
 players are connected to it, and restarting the API clears them all.
 
-The server runs the games (`server/src/multiplayer/game.ts`). It lays the mines, makes the same opening click for
-everyone, and applies every click a player sends. The mines never leave the server: a player is sent only what they
-have uncovered themselves, and of the other players only how finished each section of their board is.
+The server runs the games (`shared/game/game.ts`, by the rules of the room's mode). It lays the mines, makes the
+same opening click for everyone, and applies every click a player sends. The mines never leave the server: a
+player is sent only what they have uncovered themselves, and of the other players only how finished each section
+of their board is.
 
-How a game goes (`game.ts`, with the room's side of it in `lobby.ts`):
+How a race goes (`game.ts`, with the room's side of it in `lobby/rooms.ts` and its results in `modes/race.ts`):
 
 - Uncovering a mine doesn't end a player's game. The mine goes off: everything they had uncovered within a few
   cells of it is covered again (`mineBlastRadius`), and they sit out for a moment (`MINE_COOLDOWN_MS`).
@@ -131,12 +298,16 @@ How a game goes (`game.ts`, with the room's side of it in `lobby.ts`):
 ### Scores, levels and badges
 
 - **Leaderboards** (`#/leaderboard`) list each player's fastest clear of the classic boards, in multiplayer and in
-  singleplayer. Only games the server ran itself are counted (see "Fair play" below).
-- **The daily challenge** (`#/daily`, `server/src/multiplayer/daily.ts`) is one board a day, the same for everyone,
+  singleplayer. Only games the server ran itself are counted (see "Fair play" below). Each of the two
+  singleplayer games has leaderboards of its own, since a time on a board that never needs a guess isn't to be set
+  beside one on a board laid by chance. The page shows the ones for the game the player plays, and its
+  "No guessing" switch, the same one the game has, shows the other's.
+- **The daily challenge** (`#/daily`, `server/src/modes/daily.ts`) is one board a day, the same for everyone,
   run by the server. The board comes from the date mixed with the server's secret, and a player's clock starts
   the first time they start that day's board.
-- **Experience, levels and ratings** are awarded in `server/src/progression.ts`; the level curve and the measure of
-  how hard a board is are in `shared/progression.ts`.
+- **Experience, levels and ratings**: what a game is worth is worked out in `server/src/scoring.ts` and awarded by
+  each mode (`server/src/modes/`); the level curve and the measure of how hard a board is are in
+  `shared/progression.ts`.
 - **Badges** are listed in `shared/badges.ts` and worked out in `server/src/badges.ts` from what a player has done.
   `EARLY_SUPPORTER_UNTIL` there is the date to move when the game leaves beta.
 
@@ -146,13 +317,22 @@ Nothing a browser says about a game is taken on trust.
 
 - **The server runs every game of a signed-in player**, singleplayer included. The first click of a singleplayer
   game is sent to the server, which lays the mines around it and keeps them to itself; every click after that is
-  sent too (`soloStart` in `shared/protocol.ts`, handled in `lobby.ts`). The server times the game and saves the
-  result. Signed out, or with the connection down, singleplayer is played in the browser and nothing is kept.
+  sent too (`startSolo` in `shared/protocol.ts`, handled in `lobby/solo.ts`). The server times the game and saves
+  the result. Signed out, or with the connection down, singleplayer is played in the browser and nothing is kept.
+- **The mines stay on the server.** A player is sent their own board as they see it and nothing under it
+  (`ownGame` in `shared/game/game.ts`). Where the mines were is told only once their game is over, and only in a
+  game nobody else is playing on the same board: never in a race, never in the day's challenge.
+- **A board can't be worked out.** Every board is made from a 128-bit seed drawn from the system's cryptographic
+  source, and the day's from the date mixed with the server's secret, so no amount of looking at an opening
+  finds the seed behind it. Where a dealt board opens is never the player's to choose.
+- **Nothing a browser sends is trusted.** A message is checked for shape before anything reads it
+  (`lobby/messages.ts`), and for sense by whatever handles it: is that cell on the board, is it this player's
+  game, are they the host.
 - **Every game is recorded** in the `game_record` table: the board's layout and each move with its time. A game can
   be played back from that exactly as it went.
-- **Limits** (`server/src/records.ts`, and `allowMove` in `lobby.ts`): moves beyond 15 a second are thrown away, and
-  a board cleared faster than anyone plays (more than 12 of the clicks it needs per second) is kept off the
-  leaderboards and earns nothing. Such games are listed on the admin screen.
+- **Limits** (`suspicion` in `server/src/scoring.ts`, and `lobby/moveLimiter.ts`): moves beyond 15 a second are
+  thrown away, and a board cleared faster than anyone plays (more than 12 of the clicks it needs per second) is
+  kept off the leaderboards and earns nothing. Such games are listed on the admin screen.
 - **Admins** can take a player's results off a leaderboard (a Remove button on each row, for admins), put them back,
   reset a rating, and ban an account, from the admin screen.
 - **Ratings** only move in games in public rooms; a private room is unrated. Playing the same opponent again
@@ -164,8 +344,9 @@ Nothing a browser says about a game is taken on trust.
   played them by, so it lands on the same board). Any signed-in player can watch anyone's games, except a go at
   today's daily challenge, which would give the board away.
 
-What this doesn't stop: a program that plays at a human pace, or two people sharing what they see. The aim is that
-cheating shows up and can be undone, not that it is impossible.
+What this doesn't stop: a program that plays at a human pace, or two people sharing what they see. (Now that
+boards need no guess, such a program need never lose, where before it would have had to guess like anyone else.)
+The aim is that cheating shows up and can be undone, not that it is impossible.
 
 ### Email
 

@@ -4,13 +4,40 @@ import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { ghostColors } from "../../game/themes"
 import { paneLook } from "../../hooks/useFormStyles"
-import type { MainNavigationProps, NavContentProps, Panel } from "../../game/types"
+import type { Panel, Route } from "../../game/types"
+import { plural } from "../../lib/text"
 import GlobalChat from "../menu/GlobalChat"
 import HowToPlay from "../menu/HowToPlay"
 import SettingsMenu from "../menu/SettingsMenu"
 import SidebarMenu from "../menu/SidebarMenu"
 import { MAIN_PAGES } from "./navItems"
 import { APP_VERSION } from "./NavigationBar"
+
+// What the navigation shows and does, wherever it is put
+export type NavContentProps = {
+  route: Route
+  onNavigate: (route: Route) => void
+  openPanel: Panel | null
+  onOpenPanel: (panel: Panel) => void
+  onClosePanel: () => void
+  // how many times the player has been mentioned in the global chat since they last looked at it
+  chatMentions: number
+  // how many multiplayer rooms are open right now
+  openRooms: number
+  // on a phone or a tablet: the main pages are tabs there, so they are left out here
+  compact?: boolean
+  // given where the navigation is something brought up and put away again: it gets an X that does this
+  onClose?: () => void
+}
+
+// The navigation as the pane floating on the left of a desktop
+type MainNavigationProps = NavContentProps & {
+  width: number
+  minWidth: number
+  onWidthChange: (width: number) => void
+  // moved out past the left edge, to leave a game the whole width of a narrow window
+  offScreen: boolean
+}
 
 // How narrow and how wide the pane can be dragged, in px
 export const NAV_MIN_WIDTH = 192
@@ -65,7 +92,7 @@ function NavItem({ icon, label, selected, tag, fresh, onClick }: NavItemProps) {
 // been opened from those, which slides in over the rest. It fills whatever it is put in: the pane floating on the
 // left of a desktop, or what "More" brings up where the navigation is tabs. There the main pages are the tabs, so
 // `compact` leaves them out. (What is the signed-in player's own is not here: it is behind their picture, in the header)
-export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onClosePanel, unseenChat, openRooms, compact, onClose }: NavContentProps) {
+export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onClosePanel, chatMentions, openRooms, compact, onClose }: NavContentProps) {
   const { theme } = useTheme()
   const { isAdmin } = useAccount()
 
@@ -106,7 +133,7 @@ export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onCloseP
       <NavItem
         icon={<MessageCircle className="w-5 h-5 shrink-0" />}
         label="Global chat"
-        tag={unseenChat > 0 ? `${unseenChat} new` : undefined}
+        tag={chatMentions > 0 ? plural(chatMentions, "mention") : undefined}
         fresh
         onClick={() => onOpenPanel("chat")}
       />

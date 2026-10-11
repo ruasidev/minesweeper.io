@@ -15,6 +15,10 @@ type MoreSheetProps = {
 // theme can be seen on the board while it is being picked). A press on the dimmed page around it puts it away
 export default function MoreSheet({ open, beside, onClose, children }: MoreSheetProps) {
   const styles = useFormStyles()
+  // Where it starts beside the rail: the gap that is between every two panes on from the rail's own right-hand
+  // edge. (Worked out from the rail itself and not from the room pages leave for the navigation, which on a
+  // desktop takes in a gap more than the rail does)
+  const besideRail = "calc(var(--gap) * 2 + var(--rail-w) + env(safe-area-inset-left))"
 
   useEffect(() => {
     if (!open) return
@@ -42,8 +46,8 @@ export default function MoreSheet({ open, beside, onClose, children }: MoreSheet
         style={{
           top: "calc(var(--top-space) + var(--gap))",
           bottom: "calc(var(--bottom-space) + var(--gap))",
-          left: beside ? "calc(var(--nav-space) + var(--gap))" : "calc(var(--gap) + env(safe-area-inset-left))",
-          ...(beside ? { maxWidth: "calc(100% - var(--nav-space) - var(--gap) * 2)" } : { right: "calc(var(--gap) + env(safe-area-inset-right))" }),
+          left: beside ? besideRail : "calc(var(--gap) + env(safe-area-inset-left))",
+          ...(beside ? { maxWidth: `calc(100% - ${besideRail} - var(--gap))` } : { right: "calc(var(--gap) + env(safe-area-inset-right))" }),
         }}
       >
         {children}

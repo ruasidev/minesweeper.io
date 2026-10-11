@@ -2,30 +2,31 @@ import { ArrowLeft } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import { useLayout } from "../../hooks/useLayout"
-import type { Multiplayer } from "../../hooks/useMultiplayer"
+import type { ServerConnection } from "../../hooks/useServerConnection"
 import { describeResult } from "../../lib/gameResults"
 import type { GameSummary } from "../../../shared/protocol"
 import BoardStage from "../minesweeper/BoardStage"
-import { SpectatedBoard } from "./PlayableBoard"
+import { WatchedBoard } from "../minesweeper/LiveBoard"
+import { plural } from "../../lib/text"
 
 type SpectateViewProps = {
   game: GameSummary
   // whose board
   playerId: string
-  multiplayer: Multiplayer
+  connection: ServerConnection
   onBack: () => void
   onWatch: (playerId: string) => void
 }
 
 // One player's board, for someone whose own game is over: live while that player is still going, and as they left
 // it once they aren't. The others are a click away along the top
-export default function SpectateView({ game, playerId, multiplayer, onBack, onWatch }: SpectateViewProps) {
+export default function SpectateView({ game, playerId, connection, onBack, onWatch }: SpectateViewProps) {
   const { theme } = useTheme()
   const styles = useFormStyles()
   const { compact, short } = useLayout()
   const progress = game.progress[playerId]
   // the board that has arrived may still be the last player's, for a moment after switching
-  const watched = multiplayer.watching?.playerId === playerId ? multiplayer.watching.board : null
+  const watched = connection.watching?.playerId === playerId ? connection.watching : null
 
   const players = game.players.map(player => (
     <button
@@ -41,11 +42,11 @@ export default function SpectateView({ game, playerId, multiplayer, onBack, onWa
     <span className="inline-flex items-center gap-2 font-semibold tabular-nums">
       {progress.outcome === "playing" && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
       {describeResult(progress)}
-      {progress.mineHits > 0 && ` · ${progress.mineHits} ${progress.mineHits === 1 ? "mine" : "mines"} hit`}
+      {progress.mineHits > 0 && ` · ${plural(progress.mineHits, "mine")} hit`}
     </span>
   )
   const board = watched
-    ? <SpectatedBoard settings={game.settings} board={watched} />
+    ? <WatchedBoard settings={game.settings} watched={watched} />
     : <p className={`text-sm opacity-70 cursor-default ${compact ? "flex-1 p-4" : ""} ${theme.textBody}`}>Loading their board…</p>
 
   // On a small screen the board gets the room: the way back and whose board it is go in one strip, with the

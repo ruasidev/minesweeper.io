@@ -32,17 +32,17 @@ const WIN_HOLD_MS = 1600
 function Lobby() {
   const { theme } = useTheme()
   const styles = useFormStyles()
-  const multiplayer = useConnection()
+  const connection = useConnection()
   const { session, refreshProfile } = useAccount()
   const { mode, compact } = useLayout()
   // On a phone the form for a new room is a sheet brought up from the list, rather than a card above it
   const [creating, setCreating] = useState(false)
   // ...which has done its job once there is a room to be in
-  if (creating && multiplayer.room) setCreating(false)
-  const { leaveRoom, spectate } = multiplayer
+  if (creating && connection.room) setCreating(false)
+  const { leaveRoom, spectate } = connection
   useEffect(() => leaveRoom, [leaveRoom])
 
-  const room = multiplayer.room
+  const room = connection.room
   const game = room?.game ?? null
   const gameId = game?.id ?? null
   const myId = session?.user.id
@@ -89,8 +89,8 @@ function Lobby() {
     : afterGame.place
 
   // A sound for someone coming into the room: this player walking into one, or another player joining them there
-  const roomId = multiplayer.room?.id ?? null
-  const playerCount = multiplayer.room?.players.length ?? 0
+  const roomId = connection.room?.id ?? null
+  const playerCount = connection.room?.players.length ?? 0
   const gameOver = game?.over ?? false
   const lastSeen = useRef({ roomId, playerCount, stage, gameOver })
   useEffect(() => {
@@ -109,15 +109,15 @@ function Lobby() {
 
   // ...and one for the server refusing something (a wrong passcode, a room that's gone)
   useEffect(() => {
-    if (multiplayer.error || multiplayer.notice) playSound("error")
-  }, [multiplayer.error, multiplayer.notice])
+    if (connection.error || connection.notice) playSound("error")
+  }, [connection.error, connection.notice])
 
-  if (multiplayer.status === "replaced") {
+  if (connection.status === "replaced") {
     return (
       <Page title="Multiplayer">
         <div className={`${styles.card} flex flex-col items-start gap-4 p-4 w-full max-w-sm`}>
           <p className={`cursor-default ${theme.textBody}`}>Multiplayer was opened with this account in another tab or on another device.</p>
-          <button className={styles.button} onClick={multiplayer.reconnect}>Use it here instead</button>
+          <button className={styles.button} onClick={connection.reconnect}>Use it here instead</button>
         </div>
       </Page>
     )
@@ -132,40 +132,40 @@ function Lobby() {
         maxWidth={onBoard ? "max-w-none" : undefined}
         fill={onBoard}
         // stays put along the bottom in the room and at the results; out of the way wherever there is a board
-        footer={(stage === "room" || stage === "results") && <ChatDock multiplayer={multiplayer} />}
+        footer={(stage === "room" || stage === "results") && <ChatDock connection={connection} />}
       >
-        {multiplayer.status === "connecting" && !(onBoard && compact) && (
+        {connection.status === "connecting" && !(onBoard && compact) && (
           <p className={`text-sm opacity-70 cursor-default ${theme.textBody}`}>Connecting…</p>
         )}
-        {multiplayer.notice && <p role="alert" className={`text-sm text-red-500 font-semibold cursor-default ${onBoard && compact ? "px-3 pt-2" : ""}`}>{multiplayer.notice}</p>}
+        {connection.notice && <p role="alert" className={`text-sm text-red-500 font-semibold cursor-default ${onBoard && compact ? "px-3 pt-2" : ""}`}>{connection.notice}</p>}
         {/* creating or joining a room, starting a game, and going back again each ease the new view in */}
         <ViewTransition view={stage} order={STAGES} className={onBoard && compact ? "flex-1 min-h-0" : `flex flex-col ${mode === "phone" ? "gap-3" : "gap-4"}`}>
           {room && game && stage === "game" ? (
-            <GameView room={room} game={game} multiplayer={multiplayer} />
+            <GameView room={room} game={game} connection={connection} />
           ) : room && game && stage === "results" ? (
-            <ResultsView room={room} game={game} multiplayer={multiplayer} onBackToRoom={() => stopWatching("room")} onWatch={watch} />
+            <ResultsView room={room} game={game} connection={connection} onBackToRoom={() => stopWatching("room")} onWatch={watch} />
           ) : room && game && afterGame.place === "watching" && stage === "watching" ? (
-            <SpectateView game={game} playerId={afterGame.playerId} multiplayer={multiplayer} onBack={() => stopWatching("results")} onWatch={watch} />
+            <SpectateView game={game} playerId={afterGame.playerId} connection={connection} onBack={() => stopWatching("results")} onWatch={watch} />
           ) : room ? (
             <RoomView
               room={room}
-              multiplayer={multiplayer}
+              connection={connection}
               onViewResults={game && outcome !== null ? () => setAfterGame({ place: "results" }) : undefined}
             />
           ) : mode === "phone" ? (
             // the rooms come first on a phone: they are what most people are here for
             <>
-              <RoomList multiplayer={multiplayer} onCreate={() => setCreating(true)} />
+              <RoomList connection={connection} onCreate={() => setCreating(true)} />
               {creating && (
                 <FloatingWindow title="Create a room" sheet className="w-[min(26rem,94vw)]" onClose={() => setCreating(false)}>
-                  <CreateRoomForm multiplayer={multiplayer} bare />
+                  <CreateRoomForm connection={connection} bare />
                 </FloatingWindow>
               )}
             </>
           ) : (
             <div className="flex flex-wrap items-start gap-4">
-              <CreateRoomForm multiplayer={multiplayer} />
-              <RoomList multiplayer={multiplayer} />
+              <CreateRoomForm connection={connection} />
+              <RoomList connection={connection} />
             </div>
           )}
         </ViewTransition>

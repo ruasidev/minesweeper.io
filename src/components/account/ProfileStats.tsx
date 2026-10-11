@@ -1,6 +1,7 @@
 import { useTheme } from "../../context/ThemeContext"
 import type { Profile } from "../../lib/api"
 import SidebarSectionHeader from "../menu/SidebarSectionHeader"
+import { plural } from "../../lib/text"
 
 const formatTime = (seconds: number) =>
   `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`
@@ -46,7 +47,7 @@ export default function ProfileStats({ stats, elo, gamesStarted, playSeconds }: 
           <div className="flex flex-col gap-2 text-sm font-semibold">
             {stats.bestTimes.map(best => (
               <div key={`${best.rows}x${best.cols}x${best.mines}`} className={`${boxClass} flex justify-between`}>
-                <span>{best.rows} × {best.cols}, {best.mines} {best.mines === 1 ? "mine" : "mines"}</span>
+                <span>{best.rows} × {best.cols}, {plural(best.mines, "mine")}</span>
                 <span className="tabular-nums">{formatTime(best.seconds)}</span>
               </div>
             ))}

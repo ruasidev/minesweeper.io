@@ -3,44 +3,68 @@ import { ArrowLeft, Check, Eye, EyeOff, Link, Pause, Play, SkipBack, StepBack, S
 import { useReportGameWidth } from "../../context/GameWidthContext"
 import { useSettings } from "../../context/SettingsContext"
 import { useTheme } from "../../context/ThemeContext"
-import type { Blast } from "../../game/types"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import { useLayout } from "../../hooks/useLayout"
-import { getRecordedGame, type RecordedGame } from "../../lib/api"
+import { getRecordedGame, type OtherPlayersGame, type RecordedGame } from "../../lib/api"
+import { blastBetween, type Blast } from "../../lib/blast"
+import { boardSpan } from "../../lib/boardFit"
 import { cellBox, dotIn } from "../../lib/boardMetrics"
+import { viewOfBoard, type BoardView } from "../../lib/boardView"
 import { avatarSrc } from "../../lib/avatar"
-import { describeBoard, describeOutcome } from "../../lib/gameResults"
-import { makeReplay, movesMadeBy, type Replay } from "../../lib/replay"
+import { describeOutcome } from "../../lib/gameResults"
+import { makeOtherReplay, makeReplay, movesMadeBy, progressAfter, type Replay } from "../../lib/replay"
 import { playSound } from "../../lib/sounds"
 import { formatScore } from "../../lib/time"
-import type { Board } from "../../../shared/board"
-import { mineBlastRadius } from "../../../shared/protocol"
+import { sectionSizeOf } from "../../../shared/engine/analysis"
+import { boardName } from "../../../shared/game/boards"
+import { gameName, mineBlastRadius, rulesOf } from "../../../shared/game/modes"
+import { CELL_MINE } from "../../../shared/engine/view"
+import { MOVE_CLICK, MOVE_FLAG } from "../../../shared/protocol"
 import BoardGrid from "../minesweeper/BoardGrid"
+import { BlastRing } from "../minesweeper/BoardOverlays"
 import BoardStage from "../minesweeper/BoardStage"
 import BoardViewport from "../minesweeper/BoardViewport"
-import { BlastRing } from "../multiplayer/PlayableBoard"
+import OpponentBox from "../multiplayer/OpponentBox"
+import { plural } from "../../lib/text"
 
 // The board is only redrawn when a move changes it, not for every tick of the clock in between
 const Grid = memo(BoardGrid)
 const nothing = () => {}
 
-const KINDS: Record<RecordedGame["kind"], string> = { singleplayer: "Singleplayer", multiplayer: "Multiplayer", daily: "Daily challenge" }
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8]
-let nextBlastId = 1
 
 // The board as it stood after some number of the moves, and the mine that went off getting there, if the board
 // before it is the one that was showing: so a blast is drawn when playing forwards, and not when jumping about
-type Shown = { moveCount: number, board: Board, blast: Blast | null }
+type Shown = { moveCount: number, view: BoardView, blast: Blast | null }
 
 function show(replay: Replay, moveCount: number, before: Shown | null): Shown {
-  const board = replay.boardAfter(moveCount)
-  let blast: Blast | null = null
-  if (before && moveCount === before.moveCount + 1 && replay.mineHitsAfter(moveCount) > replay.mineHitsAfter(before.moveCount)) {
-    const mine = board.grid.flat().find(cell => cell.hasMine && cell.revealed && !before.board.grid[cell.row][cell.col].revealed)
-    const covered = new Set(board.grid.flat().filter(cell => !cell.revealed && before.board.grid[cell.row][cell.col].revealed).map(cell => `${cell.row},${cell.col}`))
-    if (mine && covered.size > 0) blast = { id: nextBlastId++, row: mine.row, col: mine.col, covered }
-  }
-  return { moveCount, board, blast }
+  // drawn as a game in progress whatever its end: a win or a loss playing out over it would get in the way of going back
+  const view: BoardView = { ...viewOfBoard(replay.boardAfter(moveCount)), status: "playing" }
+  const oneMoveOn = before !== null && moveCount === before.moveCount + 1
+  const blast = oneMoveOn ? blastBetween(before.view.cells, view.cells, view.cols) : null
+  // a mine that covered nothing back up has no blast worth drawing
+  return { moveCount, view, blast: blast && blast.covered.size > 0 ? blast : null }
+}
+
+// One of the other players of a multiplayer game being played back: their small pixelated board, as far along as
+// they were `gameMs` into the game. It is drawn by what draws it during a game, from their own recorded moves
+function OtherPlayer({ game, other, gameMs, chip }: { game: RecordedGame, other: OtherPlayersGame, gameMs: number, chip?: boolean }) {
+  const replay = useMemo(() => makeOtherReplay(game, other), [game, other])
+  const moveCount = movesMadeBy(replay, gameMs - replay.startMs)
+  const over = gameMs >= other.durationMs
+  // worked out again when they make a move or their game ends, not for every tick of the clock in between
+  const progress = useMemo(
+    () => progressAfter(replay, { rows: game.rows, cols: game.cols, outcome: other.outcome, durationMs: other.durationMs }, moveCount, over),
+    [replay, game.rows, game.cols, other.outcome, other.durationMs, moveCount, over],
+  )
+  return (
+    <OpponentBox
+      chip={chip}
+      player={{ id: other.userId, username: other.username, image: other.image }}
+      progress={progress}
+      sectionCols={Math.ceil(game.cols / sectionSizeOf(game.rows, game.cols))}
+    />
+  )
 }
 
 // A recorded game being played back. It can be paused, run faster or slower, stepped through a move at a time,
@@ -61,8 +85,13 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
   const [shown, setShown] = useState<Shown>(() => show(replay, 0, null))
   // worked out while drawing, so the board and the move it shows never fall out of step
   if (shown.moveCount !== moveCount) setShown(show(replay, moveCount, shown))
-  // drawn as a game in progress whatever its end: a win or a loss playing out over it would get in the way of going back
-  const drawn = useMemo(() => ({ ...shown.board, status: "playing" as const }), [shown.board])
+  // The mines are in every board being played back. They are only drawn over it when asked for, and the board
+  // itself is drawn without them, so a mine never looks any different from the cell beside it
+  const drawn = useMemo(() => ({ ...shown.view, layout: null }), [shown.view])
+  const hiddenMines = useMemo(
+    () => (showMines ? Array.from(shown.view.cells, (cell, at) => (shown.view.layout?.[at] === "1" && cell !== CELL_MINE ? at : -1)).filter(at => at >= 0) : []),
+    [showMines, shown.view],
+  )
   const atEnd = position >= replay.lengthMs
 
   useEffect(() => {
@@ -110,8 +139,8 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
     if (made < 1 || (made > 1 && !playing)) return
 
     if (replay.mineHitsAfter(moveCount) > replay.mineHitsAfter(before)) {
-      // in singleplayer that mine ended the game; anywhere else it went off and the game carried on
-      if (game.kind === "singleplayer") {
+      // where a mine ends the game it was the end of this one; anywhere else it went off and the game carried on
+      if (rulesOf(game.mode).mine === "ends") {
         playSound("mineClick")
         playSound("boardExplodes")
       } else {
@@ -119,12 +148,12 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
       }
     } else if (moveCount === replay.moves.length && game.outcome === "cleared") {
       playSound("win")
-    } else if (replay.moves.slice(before, moveCount).some(move => move[1] === 0)) {
+    } else if (replay.moves.slice(before, moveCount).some(move => move[1] === MOVE_CLICK)) {
       playSound("reveal")
     } else {
       playSound("flag")
     }
-  }, [moveCount, playing, replay, game.kind, game.outcome])
+  }, [moveCount, playing, replay, game.mode, game.outcome])
 
   // it stops by itself at the end
   useEffect(() => {
@@ -154,22 +183,27 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
     return () => document.removeEventListener("keydown", handleKey)
   })
 
-  useReportGameWidth(game.cols * display.cellSize + (game.cols - 1) * display.cellGap)
+  useReportGameWidth(boardSpan(game.cols, display.cellSize, display.cellGap))
   const lastMove = moveCount > 0 ? replay.moves[moveCount - 1] : null
   const lastHitMine = moveCount > 0 && replay.mineHitsAfter(moveCount) > replay.mineHitsAfter(moveCount - 1)
   const iconButton = `${styles.ghost} ${compact ? "p-2.5!" : "p-2!"}`
+  // Everyone else who played a multiplayer game, each as far along as they were at the moment on show: beside the
+  // board as they were during the game, or a strip of thumbnails on a small screen
+  const others = (chip?: boolean) => game.others.map(other => (
+    <OtherPlayer key={other.id} game={game} other={other} gameMs={replay.startMs + position} chip={chip} />
+  ))
 
   const board = (
     <BoardViewport rows={game.rows} cols={game.cols} centered readOnly className="pb-4">
-      <Grid board={drawn} lastClicked={null} chordHint={null} blast={shown.blast} resetKey={0} onCellClick={nothing} onCellRightClick={nothing} />
+      <Grid view={drawn} origin={null} chordHint={null} blast={shown.blast} resetKey={0} onCellClick={nothing} onCellRightClick={nothing} />
       {/* where the mines are: the player never saw this */}
-      {showMines && drawn.grid.flat().filter(cell => cell.hasMine && !cell.revealed).map(cell => (
-        <span key={`${cell.row}-${cell.col}`} className="absolute rounded-full bg-red-500 ring-2 ring-black/40" style={dotIn(cell.row, cell.col, 0.28)} />
+      {hiddenMines.map(at => (
+        <span key={at} className="absolute rounded-full bg-red-500 ring-2 ring-black/40" style={dotIn(Math.floor(at / game.cols), at % game.cols, 0.28)} />
       ))}
       {/* the cell the latest move was made on: red where it set a mine off, amber for a flag */}
       {lastMove && (
         <span
-          className={`absolute rounded ring-[3px] ${lastHitMine ? "ring-red-500" : lastMove[1] === 1 ? "ring-amber-400" : "ring-white"} shadow-[0_0_8px_2px_rgba(0,0,0,0.5)]`}
+          className={`absolute rounded ring-[3px] ${lastHitMine ? "ring-red-500" : lastMove[1] === MOVE_FLAG ? "ring-amber-400" : "ring-white"} shadow-[0_0_8px_2px_rgba(0,0,0,0.5)]`}
           style={cellBox(lastMove[2], lastMove[3])}
         />
       )}
@@ -203,7 +237,7 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
   const moveCounter = (
     <>
       Move {moveCount} of {replay.moves.length}
-      {mineHits > 0 && ` · ${mineHits} ${mineHits === 1 ? "mine" : "mines"} hit`}
+      {mineHits > 0 && ` · ${plural(mineHits, "mine")} hit`}
     </>
   )
 
@@ -214,18 +248,21 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
     return (
       <BoardStage
         status={
+          <div className="flex flex-col gap-2">
           <section className={`${styles.card} flex items-center gap-1 p-1.5 cursor-default ${short ? "flex-wrap" : ""} ${theme.textBody}`}>
             <button className={`${styles.ghost} shrink-0 p-2.5!`} title="Back to the history" aria-label="Back to the history" onClick={onBack}>
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div className="flex-1 min-w-0 text-sm">
-              <div className={`font-semibold leading-tight truncate ${theme.textHead}`}>@{game.username} · {describeBoard(game)}</div>
-              <div className="opacity-70 leading-tight truncate">{KINDS[game.kind]} · {describeOutcome(game.outcome, game.durationMs)}</div>
+              <div className={`font-semibold leading-tight truncate ${theme.textHead}`}>@{game.username} · {boardName(game)}</div>
+              <div className="opacity-70 leading-tight truncate">{gameName(game.mode)} · {describeOutcome(game.outcome, game.durationMs)}</div>
             </div>
             <button className={`${styles.ghost} shrink-0 p-2.5!`} title={copied ? "Link copied" : "Copy a link to this replay"} aria-label="Copy a link to this replay" onClick={copyLink}>
               {copied ? <Check className="w-5 h-5" /> : <Link className="w-5 h-5" />}
             </button>
           </section>
+          {game.others.length > 0 && <div className={`flex gap-2 ${short ? "flex-col" : "overflow-x-auto hide-scrollbar"}`}>{others(true)}</div>}
+          </div>
         }
         dock={
           <section className={`${styles.card} flex flex-col gap-1 px-2 py-2 cursor-default ${theme.textBody}`}>
@@ -263,7 +300,7 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
         <div className="flex items-center gap-3 min-w-0">
           <img src={avatarSrc(game.image)} alt="" referrerPolicy="no-referrer" className={`w-9 h-9 rounded-full object-cover border ${theme.itemBg} ${theme.itemBorder}`} />
           <div className="min-w-0">
-            <div className={`font-semibold truncate ${theme.textHead}`}>@{game.username} · {KINDS[game.kind]} · {describeBoard(game)}</div>
+            <div className={`font-semibold truncate ${theme.textHead}`}>@{game.username} · {gameName(game.mode)} · {boardName(game)}</div>
             <div className="text-sm opacity-70">
               {describeOutcome(game.outcome, game.durationMs)} · {new Date(game.at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
             </div>
@@ -278,6 +315,8 @@ function Playback({ game, onBack }: { game: RecordedGame, onBack: () => void }) 
           <button className={styles.ghost} onClick={onBack}>Back to the history</button>
         </div>
       </section>
+
+      {game.others.length > 0 && <div className={`flex flex-wrap justify-center gap-6 cursor-default ${theme.textBody}`}>{others()}</div>}
 
       {board}
 

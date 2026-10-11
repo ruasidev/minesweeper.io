@@ -21,33 +21,33 @@ export type ThemeChoices =
     | "catppuccin"
 
 export type ThemeProps = {
-    id: ThemeChoices
-    name: string
-    author: string | null
-    // a dark theme or a light one: they are listed apart
-    dark: boolean
-    background: string
-    menuBg: string
-    menuBorder: string
-    cellHidden: string
-    cellVisible: string
-    cellFlagged: string
-    cellBorder: string
-    textHead: string
-    textBody: string
-    itemBg: string
-    itemBorder: string
-    itemHoverBg: string
-    itemHoverBorder: string
-    // the ring around a box that is being typed in
-    itemSelectedBorder: string
-    // the fill, and the text colour that reads on it, of whichever item is the one chosen
-    itemSelected: string
-    cellHoverBorder: string
-    cellHoverBgHidden: string
-    cellHoverBgVisible: string
-    cellHoverBgFlagged: string
-    font?: string
+  id: ThemeChoices
+  name: string
+  author: string | null
+  // a dark theme or a light one: they are listed apart
+  dark: boolean
+  background: string
+  menuBg: string
+  menuBorder: string
+  cellHidden: string
+  cellVisible: string
+  cellFlagged: string
+  cellBorder: string
+  textHead: string
+  textBody: string
+  itemBg: string
+  itemBorder: string
+  itemHoverBg: string
+  itemHoverBorder: string
+  // the ring around a box that is being typed in
+  itemSelectedBorder: string
+  // the fill, and the text colour that reads on it, of whichever item is the one chosen
+  itemSelected: string
+  cellHoverBorder: string
+  cellHoverBgHidden: string
+  cellHoverBgVisible: string
+  cellHoverBgFlagged: string
+  font?: string
 }
 
 // The theme a first visit gets
@@ -289,7 +289,7 @@ export const themes: ThemeProps[] = [
     cellHoverBorder: "hover:border-gray-400",
     cellHoverBgHidden: "hover:bg-gray-600",
     cellHoverBgVisible: "hover:bg-gray-400",
-    cellHoverBgFlagged: "hover:bg-red-700"
+    cellHoverBgFlagged: "hover:bg-red-700",
   },
   {
     id: "ocean",
@@ -389,7 +389,7 @@ export const themes: ThemeProps[] = [
     cellHoverBorder: "hover:border-cyan-400",
     cellHoverBgHidden: "hover:bg-cyan-600",
     cellHoverBgVisible: "hover:bg-violet-600",
-    cellHoverBgFlagged: "hover:bg-pink-600"
+    cellHoverBgFlagged: "hover:bg-pink-600",
   },
   {
     id: "cyberpunk",
@@ -441,7 +441,7 @@ export const themes: ThemeProps[] = [
     cellHoverBgHidden: "hover:bg-green-600",
     cellHoverBgVisible: "hover:bg-green-100",
     cellHoverBgFlagged: "hover:bg-red-700",
-    font: "font-monocraft"
+    font: "font-monocraft",
   },
   {
     id: "paper",
@@ -541,7 +541,7 @@ export const themes: ThemeProps[] = [
     cellHoverBorder: "hover:border-orange-400",
     cellHoverBgHidden: "hover:bg-amber-500",
     cellHoverBgVisible: "hover:bg-amber-300",
-    cellHoverBgFlagged: "hover:bg-orange-600"
+    cellHoverBgFlagged: "hover:bg-orange-600",
   },
   {
     id: "pig",
@@ -566,7 +566,7 @@ export const themes: ThemeProps[] = [
     cellHoverBorder: "hover:border-violet-400",
     cellHoverBgHidden: "hover:bg-violet-600",
     cellHoverBgVisible: "hover:bg-violet-300",
-    cellHoverBgFlagged: "hover:bg-violet-700"  
+    cellHoverBgFlagged: "hover:bg-violet-700",
   },
 ]
 

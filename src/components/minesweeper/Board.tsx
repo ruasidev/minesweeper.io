@@ -1,17 +1,8 @@
-import { useMinesweeperGameContext } from "../../context/MinesweeperGameContext"
+import { useSoloGameContext } from "../../context/SoloGameContext"
 import BoardGrid from "./BoardGrid"
 
 // The singleplayer board
 export default function Board() {
-  const { board, lastClicked, chordHint, resetKey, handleClickCell, handleRightClickCell } = useMinesweeperGameContext()
-  return (
-    <BoardGrid
-      board={board}
-      lastClicked={lastClicked}
-      chordHint={chordHint}
-      resetKey={resetKey}
-      onCellClick={handleClickCell}
-      onCellRightClick={handleRightClickCell}
-    />
-  )
+  const { view, origin, chordHint, resetKey, click, flag } = useSoloGameContext()
+  return <BoardGrid view={view} origin={origin} chordHint={chordHint} resetKey={resetKey} onCellClick={click} onCellRightClick={flag} />
 }
