@@ -1,8 +1,8 @@
 import { memo, useEffect, useState, type ReactNode } from "react"
-import { Bomb } from "lucide-react"
 import { useTheme } from "../../context/ThemeContext"
 import { CELL_FLAGGED, CELL_MINE, isUncovered, numberOn } from "../../../shared/engine/view"
 import FlagIcon from "./FlagIcon"
+import MineIcon from "./MineIcon"
 
 export type CellProps = {
   row: number
@@ -41,7 +41,7 @@ function Cell({ row, col, cell, animationClass, animationDelay, chordHintKey, bl
   // smaller than a number, which leaves it room on every side: a cell full to its edges with flag reads as a
   // block of colour and not as a flag
   if (flagged) value = <FlagIcon className="w-[0.8em] h-[0.8em]" />
-  if (openMine) value = <Bomb className="w-[1em] h-[1em]" />
+  if (openMine) value = <MineIcon className="w-[0.8em] h-[0.8em]" />
   if (hideValue) value = ""
 
   const look = flagged || openMine ? `${theme.cellFlagged} ${theme.cellHoverBgFlagged}`

@@ -7,11 +7,9 @@ import { useElementWidth } from "../../hooks/useElementWidth"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import { useLayout } from "../../hooks/useLayout"
 import type { ServerConnection } from "../../hooks/useServerConnection"
-import { useTimeLeft } from "../../hooks/useTimeLeft"
 import { playSound } from "../../lib/sounds"
 import { boardSpan } from "../../lib/boardFit"
 import { ownGameIn } from "../../lib/connection"
-import { formatTimeLeft } from "../../lib/time"
 import { rulesOf } from "../../../shared/game/modes"
 import type { GameSummary, RoomDetail } from "../../../shared/protocol"
 import FloatingWindow from "../app/FloatingWindow"
@@ -21,48 +19,21 @@ import GameBar, { BarField } from "../minesweeper/GameBar"
 import GameClock from "../minesweeper/GameClock"
 import LiveBoard from "../minesweeper/LiveBoard"
 import OpponentBox from "./OpponentBox"
+import { TimeLeftFigure, TimeLimitPill } from "./TimeLimit"
 import { plural } from "../../lib/text"
 
-// The clock on the players still going, which starts once enough of the others have finished.
-//
-// Wherever it is shown, it takes up no room that wasn't already set aside for it: it starts in the middle of a
-// game, and a board that moved under the pointer just then would be a click on the wrong cell.
-
-// It beeps when it starts and through its last seconds
+// The clock on the players still going (see TimeLimit.tsx) makes itself heard as well: a beep when it starts, one
+// when the last ten seconds begin, and one for each of the last three
 function useTimeLimitBeeps(deadlineAt: number | null) {
   useEffect(() => {
     if (deadlineAt === null) return
     const untilEnd = deadlineAt - Date.now()
     const beeps = [playSound("countdown")]
-    for (const seconds of [3, 2, 1]) {
+    for (const seconds of [10, 3, 2, 1]) {
       if (untilEnd > seconds * 1000) beeps.push(playSound("countdown", untilEnd - seconds * 1000))
     }
     return () => beeps.forEach(cancel => cancel())
   }, [deadlineAt])
-}
-
-// On a big screen: a pill that floats over the head of the game, and stays in view however far down the board
-// the player has scrolled. `spare` is the same pill with nothing in it to see: what keeps its room for it
-function TimeLimitPill({ deadlineAt, spare }: { deadlineAt: number, spare?: boolean }) {
-  const left = useTimeLeft(deadlineAt)
-  const lastSeconds = left <= 10_000
-  return (
-    <div
-      role={spare ? undefined : "timer"}
-      aria-hidden={spare}
-      className={`flex items-center gap-3 px-4 py-1.5 rounded-xl font-semibold whitespace-nowrap cursor-default text-white
-        ${spare ? "invisible" : `shadow-lg shadow-black/40 ${lastSeconds ? "bg-red-600 animate-pulse" : "bg-amber-600"}`}`}
-    >
-      <span className="text-2xl font-extrabold tabular-nums">{spare ? "00:00" : formatTimeLeft(left)}</span>
-      <span>left to finish</span>
-    </div>
-  )
-}
-
-// On a small one: the figure the game's own clock has on the bar, counting down in its place
-function TimeLeftFigure({ deadlineAt, className }: { deadlineAt: number, className: string }) {
-  const left = useTimeLeft(deadlineAt)
-  return <span role="timer" className={`${className} ${left <= 10_000 ? "text-red-500! animate-pulse" : "text-amber-500!"}`}>{formatTimeLeft(left)}</span>
 }
 
 // How much room a column of the other players' boards needs beside this player's own, with the gap between them
@@ -174,7 +145,7 @@ export default function GameView({ room, game, connection }: { room: RoomDetail,
                 <>
                   {playing && <button className={menuButton} onClick={() => setConfirmingGiveUp(true)}>Give up</button>}
                   {isHost && <button className={menuButton} onClick={() => { connection.endGame(); setMenuOpen(false) }}>End the game for everyone</button>}
-                  <button className={menuButton} onClick={connection.leaveRoom}>Leave room</button>
+                  <button className={`${menuButton} text-red-500`} onClick={connection.leaveRoom}>Leave room</button>
                 </>
               )}
             </div>
@@ -220,7 +191,7 @@ export default function GameView({ room, game, connection }: { room: RoomDetail,
           {isHost && !confirmingGiveUp && (
             <button className={styles.ghost} title="Stop the game for everyone" onClick={connection.endGame}>End game</button>
           )}
-          {!confirmingGiveUp && <button className={styles.ghost} onClick={connection.leaveRoom}>Leave room</button>}
+          {!confirmingGiveUp && <button className={styles.leave} onClick={connection.leaveRoom}>Leave room</button>}
         </div>
       </section>
 

@@ -92,7 +92,7 @@ export default function ResultsView({ room, game, connection, onBackToRoom, onWa
           {room.hostId === myId && !game.over && (
             <button className={styles.ghost} title="Stop the game for everyone still playing" onClick={connection.endGame}>End game</button>
           )}
-          <button className={styles.ghost} onClick={connection.leaveRoom}>Leave room</button>
+          <button className={styles.leave} onClick={connection.leaveRoom}>Leave room</button>
         </div>
       </section>
 

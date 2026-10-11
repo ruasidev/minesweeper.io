@@ -23,6 +23,9 @@ export function useFormStyles() {
     primary: `px-4 py-2.5 rounded-lg pressable font-bold disabled:opacity-50 ${theme.itemSelected}`,
     // A button among others, in a toolbar or beside a heading: nothing around it until the pointer is over it
     ghost: `px-3 py-2 rounded-md pressable font-semibold disabled:opacity-50 ${ghostColors(theme)}`,
+    // The way out of somewhere: leaving a room. The same button in red, with a line round it, so that it isn't taken
+    // for one of the ordinary ones beside it and pressed in passing
+    leave: "px-3 py-2 rounded-md border border-red-500/50 pressable font-semibold text-red-500 hover:bg-red-500/10 disabled:opacity-50",
     // ...and a small one, for a row of a table or a list
     ghostSmall: `px-2 py-1 pointer-coarse:px-3 pointer-coarse:py-2.5 rounded text-xs font-semibold pressable disabled:opacity-50 ${ghostColors(theme)}`,
     // one of a set of choices: the chosen one is filled with the theme's highlight, the others are bare and stand back a little

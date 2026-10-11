@@ -102,10 +102,10 @@ function Lobby() {
   const roomId = connection.room?.id ?? null
   const playerCount = connection.room?.players.length ?? 0
   const gameOver = game?.over ?? false
-  const lastSeen = useRef({ roomId, playerCount, stage, gameOver })
+  const lastSeen = useRef({ roomId, playerCount, stage, gameOver, outcome })
   useEffect(() => {
     const before = lastSeen.current
-    lastSeen.current = { roomId, playerCount, stage, gameOver }
+    lastSeen.current = { roomId, playerCount, stage, gameOver, outcome }
     if (roomId && (roomId !== before.roomId || playerCount > before.playerCount)) playSound("roomJoin")
     // ...one for someone going out of it: this player leaving the room, or another player leaving them in it
     const left = before.roomId !== null && (roomId === null || (roomId === before.roomId && playerCount < before.playerCount))
@@ -113,9 +113,15 @@ function Lobby() {
     // ...and the screen-change sound for coming back out: from someone's board to the results, from there to the room.
     // (Out of the room altogether has just had its own.)
     else if (STAGES.indexOf(stage) < STAGES.indexOf(before.stage)) playSound("transition")
-    // a game that is over has just been scored: fetch the player's level and rating again in a moment
-    if (gameOver && !before.gameOver) setTimeout(refreshProfile, 1500)
-  }, [roomId, playerCount, stage, gameOver, refreshProfile])
+    if (gameOver && !before.gameOver && roomId === before.roomId) {
+      // The game has just ended for everyone. Whoever's own game ended with it has heard that already (the board
+      // clearing, or the sound of being stopped): this is for those who were waiting on the rest, at the results
+      // or watching, for whom nothing else marks the moment the results became final
+      if (before.outcome !== "playing") playSound("gameEnd")
+      // it has just been scored: fetch the player's level and rating again in a moment
+      setTimeout(refreshProfile, 1500)
+    }
+  }, [roomId, playerCount, stage, gameOver, outcome, refreshProfile])
 
   // ...and one for the server refusing something (a wrong passcode, a room that's gone)
   useEffect(() => {

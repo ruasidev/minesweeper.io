@@ -3,6 +3,7 @@ import buttonClickSelect from "../../ui-sounds/button-click-select.mp3"
 import cellClickPop from "../../ui-sounds/cell-click-pop.mp3"
 import dullExplosion from "../../ui-sounds/dull-explosion.mp3"
 import errorSound from "../../ui-sounds/error-sound.mp3"
+import gameFound from "../../ui-sounds/game-found.mp3"
 import gameStartCountdown from "../../ui-sounds/game-start-countdown.mp3"
 import itemRewardSound from "../../ui-sounds/item-reward-sound.mp3"
 import keyboardClick from "../../ui-sounds/keyboard-click.mp3"
@@ -24,7 +25,8 @@ type Sound = {
 }
 
 // Every sound effect: what it is for and the file it plays.
-// ui-sounds/game-found.mp3 isn't here yet: it is waiting for the matchmaking queue.
+// (ui-sounds/game-found.mp3 was put by for the matchmaking queue, which doesn't exist yet. It is lent to the end of
+// a multiplayer game meanwhile: one of the two will want a sound of its own when the queue arrives.)
 // (game-start.mp3 is in the folder too, and not used.)
 const SOUNDS = {
   // the screen changing: another page, themes or settings opening or closing, the account window opening
@@ -42,6 +44,8 @@ const SOUNDS = {
   gameOver: { file: lossSound, volume: 0.5 },
   // clearing the board, in either mode
   win: { file: itemRewardSound, volume: 1 },
+  // multiplayer: the game is over for everyone, heard by whoever was waiting on it: the results are final
+  gameEnd: { file: gameFound, volume: 0.7 },
   // multiplayer: someone coming into the room, yourself included
   roomJoin: { file: roomJoin, volume: 0.8 },
   // ...and someone going out of it, yourself included

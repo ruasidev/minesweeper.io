@@ -76,7 +76,7 @@ export default function RoomView({ room, connection, onViewResults }: RoomViewPr
         </span>
         <div className="ml-auto flex flex-wrap justify-end gap-2">
           {onViewResults && <button className={styles.ghost} onClick={onViewResults}>{gameOn ? "Results so far" : "Last game's results"}</button>}
-          <button className={styles.ghost} onClick={connection.leaveRoom}>Leave room</button>
+          <button className={styles.leave} onClick={connection.leaveRoom}>Leave room</button>
         </div>
       </section>
 

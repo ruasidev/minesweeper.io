@@ -6,8 +6,10 @@ import type { ServerConnection } from "../../hooks/useServerConnection"
 import { describeResult } from "../../lib/gameResults"
 import type { GameSummary } from "../../../shared/protocol"
 import BoardStage from "../minesweeper/BoardStage"
+import GameClock from "../minesweeper/GameClock"
 import { WatchedBoard } from "../minesweeper/LiveBoard"
 import { plural } from "../../lib/text"
+import { TimeLeftFigure } from "./TimeLimit"
 
 type SpectateViewProps = {
   game: GameSummary
@@ -38,11 +40,18 @@ export default function SpectateView({ game, playerId, connection, onBack, onWat
       @{player.username}
     </button>
   ))
+  // While the player being watched is still going, the game's clock runs beside how they stand, and once the
+  // players still going have been put on a clock of their own, how long that leaves them
+  const stillGoing = progress?.outcome === "playing"
   const standing = progress && (
-    <span className="inline-flex items-center gap-2 font-semibold tabular-nums">
-      {progress.outcome === "playing" && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
+    <span className="inline-flex flex-wrap items-center gap-x-2 font-semibold tabular-nums">
+      {stillGoing && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
+      {stillGoing && <><GameClock startedAt={connection.gameStartedAt} durationMs={null} /><span aria-hidden>·</span></>}
       {describeResult(progress)}
       {progress.mineHits > 0 && ` · ${plural(progress.mineHits, "mine")} hit`}
+      {stillGoing && connection.gameDeadlineAt !== null && (
+        <span className="whitespace-nowrap">· <TimeLeftFigure deadlineAt={connection.gameDeadlineAt} /> left</span>
+      )}
     </span>
   )
   const board = watched
