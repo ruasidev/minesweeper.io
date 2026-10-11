@@ -18,8 +18,6 @@ type SignInFormProps = {
   onSignedIn: () => void
   // put the cursor in the first box straight away: right for a window that was just opened, not for a form sitting on a page
   autoFocus?: boolean
-  // what the form is headed with, where "Welcome back" and "Create your account" don't suit the page it is on
-  titles?: Partial<Record<AuthMode, string>>
 }
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
@@ -49,7 +47,7 @@ function Field({ label, icon, trailing, ...input }: FieldProps) {
 }
 
 // Logging in and signing up: with Google, or with an email address and a password
-export default function SignInForm({ mode, onModeChange, onSignedIn, autoFocus, titles }: SignInFormProps) {
+export default function SignInForm({ mode, onModeChange, onSignedIn, autoFocus }: SignInFormProps) {
   const { theme } = useTheme()
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
@@ -105,7 +103,7 @@ export default function SignInForm({ mode, onModeChange, onSignedIn, autoFocus, 
   return (
     <div className="flex flex-col gap-5">
       <div className="cursor-default">
-        <h2 className={`text-2xl font-bold ${theme.textHead}`}>{titles?.[mode] ?? HEADINGS[mode].title}</h2>
+        <h2 className={`text-2xl font-bold ${theme.textHead}`}>{HEADINGS[mode].title}</h2>
         <p className={`mt-1 text-sm opacity-70 ${theme.textBody}`}>{HEADINGS[mode].subtitle}</p>
       </div>
 

@@ -156,12 +156,16 @@ export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onCloseP
     </button>
   )
 
-  return (
+  // Behind "More" the list is a tray, only as tall as what is in it, so that everything on it is within reach of
+  // the thumb that brought it up. A view opened from it needs all the height there is (the sheet says how much:
+  // see MoreSheet), and the tray grows to that for as long as one is showing
+  const tray = compact && !shownPanel
+  const layers = (
     <>
       {/* The navigation and the view opened from it are two layers: one slides out to the left as the other slides in from the right */}
       <div
         inert={isPanelOpen}
-        className={`absolute inset-0 overflow-y-auto p-3 hide-scrollbar transition-transform duration-300 ease-out ${isPanelOpen ? "-translate-x-full" : ""}`}
+        className={`${tray ? "relative" : "absolute inset-0"} overflow-y-auto p-3 hide-scrollbar transition-transform duration-300 ease-out ${isPanelOpen ? "-translate-x-full" : ""}`}
       >
         {compact ? (
           <div className="flex flex-col gap-2 min-h-full">
@@ -212,6 +216,7 @@ export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onCloseP
       </div>
     </>
   )
+  return compact ? <div className="relative" style={shownPanel ? { height: "var(--sheet-h, 100%)" } : undefined}>{layers}</div> : layers
 }
 
 // The pane down the left of a desktop, from the top of the screen to the bottom, between the board (which slides

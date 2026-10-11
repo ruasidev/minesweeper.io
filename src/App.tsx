@@ -186,7 +186,7 @@ function App() {
               {/* switching page eases the new one in, the same way multiplayer moves between its stages */}
               <ViewTransition view={route} order={ROUTES} className="h-full">
                 {route === "admin" ? <AdminScreen />
-                  : route === "multiplayer" ? <MultiplayerScreen />
+                  : route === "multiplayer" ? <MultiplayerScreen onOpenAuth={openAccount} />
                   : route === "daily" ? <DailyScreen onOpenAuth={openAccount} />
                   : route === "leaderboard" ? <LeaderboardScreen />
                   : route === "history" ? <HistoryScreen userId={params[0] ?? null} gameId={params[1] ? Number(params[1]) : null} onOpenAuth={openAccount} />

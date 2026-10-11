@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react"
+import { useEffect, type CSSProperties, type ReactNode } from "react"
 import { useFormStyles } from "../../hooks/useFormStyles"
 
 type MoreSheetProps = {
@@ -10,9 +10,11 @@ type MoreSheetProps = {
 }
 
 // What "More" brings up on a phone or a tablet: everything the left pane holds on a desktop, apart from the pages
-// that have tabs. It is that same pane, floating over the page in the room the layout has for it: between the
-// header and the tabs on a phone, and beside the rail on a tablet, where the page stays in sight behind it (so a
-// theme can be seen on the board while it is being picked). A press on the dimmed page around it puts it away
+// that have tabs. It is a tray that comes up from where "More" is pressed, over the tabs on a phone and beside the
+// rail on a tablet, and is only as tall as what is in it: nothing on it is further than a thumb reaches. It can
+// grow to the whole height the layout has for it, which a view opened from it does (the chat, the settings); the
+// page stays in sight behind it, so a theme can be seen on the board while it is being picked. A press on the
+// dimmed page around it puts it away
 export default function MoreSheet({ open, beside, onClose, children }: MoreSheetProps) {
   const styles = useFormStyles()
   // Where it starts beside the rail: the gap that is between every two panes on from the rail's own right-hand
@@ -44,11 +46,16 @@ export default function MoreSheet({ open, beside, onClose, children }: MoreSheet
           ${open ? "" : `opacity-0 pointer-events-none ${beside ? "-translate-x-4" : "translate-y-4"}`}
         `}
         style={{
-          top: "calc(var(--top-space) + var(--gap))",
+          // the most room there is for it, from under the top of the screen to over the tabs: what is in it is told
+          // too, for when it wants all of it
+          "--sheet-h": "calc(var(--app-height, 100dvh) - var(--top-space) - var(--bottom-space) - var(--gap) * 2)",
+          maxHeight: "var(--sheet-h)",
           bottom: "calc(var(--bottom-space) + var(--gap))",
           left: beside ? besideRail : "calc(var(--gap) + env(safe-area-inset-left))",
-          ...(beside ? { maxWidth: `calc(100% - ${besideRail} - var(--gap))` } : { right: "calc(var(--gap) + env(safe-area-inset-right))" }),
-        }}
+          // beside the rail it is as wide as it is made; otherwise it runs to the other edge
+          right: beside ? undefined : "calc(var(--gap) + env(safe-area-inset-right))",
+          maxWidth: beside ? `calc(100% - ${besideRail} - var(--gap))` : undefined,
+        } as CSSProperties}
       >
         {children}
       </div>

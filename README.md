@@ -202,7 +202,14 @@ it for someone who isn't signed in as well. The small print (privacy, terms) is 
 on the form to sign up with.
 
 On a phone or tablet, "More" brings up the rest of what the desktop pane holds besides the main pages: global chat
-and how to play.
+and how to play, and on a phone the player's own corner. It is a tray, only as tall as what is in it, so that
+everything on it is within reach of the thumb that brought it up; it grows to the height of the screen for a view
+opened from it (the chat, the settings).
+
+**Visitors.** Someone who isn't signed in sees what there is before anything is asked of them: on the multiplayer
+page, the rooms that are open, with the same ways in a player has. Joining a room or opening one brings up the
+window to sign up in, and the room they were after is remembered (`src/lib/roomIntent.ts`), so they come out of
+it in that room.
 
 **Chat.** A player is mentioned by their name with an @ before it, in a room's chat or the global one. Typing the
 @ offers the names it could be (whoever is in the room first), and whoever is named sees that message picked out.
@@ -315,7 +322,10 @@ How a race goes (`game.ts`, with the room's side of it in `lobby/rooms.ts` and i
   "No guessing" switch, the same one the game has, shows the other's.
 - **The daily challenge** (`#/daily`, `server/src/modes/daily.ts`) is one board a day, the same for everyone,
   run by the server. The board comes from the date mixed with the server's secret, and a player's clock starts
-  the first time they start that day's board.
+  the first time they start that day's board. Once they clear it, the board gives way to their result: their
+  time, where it puts them among everyone who has cleared it, how far they are from the fastest, and when the next
+  board arrives. From there they can look back at their own board (the replay of their game), which shows them
+  nothing they haven't uncovered themselves; nobody else is shown a go at today's board until the day is out.
 - **Experience, levels and ratings**: what a game is worth is worked out in `server/src/scoring.ts` and awarded by
   each mode (`server/src/modes/`); the level curve and the measure of how hard a board is are in
   `shared/progression.ts`.

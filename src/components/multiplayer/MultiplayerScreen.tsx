@@ -3,7 +3,9 @@ import { useAccount } from "../../context/AccountContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useFormStyles } from "../../hooks/useFormStyles"
 import { useConnection } from "../../context/ConnectionContext"
+import type { AuthMode } from "../../game/types"
 import { useLayout } from "../../hooks/useLayout"
+import { takeRoomToJoin } from "../../lib/roomIntent"
 import { playSound } from "../../lib/sounds"
 import FloatingWindow from "../app/FloatingWindow"
 import Page from "../app/Page"
@@ -39,8 +41,16 @@ function Lobby() {
   const [creating, setCreating] = useState(false)
   // ...which has done its job once there is a room to be in
   if (creating && connection.room) setCreating(false)
-  const { leaveRoom, spectate } = connection
+  const { leaveRoom, spectate, joinRoom } = connection
   useEffect(() => leaveRoom, [leaveRoom])
+
+  // Someone who asked to join a room before they had an account is taken to it now that they do
+  const connected = connection.status === "connected"
+  useEffect(() => {
+    if (!connected) return
+    const wanted = takeRoomToJoin()
+    if (wanted) joinRoom(wanted)
+  }, [connected, joinRoom])
 
   const room = connection.room
   const game = room?.game ?? null
@@ -174,7 +184,7 @@ function Lobby() {
 }
 
 // The multiplayer part of the site. It takes the game's place beside the left pane
-export default function MultiplayerScreen() {
+export default function MultiplayerScreen({ onOpenAuth }: { onOpenAuth: (mode: AuthMode) => void }) {
   const { session, isPending } = useAccount()
 
   if (isPending) return <Page title="Multiplayer">{null}</Page>
@@ -182,7 +192,7 @@ export default function MultiplayerScreen() {
   if (session) return <Lobby key={session.user.id} />
   return (
     <Page title="Multiplayer">
-      <SignedOutMultiplayer />
+      <SignedOutMultiplayer onOpenAuth={onOpenAuth} />
     </Page>
   )
 }
