@@ -154,6 +154,16 @@
   animation: popIn 120ms ease-out;
 }
 
+/* Something worth pressing, pointed out once: a ring that swells out from it and goes, twice over.
+   (Training's way to an explanation, when the explanation is likely to be wanted) */
+@keyframes nudge {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(251 191 36 / 0); }
+  50%      { box-shadow: 0 0 0 7px rgb(251 191 36 / 0.4); }
+}
+.animate-nudge {
+  animation: nudge 1.1s ease-in-out 2;
+}
+
 /* Settings → Reduce motion.
    Everything in the interface changes instantly instead of sliding, fading or zooming, and nothing grows,
    shrinks or bounces under the pointer. The game's own animations (winning, losing, the chord hint, and their

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTheme } from "./context/ThemeContext"
 import { useSettings } from "./context/SettingsContext"
 import { useLocalStorage } from "./hooks/useLocalStorage"
@@ -29,11 +29,18 @@ import MainNavigation, { NavContent, NAV_DEFAULT_WIDTH, NAV_MIN_WIDTH, NAV_PANEL
 import MoreSheet from "./components/app/MoreSheet"
 import UpdateNotice from "./components/app/UpdateNotice"
 import { NavRail, TabBar } from "./components/app/NavTabs"
+import { PHONE_MORE, type NavEntry } from "./components/app/navItems"
 import type { AuthMode, Panel, Route } from "./game/types"
 import { playSound } from "./lib/sounds"
 
+// Training brings a solver and every pattern there is with it. It is fetched when its page is first opened, so
+// that someone who never opens it never waits for it
+const TrainingScreen = lazy(() => import("./components/training/TrainingScreen"))
+
 // Room a game needs around its board and beside the left pane before the pane has to make way, in px
 const GAME_MARGIN = 96
+// what "More" lists of the main pages beside a rail, which has a tab for every one of them
+const NO_PAGES: NavEntry[] = []
 // How wide the rail of tabs is, in px: what a tablet has for navigation, and what the pane folds down to.
 // Wide enough for the longest of the tabs' names ("Leaderboard") to stand clear of its edges
 const RAIL_WIDTH = 88
@@ -188,6 +195,7 @@ function App() {
                 {route === "admin" ? <AdminScreen />
                   : route === "multiplayer" ? <MultiplayerScreen onOpenAuth={openAccount} />
                   : route === "daily" ? <DailyScreen onOpenAuth={openAccount} />
+                  : route === "training" ? <Suspense fallback={null}><TrainingScreen view={params} onOpenAuth={openAccount} /></Suspense>
                   : route === "leaderboard" ? <LeaderboardScreen />
                   : route === "history" ? <HistoryScreen userId={params[0] ?? null} gameId={params[1] ? Number(params[1]) : null} onOpenAuth={openAccount} />
                   : <Game />}
@@ -202,7 +210,7 @@ function App() {
           {(!desktop || collapsed) && (
             <MoreSheet open={moreOpen} beside={rail} onClose={closeMore}>
               {/* beside a rail the account is at the rail's own foot; on a phone this is where it lives */}
-              <NavContent {...navigation} compact onClose={closeMore} account={rail ? undefined : <AccountBar {...account} />} />
+              <NavContent {...navigation} compact pages={rail ? NO_PAGES : PHONE_MORE} onClose={closeMore} account={rail ? undefined : <AccountBar {...account} />} />
             </MoreSheet>
           )}
 

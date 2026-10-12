@@ -11,7 +11,7 @@ import GlobalChat from "../menu/GlobalChat"
 import HowToPlay from "../menu/HowToPlay"
 import SettingsMenu from "../menu/SettingsMenu"
 import SidebarMenu from "../menu/SidebarMenu"
-import { MAIN_PAGES } from "./navItems"
+import { MAIN_PAGES, type NavEntry } from "./navItems"
 
 // What the navigation shows and does, wherever it is put
 export type NavContentProps = {
@@ -24,8 +24,11 @@ export type NavContentProps = {
   chatMentions: number
   // how many multiplayer rooms are open right now
   openRooms: number
-  // on a phone or a tablet: the main pages are tabs there, so they are left out here
+  // on a phone or a tablet: what "More" brings up, where the main pages are tabs
   compact?: boolean
+  // The main pages listed here. All of them, unless told: where they are tabs, only the ones there was no room to
+  // make a tab of
+  pages?: NavEntry[]
   // The player's own corner (who is signed in, or the ways in), kept at the foot. Left out where the navigation
   // beside this has it already: the rail carries it itself
   account?: ReactNode
@@ -94,8 +97,8 @@ function NavItem({ icon, label, selected, tag, fresh, onClick }: NavItemProps) {
 // What the pane holds, from the top: the game's name, the places to go, the tools, and at its foot the player's own
 // corner. Whichever of chat, themes, settings or help has been opened slides in over all of it. It fills whatever
 // it is put in: the pane down the left of a desktop, or what "More" brings up where the navigation is tabs. There
-// the main pages are the tabs, so `compact` leaves them out, and the name with them
-export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onClosePanel, chatMentions, openRooms, compact, account, onClose }: NavContentProps) {
+// the main pages are the tabs, and `pages` is whichever of them aren't
+export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onClosePanel, chatMentions, openRooms, compact, pages = MAIN_PAGES, account, onClose }: NavContentProps) {
   const { theme } = useTheme()
   const { isAdmin } = useAccount()
 
@@ -112,9 +115,9 @@ export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onCloseP
     </button>
   )
 
-  const pages = (
+  const places = (
     <>
-      {!compact && MAIN_PAGES.map(({ route: to, label, icon: Icon }) => (
+      {pages.map(({ route: to, label, icon: Icon }) => (
         <NavItem
           key={to}
           icon={<Icon className="w-5 h-5 shrink-0" />}
@@ -174,7 +177,7 @@ export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onCloseP
               {closeButton}
             </div>
             <div className="flex flex-col gap-1">
-              {pages}
+              {places}
               {tools}
             </div>
             {account && <div className={`mt-auto pt-3 border-t ${theme.menuBorder}`}>{account}</div>}
@@ -182,7 +185,7 @@ export function NavContent({ route, onNavigate, openPanel, onOpenPanel, onCloseP
         ) : (
           <div className="flex flex-col gap-2 min-h-full">
             <div className="flex px-2 pt-1 pb-3">{brand}</div>
-            {pages}
+            {places}
             {/* pushed to the bottom of the pane */}
             <div className="mt-auto flex flex-col gap-2">
               {tools}

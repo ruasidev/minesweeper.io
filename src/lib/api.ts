@@ -2,6 +2,9 @@ import { API_URL } from "./authClient"
 import type { BadgeId } from "../../shared/badges"
 import type { GameFamily, GameModeId, RoomModeId, SingleplayerModeId } from "../../shared/game/modes"
 import type { BoardSettings, Move, RoomSummary } from "../../shared/protocol"
+import type { PatternId } from "../../shared/training/patterns"
+import type { Deck } from "../../shared/training/queue"
+import type { Card, Grade } from "../../shared/training/schedule"
 
 export type BestTime = {
   rows: number
@@ -214,3 +217,12 @@ export type DailyInfo = {
 export const getLeaderboard = (board: string, mode: SingleplayerModeId | RoomModeId) =>
   request<{ entries: ScoreEntry[] }>(`/leaderboard/${board}?mode=${mode}`)
 export const getDaily = () => request<DailyInfo>("/daily")
+
+// Pattern training: the signed-in player's cards, one for each pattern they have met
+export const getTrainingCards = () => request<{ cards: Deck }>("/training/patterns/cards")
+// One round answered. The server works out when the pattern comes back, by its own clock, and says so
+export const sendTrainingReview = (item: PatternId, grade: Grade) =>
+  request<{ item: PatternId, card: Card }>("/training/patterns/reviews", { method: "POST", body: { item, grade } })
+// Cards kept in this browser from before the player signed in, taken into their account. It keeps what it already
+// had, and answers with the cards it now has in all
+export const importTrainingCards = (cards: Deck) => request<{ cards: Deck }>("/training/patterns/cards", { method: "PUT", body: { cards } })

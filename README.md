@@ -1,7 +1,7 @@
 # Minesweeper World
 
-Minesweeper in the browser: singleplayer, live multiplayer rooms, a daily challenge, leaderboards, levels and
-badges, and a replay of every game the server ran. It runs at https://minesweeper.wooasi.com.
+Minesweeper in the browser: singleplayer, live multiplayer rooms, a daily challenge, training, leaderboards,
+levels and badges, and a replay of every game the server ran. It runs at https://minesweeper.wooasi.com.
 
 ## Features
 
@@ -10,6 +10,8 @@ badges, and a replay of every game the server ran. It runs at https://minesweepe
   Minesweeper, with the mines wherever chance puts them, is a switch away
 - Multiplayer rooms: everyone races the same board, with ratings, spectating and a room chat
 - A daily challenge, the same board for everyone
+- Training: the game's patterns, learned a round at a time on boards made for the purpose, each coming back
+  sooner or later by how well it is known
 - Leaderboards, levels, experience and badges
 - A match history, with every game played back move by move
 - Fair play: the server runs every ranked game, so the mines never reach the browser until a game is over
@@ -19,7 +21,8 @@ badges, and a replay of every game the server ran. It runs at https://minesweepe
 
 - The site (`src/`): React 19, TypeScript, Tailwind CSS 4, Vite
 - The API (`server/`): Hono, WebSockets, Better Auth, Drizzle ORM, Postgres
-- The rules both sides play by (`shared/`): the board engine, the game modes, the running of a game, the protocol
+- The rules both sides play by (`shared/`): the board engine, the game modes, the running of a game, the protocol,
+  and training
 - The board generator (`crates/boardgen/`): Rust, with no dependencies, run by both sides as WebAssembly
 - Tests: Vitest, with Testing Library for the parts that need a page; `cargo test` for the Rust
 
@@ -45,6 +48,17 @@ shared/game/      Games.
   boards.ts         the classic boards
   game.ts           a game being played: its players, its clock, its record. Run by the server for every
                     game that counts, and by the browser for someone playing without an account
+
+shared/training/  Pattern training. Plain data and pure functions, like the engine:
+  patterns.ts       every pattern: its shapes, as drawings, and how each is explained
+  template.ts       a shape as it is drawn, and the eight ways up it can lie
+  logic.ts          what a position proves, by counting, by pairs of numbers, or by everything there is
+  trial.ts          a round: a board made around a shape, and whether it is any use as one
+  round.ts          a round being played: what each click and flag comes to
+  explain.ts        a pattern's explanation, put onto the board of a round
+  match.ts          where a pattern lies on a board: for asking how much of real play the patterns cover
+  schedule.ts       when a pattern comes back: the cards, and what an answer does to one
+  queue.ts          which pattern is next, and how far along a player is
 
 shared/protocol.ts  what the browser and the server say to each other
 
@@ -164,6 +178,11 @@ messages a browser would send, with a ledger that keeps everything in memory (`s
 `src/lib/replay.test.ts` plays games through the same code the server runs and checks that the replay of each
 shows exactly what the player saw after every move.
 
+Training's solver is held to the same kind of account as the board generator's: on a few hundred positions
+small enough to try every way their mines could lie, it has to prove exactly what is so
+(`shared/training/logic.test.ts`). Every shape of every pattern is then put to that solver, and so are rounds of
+every pattern at every stage (`patterns.test.ts`, `trial.test.ts`).
+
 The board generator has tests of its own, in Rust (`cargo test`). The ones that matter most hold its solver to
 the slowest and surest way of answering the same question: on boards small enough to try every single way the
 mines could lie, it must say a board needs no guess exactly when that is so
@@ -191,7 +210,7 @@ over it a gap in from the edges, with the page scrolling underneath them.
 | --- | --- | --- | --- |
 | **Desktop** (wide, with a mouse) | the full pane down the left, which folds down to the rail while a board needs the room | the foot of the pane | the page scrolls; status bar above, dock along the bottom |
 | **Tablet**, or a narrow window | a rail of tabs on the left | their picture, at the foot of the rail | the board pans in its own space between a status strip and a dock |
-| **Phone** | tabs along the bottom | behind "More" | the same |
+| **Phone** | tabs along the bottom: four of the main pages, with the leaderboard behind "More" | behind "More" | the same |
 | **Phone on its side** | the rail | the foot of the rail | status and dock go down the right-hand side |
 
 Nothing goes across the top of the screen: it is all the page's. The game's name (and, while it is early days, its
@@ -331,6 +350,67 @@ How a race goes (`game.ts`, with the room's side of it in `lobby/rooms.ts` and i
   `shared/progression.ts`.
 - **Badges** are listed in `shared/badges.ts` and worked out in `server/src/badges.ts` from what a player has done.
   `EARLY_SUPPORTER_UNTIL` there is the date to move when the game leaves beta.
+
+### Training
+
+`#/training` lists the kinds of training there are, each with how far along the player is. There is one so far,
+and another is another card on that page (`TrainingModeCard`) and another deck of cards (`training_card.deck`).
+
+**Pattern training** (`#/training/patterns`) teaches the patterns players use to read a board, by spaced
+repetition. A round is a small board with one pattern on it. The player uncovers the cells that must be safe or
+flags the ones that must be mines, and finding all of either solves it. A solved round is answered Hard, Good or
+Easy, and that answer is also what moves on to the next: one of them is ready to be pressed, picked from how long
+the round took (`suggestedGrade`). A missed round is answered for the player.
+
+What makes it more than a quiz:
+
+- **No two rounds are the same board.** A pattern is data: its shapes are drawn in `shared/training/patterns.ts`
+  (digits for what a number still needs, `?` `*` `s` for covered cells and what the pattern proves of them), and
+  `makeTrial` lays a shape down one of eight ways up on a board of some size, covers more of the board around it,
+  and scatters flags. What is to be learned is the shape, and not a board.
+- **A round is provably about its pattern.** A small solver (`logic.ts`) says what a position proves by counting,
+  by pairs of numbers, or by trying everything. A board is kept as a round only if counting proves nothing on it
+  to start with, everything it does prove follows from the pattern, and nothing can be proved without the
+  pattern's numbers (`flawOf`). Most boards fail, so making a round takes anything from ten boards to a thousand,
+  a few thousandths of a second; the next round is made while the one on the board is played.
+- **A guess is a miss.** The same solver marks every click: a cell that turned out safe but that nothing on the
+  board proved is a guess (`round.ts`).
+- **Nothing is explained unasked.** After a round the pattern is named, and its name is the way to its
+  explanation: the pattern's steps, played out on the board that was just played (`explain.ts`, `Walkthrough`).
+  After a miss the cell it was missed on can be asked about as well. Every pattern is listed, and shown at work,
+  under "All patterns" (`#/training/patterns/library`).
+
+There are 29 patterns in eight families, the ones players have names for: counting, pairs (1-1, 1-2 and their
+kin), lines (1-2-1, 1-2-2-1), the same behind flags, holes, triangles, the ones that take three numbers at once,
+and two for the end of a board that are about the count of mines left. Those two have no shape. A board near its
+end is made for them, with its counter showing, and it is a round only if it proves nothing until the count is
+taken into account (`draftCounted`, in `trial.ts`).
+
+The schedule (`schedule.ts`) is the one Anki made standard: a new pattern comes back in a minute and then in
+ten, and after that a day later; a known one has its interval multiplied by every right answer, and halved by a
+miss. What comes next (`queue.ts`) is whatever is due, and otherwise a new pattern, but only while fewer than
+three are still being learned: that one rule is what sets the pace, with no asking how many new ones a day. The
+longer a pattern has been known, the more there is on its boards to see past (`stageOf`).
+
+Rounds are made and marked in the browser, so there is nothing to wait for between one and the next, and
+nothing about them can be trusted. Nothing is built on them that counts: no experience, no leaderboard. The
+server keeps a signed-in player's cards (`training_card`) and works out, by its own clock and the same
+`schedule.ts`, when each comes back (`/api/training/patterns/...` in `routes.ts`). A visitor's are kept in their
+browser, and taken into their account when they make one.
+
+How much of real play the catalogue covers is measured, not supposed. `npm run survey:patterns` plays boards the
+game would deal the way a player who knew only counting would, and each time counting runs out it looks for the
+taught patterns on the board (`match.ts`). On 300 Expert boards counting ran out about five times a board; a
+taught pattern was there to be used 79% of those times, two numbers in some other shape were the way on 9% of
+them, and the other 12% took more than two numbers at once. It also counts how often each pattern turns up, which
+is the order they are taught in within a family, and how often it has flags beside its numbers: four times in
+five. That is why a pattern that has been known for a while is met behind flags as often as not (`reduced`, in
+`trial.ts`), and it prints the positions no pattern covers, which is where the next patterns come from.
+
+To add a pattern: give it an id in `PATTERN_IDS` and an entry in the catalogue, with at least one shape and the
+steps that explain it. The tests then hold it to the solver: every shape has to prove exactly the cells it is
+drawn as proving, by the reasoning it says it takes and by none weaker (`patterns.test.ts`), and rounds of it
+have to be makeable at every stage and sound (`trial.test.ts`).
 
 ### Fair play
 

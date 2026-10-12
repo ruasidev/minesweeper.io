@@ -8,7 +8,7 @@ import { useLayout } from "../../hooks/useLayout"
 import { APP_NAME } from "../../lib/app"
 import { avatarSrc } from "../../lib/avatar"
 import AccountMenu, { type AccountActions } from "../account/AccountMenu"
-import { MAIN_PAGES } from "./navItems"
+import { MAIN_PAGES, PHONE_TABS, type NavEntry } from "./navItems"
 
 type NavTabsProps = {
   route: Route
@@ -21,8 +21,8 @@ type NavTabsProps = {
   openRooms: number
 }
 
-// the tabs, and whether they are the lower ones (see Tab)
-type TabsProps = NavTabsProps & { tight?: boolean }
+// the tabs: which of the main pages they are, and whether they are the lower ones (see Tab)
+type TabsProps = NavTabsProps & { pages: NavEntry[], tight?: boolean }
 
 type TabProps = {
   icon: ReactNode
@@ -67,8 +67,8 @@ function Tab({ icon, label, selected, badge, count, tight, onClick }: TabProps) 
 
 // The tabs themselves, the same on a phone and on a tablet: only where they are put differs.
 // First the main pages...
-function PageTabs({ route, onNavigate, moreOpen, openRooms, tight }: TabsProps) {
-  return MAIN_PAGES.map(({ route: to, short, icon: Icon }) => (
+function PageTabs({ pages, route, onNavigate, moreOpen, openRooms, tight }: TabsProps) {
+  return pages.map(({ route: to, short, icon: Icon }) => (
     <Tab
       key={to}
       icon={<Icon className="w-5 h-5" />}
@@ -81,13 +81,15 @@ function PageTabs({ route, onNavigate, moreOpen, openRooms, tight }: TabsProps) 
   ))
 }
 
-// ...then "More", which is lit while it is open, and while the page showing is the one that is reached through it
-function MoreTab({ route, moreOpen, onToggleMore, moreBadge, tight }: TabsProps) {
-  return <Tab icon={<Menu className="w-5 h-5" />} label="More" selected={moreOpen || route === "admin"} badge={moreBadge && !moreOpen} tight={tight} onClick={onToggleMore} />
+// ...then "More", which is lit while it is open, and while the page showing is one that is reached through it: the
+// admin page, and any main page there was no room to make a tab of
+function MoreTab({ pages, route, moreOpen, onToggleMore, moreBadge, tight }: TabsProps) {
+  const behind = route === "admin" || MAIN_PAGES.some(page => page.route === route && !pages.includes(page))
+  return <Tab icon={<Menu className="w-5 h-5" />} label="More" selected={moreOpen || behind} badge={moreBadge && !moreOpen} tight={tight} onClick={onToggleMore} />
 }
 
-// The tabs along the bottom of a phone: the four main pages within reach of a thumb, and everything else behind
-// "More". A pane like the header, floating clear of the edges with the page passing underneath
+// The tabs along the bottom of a phone: four of the main pages within reach of a thumb, and everything else behind
+// "More". A pane like the navigation, floating clear of the edges with the page passing underneath
 export function TabBar(props: NavTabsProps) {
   const styles = useFormStyles()
   return (
@@ -100,8 +102,8 @@ export function TabBar(props: NavTabsProps) {
         bottom: "max(var(--gap), env(safe-area-inset-bottom))",
       }}
     >
-      <PageTabs {...props} tight />
-      <MoreTab {...props} tight />
+      <PageTabs {...props} pages={PHONE_TABS} tight />
+      <MoreTab {...props} pages={PHONE_TABS} tight />
     </nav>
   )
 }
@@ -137,8 +139,8 @@ export function NavRail({ onOpenAuth, onOpenProfile, onOpenHistory, onOpenPanel,
       {/* The pages at the head of the rail and "More" at its foot, as the left pane of a desktop has its links and
           its tools. Where the screen is too short to keep them apart they close up, and scroll rather than squash */}
       <div className="flex-1 min-h-0 flex flex-col justify-between py-2 overflow-y-auto hide-scrollbar">
-        <div className={`shrink-0 grid ${rows}`}><PageTabs {...tabsProps} tight={tight} /></div>
-        <div className={`shrink-0 grid ${rows}`}><MoreTab {...tabsProps} tight={tight} /></div>
+        <div className={`shrink-0 grid ${rows}`}><PageTabs {...tabsProps} pages={MAIN_PAGES} tight={tight} /></div>
+        <div className={`shrink-0 grid ${rows}`}><MoreTab {...tabsProps} pages={MAIN_PAGES} tight={tight} /></div>
       </div>
 
       {!isPending && (

@@ -7,6 +7,7 @@ const HASHES: Record<Route, string> = {
   game: "#/",
   multiplayer: "#/multiplayer",
   daily: "#/daily",
+  training: "#/training",
   leaderboard: "#/leaderboard",
   history: "#/history",
   admin: "#/admin",
@@ -14,7 +15,8 @@ const HASHES: Record<Route, string> = {
 // in the order they come in the navigation
 export const ROUTES = Object.keys(HASHES) as Route[]
 
-// Where a page's address is followed by more, that is what the page is to show: "#/history/<player>/<game>"
+// Where a page's address is followed by more, that is what the page is to show: "#/history/<player>/<game>",
+// "#/training/patterns"
 function current(): { route: Route, params: string[] } {
   const [page = "", ...rest] = window.location.hash.replace(/^#\/?/, "").split("/")
   return {

@@ -46,6 +46,9 @@ const SOUNDS = {
   win: { file: itemRewardSound, volume: 1 },
   // multiplayer: the game is over for everyone, heard by whoever was waiting on it: the results are final
   gameEnd: { file: gameFound, volume: 0.7 },
+  // training: a round solved. (Lent by the replays, like the end of a multiplayer game by the queue: a small,
+  // bright click, for something that happens every few seconds. A round missed makes the sound of anything refused)
+  roundSolved: { file: buttonClickSelect, volume: 0.55 },
   // multiplayer: someone coming into the room, yourself included
   roomJoin: { file: roomJoin, volume: 0.8 },
   // ...and someone going out of it, yourself included

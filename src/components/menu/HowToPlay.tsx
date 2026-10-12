@@ -58,6 +58,13 @@ export default function HowToPlay() {
         "One board a day, the same for everyone.",
         "Your clock starts when you start and keeps running until you clear the board.",
       ])}
+      {section("Training", [
+        "Pattern training is one small board after another, each with one pattern on it to find.",
+        `${touch ? "Uncover" : "Click"} the cells that must be safe, or flag the ones that must be mines. Finding all of either solves the round.`,
+        "Only what the numbers prove counts: a guess is a miss, even a lucky one.",
+        "A pattern you find hard comes back sooner, and one you find easy comes back later.",
+        "To see why a pattern works, press its name after a round. All of them are listed under All patterns.",
+      ])}
     </>
   )
 }

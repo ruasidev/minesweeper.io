@@ -5,12 +5,14 @@ import { createMiddleware } from "hono/factory"
 import { auth } from "./auth.js"
 import { badgesOf } from "./badges.js"
 import { db } from "./db/index.js"
-import { account, avatar, dailyAttempt, gameRecord, gameResult, multiplayerResult, profile, user } from "./db/schema.js"
+import { account, avatar, dailyAttempt, gameRecord, gameResult, multiplayerResult, profile, trainingCard, user } from "./db/schema.js"
 import { env } from "./env.js"
 import { BIO_MAX, USERNAME_PATTERN } from "../../shared/profile.js"
 import { STARTING_ELO } from "../../shared/progression.js"
 import { BOARD_PRESETS, DAILY_BOARD_SETTINGS } from "../../shared/game/boards.js"
 import { isSingleplayerMode } from "../../shared/game/modes.js"
+import { isPatternId } from "../../shared/training/patterns.js"
+import { isCard, isGrade, review, type Card } from "../../shared/training/schedule.js"
 import { lobby } from "./lobby/index.js"
 import { dailyDate } from "./modes/daily.js"
 import { getJoinDate, getOrCreateProfile, getStats, isUsernameTaken } from "./profile.js"
@@ -191,6 +193,20 @@ const isIntBetween = (value: unknown, low: number, high: number): value is numbe
 
 // How many games a page of someone's match history holds
 const HISTORY_PAGE = 30
+
+// The kinds of training there are, and for each, what the things a player has cards for go by
+const TRAINING_DECKS: Record<string, (item: unknown) => item is string> = { patterns: isPatternId }
+
+// what a deck of cards is sent in at most, when a visitor's progress is taken into their account
+const TRAINING_IMPORT_MAX_BYTES = 64 * 1024
+
+// A player's cards in one kind of training, by what each is a card for. A card for something that kind of training
+// no longer has is left where it is, and left out
+async function trainingCards(userId: string, deck: string): Promise<Record<string, Card>> {
+  const cards = await db.select({ item: trainingCard.item, state: trainingCard.state }).from(trainingCard)
+    .where(and(eq(trainingCard.userId, userId), eq(trainingCard.deck, deck)))
+  return Object.fromEntries(cards.filter(card => TRAINING_DECKS[deck](card.item)).map(card => [card.item, card.state]))
+}
 
 // A player sees all of their own games, and an admin all of anyone's
 const seesEverything = (viewer: SessionUser, ownerId: string) => viewer.id === ownerId || isAdmin(viewer)
@@ -377,6 +393,52 @@ export const routes = new Hono<{ Variables: { user: SessionUser } }>()
   // Singleplayer results used to be reported here by the browser, which could report anything. The server runs
   // those games itself now (over the WebSocket, like multiplayer), so this only tells an old copy of the site so
   .post("/games", (c) => c.json({ error: "This version of the game is out of date. Reload the page." }, 410))
+
+  // Training: what the player has learned of one kind of it, a card for each thing they have met. Rounds are made
+  // and marked in the browser (shared/training/), which only says here how each one went: the server keeps the
+  // cards, and works out by its own clock when each comes back. Nothing that is ranked or rewarded is built on
+  // them, since an answer is only the player's word
+  .use("/training/:deck/*", async (c, next) => {
+    if (!Object.hasOwn(TRAINING_DECKS, c.req.param("deck"))) return c.json({ error: "There's no training by that name" }, 404)
+    await next()
+  })
+  .get("/training/:deck/cards", async (c) => c.json({ cards: await trainingCards(c.get("user").id, c.req.param("deck")) }))
+
+  // One round answered: the card it was a round of moves on
+  .post("/training/:deck/reviews", async (c) => {
+    const userId = c.get("user").id
+    const deck = c.req.param("deck")
+    const body = await c.req.json().catch(() => null)
+    const item: unknown = body?.item
+    const grade: unknown = body?.grade
+    if (!TRAINING_DECKS[deck](item) || !isGrade(grade)) return c.json({ error: "That isn't a round of this training" }, 400)
+
+    const [kept] = await db.select({ state: trainingCard.state }).from(trainingCard)
+      .where(and(eq(trainingCard.userId, userId), eq(trainingCard.deck, deck), eq(trainingCard.item, item)))
+    const card = review(kept?.state ?? null, grade, Date.now())
+    await db.insert(trainingCard).values({ userId, deck, item, state: card })
+      .onConflictDoUpdate({ target: [trainingCard.userId, trainingCard.deck, trainingCard.item], set: { state: card, updatedAt: new Date() } })
+    return c.json({ item, card })
+  })
+
+  // A visitor's cards, kept in their browser until they signed up, taken into their account. Only for what the
+  // account has no card for yet: what it already knows is never overwritten by what a browser says
+  .put(
+    "/training/:deck/cards",
+    bodyLimit({ maxSize: TRAINING_IMPORT_MAX_BYTES, onError: (c) => c.json({ error: "That is too much to take in" }, 413) }),
+    async (c) => {
+      const userId = c.get("user").id
+      const deck = c.req.param("deck")
+      const body = await c.req.json().catch(() => null)
+      const sent: unknown = body?.cards
+      if (typeof sent !== "object" || sent === null) return c.json({ error: "No cards were sent" }, 400)
+      const cards = Object.entries(sent).filter((entry): entry is [string, Card] => TRAINING_DECKS[deck](entry[0]) && isCard(entry[1]))
+      if (cards.length > 0) {
+        await db.insert(trainingCard).values(cards.map(([item, state]) => ({ userId, deck, item, state }))).onConflictDoNothing()
+      }
+      return c.json({ cards: await trainingCards(userId, deck) })
+    },
+  )
 
   // Admins only from here on
   .use("/admin/*", async (c, next) => {

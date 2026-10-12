@@ -71,6 +71,13 @@
       "when": 1791690298483,
       "tag": "0009_game_result_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791772815135,
+      "tag": "0010_training_card",
+      "breakpoints": true
     }
   ]
 }
